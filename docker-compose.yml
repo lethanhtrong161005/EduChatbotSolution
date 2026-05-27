@@ -1,0 +1,39 @@
+services:
+  db:
+    image: pgvector/pgvector:0.8.2-pg18-trixie
+    container_name: educhatbot_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: edu_admin
+      POSTGRES_PASSWORD: EduChatbotPass2026!
+      POSTGRES_DB: educhatbot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      - educhatbot_net
+
+  web:
+    image: educhatbot_web_app
+    container_name: educhatbot_mvc_web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" 
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=educhatbot_db;Username=edu_admin;Password=EduChatbotPass2026!;Include Error Detail=true
+      - OpenAI__ApiKey=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 
+    depends_on:
+      - db
+    networks:
+      - educhatbot_net
+
+volumes:
+  pgdata:
+
+networks:
+  educhatbot_net:
+    driver: bridge 
