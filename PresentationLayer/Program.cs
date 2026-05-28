@@ -1,7 +1,6 @@
 using DataAccessLayer.Data;
 using DataAccessLayer.Entities;
 using DataAccessLayer.UnitOfWork;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PresentationLayer.Defaults;
