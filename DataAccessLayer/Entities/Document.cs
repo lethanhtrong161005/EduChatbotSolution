@@ -1,6 +1,6 @@
 ﻿namespace DataAccessLayer.Entities;
 
-public class Document : UuidEntity
+public class Document : NaturalEntity
 {
     public Guid ChapterId { get; set; }
     public Guid UploaderId { get; set; }
@@ -12,5 +12,5 @@ public class Document : UuidEntity
 
 
     public virtual Chapter Chapter { get; set; } = null!;
-    public virtual User Uploader { get; set; } = null!;
+    public virtual ApplicationUser Uploader { get; set; } = null!;
 }

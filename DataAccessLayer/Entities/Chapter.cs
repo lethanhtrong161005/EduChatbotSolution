@@ -1,6 +1,6 @@
 ﻿namespace DataAccessLayer.Entities;
 
-public class Chapter : UuidEntity
+public class Chapter : NaturalEntity
 {
     public Guid SubjectId { get; set; }
     public string Name { get; set; } = string.Empty;

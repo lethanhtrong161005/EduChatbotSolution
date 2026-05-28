@@ -2,7 +2,7 @@
 
 namespace DataAccessLayer.Entities;
 
-public class BaseEntity
+public abstract class BaseEntity
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public DateTime CreatedAt { get; set; }

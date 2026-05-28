@@ -1,6 +1,6 @@
 ﻿namespace DataAccessLayer.Entities;
 
-public class UserSubscription : UuidEntity
+public class UserSubscription : NaturalEntity
 {
     public Guid UserId { get; set; }
     public Guid SubscriptionPlanId { get; set; }
@@ -8,7 +8,7 @@ public class UserSubscription : UuidEntity
     public DateTime EndDate { get; set; }
     public SubscriptionStatus Status { get; set; }
 
-    public virtual ICollection<User> Users { get; set; } = [];
+    public virtual ICollection<ApplicationUser> Users { get; set; } = [];
     public virtual ICollection<SubscriptionPlan> SubscriptionPlans { get; set; } = [];
 }
 
