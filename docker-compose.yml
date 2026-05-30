@@ -5,6 +5,7 @@ services:
     environment:
       POSTGRES_USER: edu_admin
       POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: educhatbot_db
       PGDATA: /data/postgres
     volumes:
       - db:/data/postgres

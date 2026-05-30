@@ -12,5 +12,5 @@ public static class AuthenticationDefaults
 
     public const string ReturnUrlParamName = "return-url";
 
-    public const string FallbackReturnUrl = "/";
+    public const string FallbackReturnUrl = "/home/index";
 }
