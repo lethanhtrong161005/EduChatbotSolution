@@ -1,5 +1,9 @@
-﻿namespace DataAccessLayer.Common;
+namespace Domain.Common;
 
+/// <summary>
+/// A generic list that supports pagination metadata.
+/// </summary>
+/// <typeparam name="T">The type of items in the list.</typeparam>
 public class PaginatedList<T> : List<T>
 {
     public int PageSize { get; private set; }

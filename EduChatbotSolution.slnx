@@ -4,5 +4,6 @@
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
+  <Project Path="Domain/Domain.csproj" />
   <Project Path="PresentationLayer/PresentationLayer.csproj" />
 </Solution>
