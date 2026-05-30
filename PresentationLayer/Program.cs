@@ -1,7 +1,8 @@
+using BusinessLayer.Services.Implementations;
+using BusinessLayer.Services.Interfaces;
 using DataAccessLayer.Data;
-using DataAccessLayer.Entities;
 using DataAccessLayer.UnitOfWork;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PresentationLayer.Defaults;
 using PresentationLayer.Extensions;
@@ -11,34 +12,38 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Database ─────────────────────────────────────────────────
 builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
 {
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
                   ?? throw new KeyNotFoundException("Could not find connection string.");
-    opts.UseNpgsql(connStr, opts => { })
+    opts.UseNpgsql(connStr)
         .UseSnakeCaseNamingConvention();
 });
 
+// ── Application Services ──────────────────────────────────────
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(cfg =>
-{
-    cfg.Password.RequiredLength = 8;
-    cfg.User.RequireUniqueEmail = true;
-    cfg.SignIn.RequireConfirmedEmail = true;
-})
-    .AddEntityFrameworkStores<EduChatbotDbContext>()
-    .AddDefaultTokenProviders();
+// ── Cookie Authentication (custom, no ASP.NET Identity) ───────
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(opts =>
+    {
+        opts.LoginPath = AuthenticationDefaults.LoginPath;
+        opts.LogoutPath = AuthenticationDefaults.LogoutPath;
+        opts.AccessDeniedPath = AuthenticationDefaults.AccessDeniedPath;
+        opts.ReturnUrlParameter = AuthenticationDefaults.ReturnUrlParamName;
+        opts.ExpireTimeSpan = TimeSpan.FromHours(8);
+        opts.SlidingExpiration = true;
+        opts.Cookie.HttpOnly = true;
+        opts.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+        opts.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+    });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllersWithViews();
-
-builder.Services.ConfigureApplicationCookie(opts =>
-{
-    opts.LoginPath = AuthenticationDefaults.LoginPath;
-    opts.LogoutPath = AuthenticationDefaults.LogoutPath;
-    opts.AccessDeniedPath = AuthenticationDefaults.AccessDeniedPath;
-    opts.ReturnUrlParameter = AuthenticationDefaults.ReturnUrlParamName;
-});
 
 builder.Services.AddCors(opts =>
 {
@@ -80,7 +85,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
+    pattern: "{controller:slugify=account}/{action:slugify=login}/{id?}");
 
 await app.MigrateDb<EduChatbotDbContext>();
 
