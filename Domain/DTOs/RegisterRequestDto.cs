@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BusinessLayer.DTOs;
+namespace Domain.DTOs;
 
 /// <summary>
 /// Data transfer object for new user registration requests.

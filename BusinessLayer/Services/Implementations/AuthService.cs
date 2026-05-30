@@ -1,4 +1,5 @@
-using BusinessLayer.DTOs;
+using Domain.Constants;
+using Domain.DTOs;
 using DataAccessLayer.Data;
 using DataAccessLayer.Entities;
 using Microsoft.AspNetCore.Authentication;
@@ -115,7 +116,7 @@ public class AuthService : Interfaces.IAuthService
         }
 
         // 2. Resolve the Student role
-        var studentRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == AppConstants.RoleStudent);
+        var studentRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Domain.Constants.AppConstants.RoleStudent);
         if (studentRole is null)
         {
             return "System configuration error: default role not found. Please contact the administrator.";

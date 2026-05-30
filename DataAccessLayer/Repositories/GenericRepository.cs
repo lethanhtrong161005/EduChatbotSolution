@@ -1,5 +1,5 @@
-﻿using DataAccessLayer.Common;
-using DataAccessLayer.Exceptions;
+﻿using Domain.Common;
+using Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 

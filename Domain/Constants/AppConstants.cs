@@ -1,7 +1,7 @@
-namespace BusinessLayer.Services.Implementations;
+namespace Domain.Constants;
 
 /// <summary>
-/// Provides application-wide constant values used across the Business and Presentation layers.
+/// Provides application-wide constant values used across all layers.
 /// Centralizes role names, TempData keys, and validation messages to avoid magic strings.
 /// </summary>
 public static class AppConstants

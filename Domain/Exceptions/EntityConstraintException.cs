@@ -1,5 +1,8 @@
-﻿namespace DataAccessLayer.Exceptions;
+namespace Domain.Exceptions;
 
+/// <summary>
+/// Thrown when an entity violates a database constraint (e.g., unique constraint).
+/// </summary>
 public class EntityConstraintException : Exception
 {
     public string? Property { get; }

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
-using PresentationLayer.Exceptions;
+using Domain.Exceptions;
 using PresentationLayer.Options;
 using System.Runtime.ExceptionServices;
 

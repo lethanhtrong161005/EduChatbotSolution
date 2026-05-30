@@ -1,4 +1,4 @@
-using BusinessLayer.DTOs;
+using Domain.DTOs;
 
 namespace BusinessLayer.Services.Interfaces;
 
