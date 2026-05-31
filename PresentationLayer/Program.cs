@@ -3,7 +3,6 @@ using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Presentation.Defaults;
@@ -49,10 +48,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
 
 builder.Services.ConfigureApplicationCookie(opts =>
 {
-    opts.LoginPath = AuthenticationDefaults.LoginPath;
-    opts.LogoutPath = AuthenticationDefaults.LogoutPath;
-    opts.AccessDeniedPath = AuthenticationDefaults.AccessDeniedPath;
-    opts.ReturnUrlParameter = AuthenticationDefaults.ReturnUrlParamName;
+    opts.LoginPath = AuthenticationSettings.LoginPath;
+    opts.LogoutPath = AuthenticationSettings.LogoutPath;
+    opts.AccessDeniedPath = AuthenticationSettings.AccessDeniedPath;
+    opts.ReturnUrlParameter = AuthenticationSettings.ReturnUrlParamName;
     opts.ExpireTimeSpan = TimeSpan.FromHours(8);
     opts.SlidingExpiration = true;
     opts.Cookie.HttpOnly = true;

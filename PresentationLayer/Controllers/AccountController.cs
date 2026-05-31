@@ -11,6 +11,7 @@ namespace Presentation.Controllers;
 /// Handles user authentication operations including login, registration, and logout.
 /// Uses <see cref="IAuthService"/> for BCrypt credential verification and cookie sign-in.
 /// </summary>
+[Authorize]
 public class AccountController : Controller
 {
     private readonly IAuthService _authService;
@@ -30,13 +31,13 @@ public class AccountController : Controller
     /// Displays the login page. Redirects authenticated users to the home page.
     /// </summary>
     /// <param name="returnUrl">Optional URL to redirect to after successful login.</param>
-    [HttpGet]
+    [HttpGet(AuthenticationSettings.LoginPath)]
     [AllowAnonymous]
     public IActionResult Login(string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect(returnUrl ?? AuthenticationDefaults.FallbackReturnUrl);
+            return Redirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -48,7 +49,7 @@ public class AccountController : Controller
     /// </summary>
     /// <param name="model">Login credentials.</param>
     /// <param name="returnUrl">Optional return URL after login.</param>
-    [HttpPost]
+    [HttpPost(AuthenticationSettings.LoginPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginRequestViewModel model, string? returnUrl = null)
@@ -64,7 +65,7 @@ public class AccountController : Controller
 
         if (success)
         {
-            return Redirect(returnUrl ?? AuthenticationDefaults.FallbackReturnUrl);
+            return Redirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
         ModelState.AddModelError(string.Empty, AppConstants.InvalidCredentials);
@@ -76,13 +77,13 @@ public class AccountController : Controller
     /// <summary>
     /// Displays the registration page.
     /// </summary>
-    [HttpGet]
+    [HttpGet(AuthenticationSettings.RegistrationPath)]
     [AllowAnonymous]
     public IActionResult Register()
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect(AuthenticationDefaults.FallbackReturnUrl);
+            return Redirect(AuthenticationSettings.FallbackReturnUrl);
         }
 
         return View();
@@ -93,7 +94,7 @@ public class AccountController : Controller
     /// Redirects to login with a success message on completion.
     /// </summary>
     /// <param name="model">Registration data.</param>
-    [HttpPost]
+    [HttpPost(AuthenticationSettings.RegistrationPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterRequestViewModel model)
@@ -120,7 +121,7 @@ public class AccountController : Controller
     /// <summary>
     /// Signs out the currently authenticated user and redirects to the login page.
     /// </summary>
-    [HttpPost]
+    [HttpPost(AuthenticationSettings.LogoutPath)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
