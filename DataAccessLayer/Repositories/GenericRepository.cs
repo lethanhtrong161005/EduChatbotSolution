@@ -3,7 +3,7 @@ using Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace DataAccessLayer.Repositories;
+namespace DataAccess.Repositories;
 
 public class GenericRepository<TEntity>(DbContext context) where TEntity : class
 {
@@ -74,12 +74,6 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
         return dbSet.Add(entityToInsert).Entity;
     }
 
-    public virtual async Task<TEntity> InsertAsync(TEntity entityToInsert, CancellationToken cancellationToken = default)
-    {
-        dbSet.Attach(entityToInsert);
-        return (await dbSet.AddAsync(entityToInsert, cancellationToken)).Entity;
-    }
-
     public virtual TEntity Update(TEntity entityToUpdate)
     {
         var entry = dbSet.Attach(entityToUpdate);
@@ -87,16 +81,22 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
         return entry.Entity;
     }
 
+    public virtual TEntity Delete(TEntity entityToDelete)
+    {
+        dbSet.Attach(entityToDelete);
+        return dbSet.Remove(entityToDelete).Entity;
+    }
+
+    public virtual async Task<TEntity> InsertAsync(TEntity entityToInsert, CancellationToken cancellationToken = default)
+    {
+        dbSet.Attach(entityToInsert);
+        return (await dbSet.AddAsync(entityToInsert, cancellationToken)).Entity;
+    }
+
     public virtual async Task<TEntity> DeleteAsync(object id, CancellationToken cancellationToken = default)
     {
         var entityToDelete = await dbSet.FindAsync([id], cancellationToken)
              ?? throw new EntityNotFoundException(id);
         return Delete(entityToDelete);
-    }
-
-    public virtual TEntity Delete(TEntity entityToDelete)
-    {
-        dbSet.Attach(entityToDelete);
-        return dbSet.Remove(entityToDelete).Entity;
     }
 }

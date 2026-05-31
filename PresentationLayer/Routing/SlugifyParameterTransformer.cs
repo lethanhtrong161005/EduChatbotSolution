@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace PresentationLayer.Routing;
+namespace Presentation.Routing;
 
 public class SlugifyParameterTransformer : IOutboundParameterTransformer
 {

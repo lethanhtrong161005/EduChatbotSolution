@@ -1,0 +1,56 @@
+﻿@using System.Security.Claims
+@using Domain.Common
+@using Domain.Entities
+@using Microsoft.AspNetCore.Identity
+@using Presentation.Common
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var authenticated = SignInManager.IsSignedIn(User);
+
+    UserRole? userRole = null;
+    if (authenticated)
+    {
+        var roleName = User.FindFirstValue(ClaimTypes.Role);
+        if (Enum.TryParse<UserRole>(roleName, out var role))
+            userRole = role;
+    }
+}
+
+<ul class="nav navbar-nav nav-pills flex-grow-1">
+    <li class="nav-item"><a class="nav-link text-dark @NavBar.HomeNavClass(Context)" id="home" asp-controller="Home" asp-action="Index">Home</a></li>
+    <li class="nav-item"><a class="nav-link text-dark @NavBar.ChatNavClass(Context)" id="chat" asp-controller="Chat" asp-action="Index">Chat</a></li>
+    @if (userRole is UserRole.Lecturer or UserRole.Admin)
+    {
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-controller="Chat" asp-action="Index">Documents</a></li>
+    }
+    else if (userRole is UserRole.Admin)
+    {
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.AccountsNavClass(Context)" id="accounts" asp-controller="Accounts" asp-action="Index">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.RblNavClass(Context)" id="rbl" asp-controller="Rbl" asp-action="Index">Analyze</a></li>
+    }
+</ul>
+<ul class="navbar-nav">
+    @if (authenticated)
+    {
+        @if (userRole is UserRole.Student or UserRole.Lecturer)
+        {
+            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Subscription" asp-action="Index">Plans</a></li>
+            <li class="nav-item"><a class="nav-link text-dark" asp-page="/Profile/Index">Profile</a></li>
+        }
+        <li class="nav-item">
+            <form class="form-inline" asp-page="/Auth/Logout" asp-route-return-url="@Context.Request.Path">
+                <button type="submit" class="nav-link btn btn-link text-dark" style="line-height: normal !important;">Log out</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        // TEMP: Put here for testing. Remove afterward.
+        <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="SubscriptionPlans" asp-action="Index">Plans</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Auth/Register">Register</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Auth/Login">Log in</a></li>
+    }
+</ul>

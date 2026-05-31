@@ -1,4 +1,4 @@
-﻿namespace PresentationLayer.Defaults;
+﻿namespace Presentation.Defaults;
 
 public static class AuthenticationDefaults
 {

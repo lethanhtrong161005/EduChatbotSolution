@@ -1,12 +1,11 @@
-using Domain.Constants;
-using Domain.DTOs;
-using BusinessLayer.Services.Interfaces;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Domain.Common;
+using Domain.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PresentationLayer.Defaults;
+using Presentation.Defaults;
+using Presentation.Models;
 
-namespace PresentationLayer.Controllers;
+namespace Presentation.Controllers;
 
 /// <summary>
 /// Handles user authentication operations including login, registration, and logout.
@@ -52,7 +51,7 @@ public class AccountController : Controller
     [HttpPost]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginRequestDto model, string? returnUrl = null)
+    public async Task<IActionResult> Login(LoginRequestViewModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
 
@@ -61,7 +60,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var success = await _authService.LoginAsync(model);
+        var success = await _authService.LoginAsync(model.Email, model.Password, model.RememberMe);
 
         if (success)
         {
@@ -97,14 +96,14 @@ public class AccountController : Controller
     [HttpPost]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterRequestDto model)
+    public async Task<IActionResult> Register(RegisterRequestViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var error = await _authService.RegisterAsync(model);
+        var error = await _authService.RegisterAsync(model.Email, model.FullName, model.Password);
 
         if (error is null)
         {

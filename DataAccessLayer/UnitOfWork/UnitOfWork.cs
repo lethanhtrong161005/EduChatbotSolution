@@ -1,8 +1,8 @@
-﻿using DataAccessLayer.Data;
-using DataAccessLayer.Entities;
-using DataAccessLayer.Repositories;
+﻿using DataAccess.Data;
+using DataAccess.Repositories;
+using Domain.Entities;
 
-namespace DataAccessLayer.UnitOfWork;
+namespace DataAccess.UnitOfWork;
 
 /// <summary>
 /// Implements the Unit of Work pattern, providing lazy-loaded repositories
@@ -10,8 +10,6 @@ namespace DataAccessLayer.UnitOfWork;
 /// </summary>
 public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork, IAsyncDisposable
 {
-    GenericRepository<ApplicationUser>? _users;
-    GenericRepository<Role>? _roles;
     GenericRepository<SubscriptionPlan>? _subscriptionPlans;
     GenericRepository<UserSubscription>? _userSubscriptions;
     GenericRepository<PaymentTransaction>? _paymentTransactions;
@@ -26,10 +24,6 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork, IAsyncDispos
     GenericRepository<Experiment>? _experiments;
     GenericRepository<TestResponse>? _testResponses;
 
-    /// <inheritdoc/>
-    public GenericRepository<ApplicationUser> Users => _users ??= new GenericRepository<ApplicationUser>(context);
-    /// <inheritdoc/>
-    public GenericRepository<Role> Roles => _roles ??= new GenericRepository<Role>(context);
     /// <inheritdoc/>
     public GenericRepository<SubscriptionPlan> SubscriptionPlans => _subscriptionPlans ??= new GenericRepository<SubscriptionPlan>(context);
     /// <inheritdoc/>

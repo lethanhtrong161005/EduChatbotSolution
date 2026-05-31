@@ -1,9 +1,10 @@
 <Solution>
-  <Project Path="BusinessLayer/BusinessLayer.csproj" />
-  <Project Path="DataAccessLayer/DataAccessLayer.csproj" />
+  <Project Path="BusinessLayer/Business.csproj" />
+  <Project Path="DataAccessLayer/DataAccess.csproj" />
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
   <Project Path="Domain/Domain.csproj" />
-  <Project Path="PresentationLayer/PresentationLayer.csproj" />
+  <Project Path="PresentationLayer/Presentation.csproj" />
+  <Project Path="UnitTests/UnitTests.csproj" Id="2655f833-6418-486c-809a-cf8acc3c5f83" />
 </Solution>

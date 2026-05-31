@@ -1,5 +1,22 @@
 {
   "version": "3.0",
   "defaultProvider": "cdnjs",
-  "libraries": []
+  "libraries": [
+    {
+      "library": "font-awesome@7.0.1",
+      "destination": "wwwroot/font-awesome/"
+    },
+    {
+      "library": "bootstrap@5.3.8",
+      "destination": "wwwroot/lib/bootstrap/"
+    },
+    {
+      "library": "jquery@3.7.1",
+      "destination": "wwwroot/jquery/"
+    },
+    {
+      "library": "bootstrap-icons@1.13.1",
+      "destination": "wwwroot/lib/bootstrap-icons/"
+    }
+  ]
 }

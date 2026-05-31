@@ -1,18 +1,21 @@
-using BusinessLayer.Services.Implementations;
-using BusinessLayer.Services.Interfaces;
-using DataAccessLayer.Data;
-using DataAccessLayer.UnitOfWork;
+using Business.Services.Implementations;
+using DataAccess.Data;
+using DataAccess.UnitOfWork;
+using Domain.Contracts;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using PresentationLayer.Defaults;
-using PresentationLayer.Extensions;
-using PresentationLayer.Middleware;
-using PresentationLayer.Routing;
+using Presentation.Defaults;
+using Presentation.Extensions;
+using Presentation.Middleware;
+using Presentation.Options;
+using Presentation.Routing;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Database ─────────────────────────────────────────────────
+// ── Database ──────────────────────────────────────────────────
 builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
 {
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -23,27 +26,46 @@ builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
 
 // ── Application Services ──────────────────────────────────────
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddHttpContextAccessor();
 
-// ── Cookie Authentication (custom, no ASP.NET Identity) ───────
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(opts =>
-    {
-        opts.LoginPath = AuthenticationDefaults.LoginPath;
-        opts.LogoutPath = AuthenticationDefaults.LogoutPath;
-        opts.AccessDeniedPath = AuthenticationDefaults.AccessDeniedPath;
-        opts.ReturnUrlParameter = AuthenticationDefaults.ReturnUrlParamName;
-        opts.ExpireTimeSpan = TimeSpan.FromHours(8);
-        opts.SlidingExpiration = true;
-        opts.Cookie.HttpOnly = true;
-        opts.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-        opts.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-    });
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// ── Helper Services ───────────────────────────────────────────
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
+
+builder.Services.Configure<PaymentServiceOptions>(builder.Configuration.GetRequiredSection("PaymentServices"));
+
+// ── Identity Authentication ───────────────────────────────────
+builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
+{
+    opts.Password.RequiredLength = 8;
+    opts.User.RequireUniqueEmail = true;
+    opts.SignIn.RequireConfirmedEmail = true;
+})
+    .AddEntityFrameworkStores<EduChatbotDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(opts =>
+{
+    opts.LoginPath = AuthenticationDefaults.LoginPath;
+    opts.LogoutPath = AuthenticationDefaults.LogoutPath;
+    opts.AccessDeniedPath = AuthenticationDefaults.AccessDeniedPath;
+    opts.ReturnUrlParameter = AuthenticationDefaults.ReturnUrlParamName;
+    opts.ExpireTimeSpan = TimeSpan.FromHours(8);
+    opts.SlidingExpiration = true;
+    opts.Cookie.HttpOnly = true;
+    opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    opts.Cookie.SameSite = SameSiteMode.Lax;
+});
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllersWithViews();
+// ── HTTP Pipeline ──────────────────────────────────────────────
+builder.Services.AddScoped<CustomExceptionMiddleware>();
+
+builder.Services.AddRouting(opts => opts.ConstraintMap["slugify"] = typeof(SlugifyParameterTransformer));
 
 builder.Services.AddCors(opts =>
 {
@@ -57,23 +79,23 @@ builder.Services.AddCors(opts =>
     });
 });
 
-builder.Services.AddRouting(opts => opts.ConstraintMap["slugify"] = typeof(SlugifyParameterTransformer));
-
-builder.Services.AddScoped<CustomExceptionMiddleware>();
-
-builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    await app.MigrateDb<EduChatbotDbContext>();
+}
+else
+{
+    app.UseHsts();
 }
 
-app.UseMiddleware<CustomExceptionMiddleware>();
-
-app.UseHsts();
 app.UseHttpsRedirection();
+
+app.UseMiddleware<CustomExceptionMiddleware>();
 
 app.UseStaticFiles();
 app.UseRouting();
@@ -86,7 +108,5 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller:slugify=account}/{action:slugify=login}/{id?}");
-
-await app.MigrateDb<EduChatbotDbContext>();
 
 app.Run();

@@ -1,7 +1,7 @@
-﻿using DataAccessLayer.Entities;
-using DataAccessLayer.Repositories;
+﻿using DataAccess.Repositories;
+using Domain.Entities;
 
-namespace DataAccessLayer.UnitOfWork;
+namespace DataAccess.UnitOfWork;
 
 /// <summary>
 /// Defines the Unit of Work contract, exposing lazy-loaded repositories
@@ -9,13 +9,6 @@ namespace DataAccessLayer.UnitOfWork;
 /// </summary>
 public interface IUnitOfWork
 {
-    // ── Authentication ───────────────────────────────────────
-    /// <summary>Gets the repository for <see cref="ApplicationUser"/> entities.</summary>
-    GenericRepository<ApplicationUser> Users { get; }
-
-    /// <summary>Gets the repository for <see cref="Role"/> entities.</summary>
-    GenericRepository<Role> Roles { get; }
-
     // ── Subscription & Payment ───────────────────────────────
     /// <summary>Gets the repository for <see cref="SubscriptionPlan"/> entities.</summary>
     GenericRepository<SubscriptionPlan> SubscriptionPlans { get; }

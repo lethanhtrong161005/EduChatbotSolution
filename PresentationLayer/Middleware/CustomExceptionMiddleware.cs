@@ -1,20 +1,20 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using Domain.Exceptions;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
-using Domain.Exceptions;
-using PresentationLayer.Options;
+using Presentation.Defaults;
 using System.Runtime.ExceptionServices;
 
-namespace PresentationLayer.Middleware;
+namespace Presentation.Middleware;
 
-public class CustomExceptionMiddleware(IOptions<ErrorHandlingOptions> options) : IMiddleware
+public class CustomExceptionMiddleware(IModelMetadataProvider metadataProvider) : IMiddleware
 {
     private const int DefaultErrorStatusCode = StatusCodes.Status500InternalServerError;
 
-    private readonly ErrorHandlingOptions _options = options.Value;
+    private readonly IModelMetadataProvider _metadataProvider = metadataProvider;
 
     private static readonly Dictionary<Type, int> ErrorStatusCodes = new()
     {
@@ -80,6 +80,8 @@ public class CustomExceptionMiddleware(IOptions<ErrorHandlingOptions> options) :
 
         ClearResponse(context);
 
+        context.Response.StatusCode = statusCode;
+
         await WriteError(context, problemDetails, next);
     }
 
@@ -112,6 +114,7 @@ public class CustomExceptionMiddleware(IOptions<ErrorHandlingOptions> options) :
 
             var problemDetails = new ProblemDetails
             {
+                Type = $"https://httpstatuses.io/{statusCode}",
                 Title = exception.GetType().Name,
                 Detail = exception.GetAllExceptionMessages(),
                 Status = context.Response.StatusCode,
@@ -134,10 +137,10 @@ public class CustomExceptionMiddleware(IOptions<ErrorHandlingOptions> options) :
 
     private async Task WriteError(HttpContext context, ProblemDetails problemDetails, RequestDelegate next)
     {
-        context.Items[ErrorHandlingOptions.ProblemDetails] = problemDetails;
+        context.Items[ErrorHandlingDefaults.ProblemDetailsHttpContextItemName] = problemDetails;
 
         // Re-execute the pipeline, this time to the error page
-        context.Request.Path = _options.ErrorPagePath;
+        context.Request.Path = ErrorHandlingDefaults.ErrorPagePath;
         context.SetEndpoint(null);
         await next.Invoke(context);
     }

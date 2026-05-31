@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-namespace PresentationLayer.Extensions;
+namespace Presentation.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="IHost"/> to apply EF Core database migrations on startup.
