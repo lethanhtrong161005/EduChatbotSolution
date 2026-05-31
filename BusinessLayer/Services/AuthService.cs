@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace Business.Services.Implementations;
+namespace Business.Services;
 
 /// <summary>
 /// Provides custom authentication and registration using BCrypt password hashing
@@ -18,7 +17,6 @@ namespace Business.Services.Implementations;
 /// </summary>
 public class AuthService : IAuthService
 {
-    private readonly EduChatbotDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -29,7 +27,6 @@ public class AuthService : IAuthService
     /// <param name="httpContextAccessor">The HTTP context accessor for signing in/out.</param>
     public AuthService(EduChatbotDbContext context, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }
@@ -47,33 +44,16 @@ public class AuthService : IAuthService
         ArgumentNullException.ThrowIfNull(password);
 
         // 1. Find active user by email
-        var emailClaim = new Claim(ClaimTypes.Email, email);
-        var user = (await _userManager.GetUsersForClaimAsync(emailClaim)).First();
+        var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
             return false;
 
         // 2. Verify password with BCrypt
         if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-        {
             return false;
-        }
 
-        // 3. Load role for claims
-        var userRole = (await _userManager.GetRolesAsync(user)).First();
-
-        // 4. Build claims identity and sign in
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Email, user.Email!),
-            new(ClaimTypes.Name, user.FullName),
-        };
-
-        if (userRole is not null)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, userRole));
-        }
-
+        // 3. Build claims identity and sign in
+        var claims = await _userManager.GetClaimsAsync(user);
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
 
@@ -86,7 +66,7 @@ public class AuthService : IAuthService
         };
 
         await _httpContextAccessor.HttpContext!.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
+            IdentityConstants.ApplicationScheme,
             principal,
             authProps);
 
@@ -110,29 +90,33 @@ public class AuthService : IAuthService
         ArgumentNullException.ThrowIfNull(password);
 
         // 1. Check for duplicate email
-        var exists = await _context.Users.AnyAsync(u => u.Email == email);
+        var exists = await _userManager.FindByEmailAsync(email) != null;
         if (exists)
         {
             return "An account with this email address already exists.";
         }
 
-        // 2. Resolve the Student role
-        var studentRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == UserRole.Student.ToString());
-        if (studentRole is null)
-        {
-            return "System configuration error: default role not found. Please contact the administrator.";
-        }
-
-        // 3. Hash password and create the user entity
+        // 2. Hash password and create the user entity
         var user = new ApplicationUser
         {
+            UserName = email,
             Email = email,
             FullName = fullName,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
         };
 
-        // 4. Assign Student role
+        // 3. Add user to store
+        await _userManager.CreateAsync(user);    // Double hash
+
+        // 4. Assign Student role and claims
         await _userManager.AddToRoleAsync(user, UserRole.Student.ToString());
+        await _userManager.AddClaimsAsync(user,
+        [
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.Role, UserRole.Student.ToString()),
+        ]);
 
         return null; // null = success
     }
@@ -143,6 +127,6 @@ public class AuthService : IAuthService
     /// <returns>A task representing the asynchronous sign-out operation.</returns>
     public async Task LogoutAsync()
     {
-        await _httpContextAccessor.HttpContext!.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await _httpContextAccessor.HttpContext!.SignOutAsync(IdentityConstants.ApplicationScheme);
     }
 }

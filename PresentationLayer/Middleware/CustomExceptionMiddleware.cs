@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
 using Presentation.Defaults;
@@ -10,11 +9,9 @@ using System.Runtime.ExceptionServices;
 
 namespace Presentation.Middleware;
 
-public class CustomExceptionMiddleware(IModelMetadataProvider metadataProvider) : IMiddleware
+public class CustomExceptionMiddleware : IMiddleware
 {
     private const int DefaultErrorStatusCode = StatusCodes.Status500InternalServerError;
-
-    private readonly IModelMetadataProvider _metadataProvider = metadataProvider;
 
     private static readonly Dictionary<Type, int> ErrorStatusCodes = new()
     {
@@ -35,7 +32,6 @@ public class CustomExceptionMiddleware(IModelMetadataProvider metadataProvider) 
 
         HeaderNames.StrictTransportSecurity,
     };
-
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
@@ -140,6 +136,7 @@ public class CustomExceptionMiddleware(IModelMetadataProvider metadataProvider) 
         context.Items[ErrorHandlingDefaults.ProblemDetailsHttpContextItemName] = problemDetails;
 
         // Re-execute the pipeline, this time to the error page
+        context.Request.Method = HttpMethod.Get.Method;
         context.Request.Path = ErrorHandlingDefaults.ErrorPagePath;
         context.SetEndpoint(null);
         await next.Invoke(context);

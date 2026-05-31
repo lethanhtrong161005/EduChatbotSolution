@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace Domain.Entities;
+﻿namespace Domain.Entities;
 
 /// <summary>
 /// Represents a subscription plan available to users, mapped to the <c>subscription_plans</c> table.

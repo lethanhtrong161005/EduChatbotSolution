@@ -1,4 +1,4 @@
-using Business.Services.Implementations;
+using Business.Services;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
@@ -93,10 +93,10 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
 
-app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("Default");
@@ -106,6 +106,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller:slugify=account}/{action:slugify=login}/{id?}");
+    pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
 
 app.Run();

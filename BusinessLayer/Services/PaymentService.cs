@@ -5,7 +5,7 @@ using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 
-namespace Business.Services.Implementations;
+namespace Business.Services;
 
 public class PaymentService(
     IUnitOfWork unitOfWork)

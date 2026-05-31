@@ -4,7 +4,7 @@ using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 
-namespace Business.Services.Implementations;
+namespace Business.Services;
 
 public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 {

@@ -5,13 +5,12 @@
 
 <h1 class="text-danger">Error</h1>
 <h2 class="text-danger">@Model.Title</h2>
-
+<p>
+    <strong>Details:</strong> <code>@Model.Detail</code>
+</p>
 @if (Model.ShowRequestId)
 {
     <p>
         <strong>Request ID:</strong> <code>@Model.RequestId</code>
     </p>
 }
-<p>
-    <strong>Details:</strong> <code>@Model.Detail</code>
-</p>
