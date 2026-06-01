@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Presentation.Extensions;
@@ -37,6 +38,13 @@ public static class HostExtensions
         {
             // 1. Attempt standard EF Core migration
             await context.Database.MigrateAsync();
+
+            
+            // var roleMngr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+            // await roleMngr.CreateAsync(new("Student"));
+            // await roleMngr.CreateAsync(new("Lecturer"));
+            // await roleMngr.CreateAsync(new("Admin"));
+
         }
         catch (Exception ex) when (ex is PostgresException { SqlState: "42P01" or "42P07" } or InvalidOperationException)
         {

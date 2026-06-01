@@ -545,6 +545,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: var(--spacing-2);
+    color: var(--color-text-primary);
 }
 
 .btn-social:hover:not(:disabled) {
@@ -559,6 +560,23 @@ body {
 
 .btn-social i {
     font-size: 1.25rem;
+}
+
+.btn-social--google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    text-decoration: none;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+}
+
+.btn-social--google:hover {
+    border-color: #ea4335;
+    background: rgba(234, 67, 53, 0.05);
+    color: var(--color-text-primary);
 }
 
 /* =========================================================

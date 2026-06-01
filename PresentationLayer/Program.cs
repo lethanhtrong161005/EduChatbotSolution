@@ -49,6 +49,16 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
     .AddEntityFrameworkStores<EduChatbotDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddAuthentication()
+    .AddGoogle(opts =>
+    {
+        opts.ClientId = builder.Configuration["Authentication:Google:ClientId"]
+            ?? throw new KeyNotFoundException("Google ClientId is not configured.");
+        opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+            ?? throw new KeyNotFoundException("Google ClientSecret is not configured.");
+        opts.CallbackPath = AuthenticationSettings.GoogleCallbackPath;
+    });
+
 builder.Services.ConfigureApplicationCookie(opts =>
 {
     opts.LoginPath = AuthenticationSettings.LoginPath;
