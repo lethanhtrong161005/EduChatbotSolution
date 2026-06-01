@@ -1,4 +1,8 @@
 
+using Domain.Entities;
+using Microsoft.AspNetCore.Http.Authentication;
+using System.Security.Claims;
+
 namespace Domain.Contracts;
 
 /// <summary>
@@ -13,7 +17,7 @@ public interface IAuthService
     /// </summary>
     /// <param name="request">The login request containing email, password, and remember-me flag.</param>
     /// <returns><c>true</c> if authentication succeeded; otherwise <c>false</c>.</returns>
-    Task<bool> LoginAsync(string email, string password, bool rememberMe);
+    Task<LoginResult> LoginAsync(string email, string password);
 
     /// <summary>
     /// Creates a new user account with a BCrypt-hashed password
@@ -29,4 +33,12 @@ public interface IAuthService
     /// Signs out the currently authenticated user and clears the authentication cookie.
     /// </summary>
     Task LogoutAsync();
+}
+
+public readonly struct LoginResult
+{
+    public bool Success { get; init; }
+    public ApplicationUser User { get; init; }
+    public IList<Claim> Claims { get; init; }
+    public IList<string> Errors { get; init; }
 }

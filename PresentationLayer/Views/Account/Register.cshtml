@@ -1,4 +1,4 @@
-@model RegisterRequestViewModel
+@model RegisterRequestVm
 
 @{
     ViewData["Title"] = "Register - EduChatAI";
@@ -75,7 +75,7 @@
                 }
 
                 <!-- Register Form -->
-                <form id="registerForm" method="post" asp-controller="Account" asp-action="Register">
+                <form id="registerForm" method="post" asp-controller="Account" asp-action="Register" asp-route-return-url="@ViewData["ReturnUrl"]">
                     <!-- Email Input -->
                     <div class="form-group">
                         <label class="form-label" asp-for="Email">
@@ -183,7 +183,7 @@
 
                 <!-- Login Link -->
                 <div class="signup-link">
-                    Already have an account? <a asp-controller="Account" asp-action="Login">Login</a>
+                    Already have an account? <a asp-controller="Account" asp-action="Login" asp-route-return-url="@ViewData["ReturnUrl"]">Login</a>
                 </div>
             </div>
         </div>

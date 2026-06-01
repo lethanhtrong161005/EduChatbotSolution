@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Contracts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Presentation.Models;
@@ -13,7 +14,8 @@ using System.Text.RegularExpressions;
 
 namespace Presentation.Controllers;
 
-public class ZaloPayController(
+[Authorize]
+public class PaymentController(
     ISubscriptionService subscriptionService,
     IPaymentService paymentService,
     IOptions<PaymentServiceOptions> paymentServiceOptions) : Controller
@@ -28,10 +30,16 @@ public class ZaloPayController(
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
 
-    private const string DefaultAppUser = "EduChatbot_User";
+    private const string DefaultAppUser = "EduChatbotAI_User";
 
-    [HttpGet]
-    public async Task<IActionResult> ProcessPayment(PaymentTransactionViewModel paymentTransaction, CancellationToken cxlTkn)
+    public async Task<IActionResult> SelectMethod(int id) // SubscriptionOption ID
+    {
+        // Checkout logic
+
+        return View();
+    }
+
+    public async Task<IActionResult> MakePayment(PaymentTransactionVm paymentTransaction, CancellationToken cxlTkn)
     {
         switch (paymentTransaction.PaymentMethod)
         {

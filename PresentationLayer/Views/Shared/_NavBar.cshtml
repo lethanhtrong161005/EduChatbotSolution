@@ -3,6 +3,7 @@
 @using Domain.Entities
 @using Microsoft.AspNetCore.Identity
 @using Presentation.Common
+@using Presentation.Defaults
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
@@ -24,7 +25,7 @@
     <li class="nav-item"><a class="nav-link text-dark @NavBar.ChatNavClass(Context)" id="chat" asp-controller="Chat" asp-action="Index">Chat</a></li>
     @if (userRole is UserRole.Lecturer or UserRole.Admin)
     {
-        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-controller="Chat" asp-action="Index">Documents</a></li>
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-controller="Documents" asp-action="Index">Documents</a></li>
     }
     else if (userRole is UserRole.Admin)
     {
@@ -37,20 +38,18 @@
     {
         @if (userRole is UserRole.Student or UserRole.Lecturer)
         {
-            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Subscription" asp-action="Index">Plans</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" asp-page="/Profile/Index">Profile</a></li>
+            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Subscriptions" asp-action="Index">Plans</a></li>
+            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Profile" asp-action="Index">Profile</a></li>
         }
         <li class="nav-item">
-            <form class="form-inline" asp-page="/Auth/Logout" asp-route-return-url="@Context.Request.Path">
+            <form class="form-inline" method="post" asp-controller="Account" asp-action="Logout" asp-route-return-url="@Context.Request.Path">
                 <button type="submit" class="nav-link btn btn-link text-dark" style="line-height: normal !important;">Log out</button>
             </form>
         </li>
     }
     else
     {
-        // TEMP: Put here for testing. Remove afterward.
-        <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="SubscriptionPlans" asp-action="Index">Plans</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Auth/Register">Register</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Auth/Login">Log in</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Account" asp-action="Register" asp-route-return-url="@Context.Request.Path">Register</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Account" asp-action="Login" asp-route-return-url="@Context.Request.Path">Log in</a></li>
     }
 </ul>

@@ -7,18 +7,13 @@ public enum UserRole
     Admin,
 }
 
-public enum PaymentMethod
+public enum PlanFeature
 {
-    BankTransfer,
-    PayPal,
-    ZaloPay,
-}
-
-public enum PaymentStatus
-{
-    Pending,
-    Fulfilled,
-    Failed,
+    ChatLimit,
+    ChatSession,
+    FileUpload,
+    FileLibrary,
+    AdvancedModel,
 }
 
 public enum SubscriptionStatus
@@ -37,6 +32,20 @@ public enum PurchaseType
     Upgrade,
     Downgrade,
     Renewal,
+}
+
+public enum PaymentMethod
+{
+    BankTransfer,
+    PayPal,
+    ZaloPay,
+}
+
+public enum PaymentStatus
+{
+    Pending,
+    Fulfilled,
+    Failed,
 }
 
 public enum SenderRole

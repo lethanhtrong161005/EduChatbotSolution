@@ -1,0 +1,326 @@
+@model SelectSubscriptionPlanVm
+
+@{
+    ViewData["Title"] = "Choose your own plan";
+}
+
+<link rel="stylesheet" href="~/css/plans.css" asp-append-version="true" />
+<script src="~/js/select-subscription-plan.js"></script>
+
+<section class="subscription-page">
+
+    <!-- HERO -->
+
+    <section class="pricing-hero">
+
+        <div class="pricing-hero-content">
+
+            <span class="hero-badge">
+                <i class="fas fa-crown"></i>
+                Premium Membership
+            </span>
+
+            <h1 class="hero-title">
+                Choose Your Plan
+            </h1>
+
+            <p class="hero-description">
+                Unlock advanced AI models, file uploads,
+                higher limits, and premium learning features.
+            </p>
+
+        </div>
+
+    </section>
+
+    <!-- CURRENT SUBSCRIPTION -->
+
+    <section class="current-subscription">
+
+        <div class="current-plan-card">
+
+            <div class="current-plan-icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+
+            <div class="current-plan-details">
+
+                <div class="current-plan-label">
+                    Current Subscription
+                </div>
+
+                <div class="current-plan-name">
+                    Premium
+                </div>
+
+                <div class="current-plan-expiry">
+                    Active until July 15, 2026
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- PLANS + SUMMARY -->
+
+    <section class="pricing-layout">
+
+        <div class="plan-grid">
+
+            @foreach (var plan in Model.Plans.OrderBy(x => x.Tier))
+            {
+                <article class="plan-card"
+                         data-plan-id="@plan.Id">
+
+                    @if (plan.IsFeatured)
+                    {
+                        <div class="featured-badge">
+                            Most Popular
+                        </div>
+                    }
+
+                    <div class="plan-header">
+
+                        <h3 class="plan-name">
+                            @plan.Name
+                        </h3>
+
+                        <p class="plan-description">
+                            @plan.Description
+                        </p>
+
+                    </div>
+
+                    <div class="plan-metrics">
+
+                        <div class="metric">
+                            <i class="fas fa-comments"></i>
+
+                            <div>
+                                <div class="metric-label">
+                                    Messages / Day
+                                </div>
+
+                                <div class="metric-value">
+                                    @plan.DisplayDailyMessageQuota
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <i class="fas fa-message"></i>
+
+                            <div>
+                                <div class="metric-label">
+                                    Chat Sessions
+                                </div>
+
+                                <div class="metric-value">
+                                    @plan.DisplayChatSessionLimit
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <i class="fas fa-upload"></i>
+
+                            <div>
+                                <div class="metric-label">
+                                    Uploads / Day
+                                </div>
+
+                                <div class="metric-value">
+                                    @plan.DisplayDailyFileUploadQuota
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <i class="fas fa-folder"></i>
+
+                            <div>
+                                <div class="metric-label">
+                                    File Library
+                                </div>
+
+                                <div class="metric-value">
+                                    @plan.DisplayFileLibraryLimit
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <i class="fas fa-brain"></i>
+
+                            <div>
+                                <div class="metric-label">
+                                    Advanced Models
+                                </div>
+
+                                <div class="metric-value">
+                                    @plan.DisplayAllowAdvancedModels
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="plan-options">
+
+                        @foreach (var option in plan.Options.OrderBy(o => o.DurationDays))
+                        {
+                            <button class="plan-option-btn"
+                                    type="button"
+                                    data-plan-id="@plan.Id"
+                                    data-option-id="@option.Id"
+                                    data-option-name="@option.OptionName"
+                                    data-duration="@option.DurationDays"
+                                    data-price="@option.Price">
+
+                                <div class="option-name">
+                                    @option.OptionName
+                                </div>
+
+                                <div class="option-duration">
+                                    @option.DurationDays Days
+                                </div>
+
+                                <div class="option-price">
+                                    @option.Price.ToString("N0")₫
+                                </div>
+
+                            </button>
+                        }
+
+                    </div>
+
+                </article>
+            }
+
+        </div>
+
+        <aside class="order-summary">
+
+            <div class="summary-card">
+
+                <h3>Order Summary</h3>
+
+                <div class="summary-row">
+                    <span>Plan</span>
+                    <strong id="selectedPlan">
+                        —
+                    </strong>
+                </div>
+
+                <div class="summary-row">
+                    <span>Option</span>
+                    <strong id="selectedOption">
+                        —
+                    </strong>
+                </div>
+
+                <div class="summary-row">
+                    <span>Duration</span>
+                    <strong id="selectedDuration">
+                        —
+                    </strong>
+                </div>
+
+                <hr>
+
+                <div class="summary-row total">
+                    <span>Total Due</span>
+                    <strong id="selectedPrice">
+                        —
+                    </strong>
+                </div>
+
+                <form id="#purchaseForm" method="get" asp-controller="Payment" asp-action="SelectMethod">
+
+                    <input type="hidden" name="id" id="selectedOptionId" />
+
+                    <button id="continueButton"
+                            class="btn-continue"
+                            action="Submit"
+                            disabled>
+                        Continue to Payment
+                    </button>
+
+                </form>
+
+            </div>
+
+        </aside>
+
+    </section>
+
+    <!-- RULES -->
+
+    <section class="subscription-rules">
+
+        <h2 class="section-title">
+            How Subscription Changes Work
+        </h2>
+
+        <div class="rule-grid">
+
+            <article class="rule-card">
+
+                <div class="rule-icon upgrade">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+
+                <h3 class="rule-title">
+                    Upgrade
+                </h3>
+
+                <p class="rule-description">
+                    Your new plan activates immediately. Any unused
+                    time from your current subscription is converted
+                    into prorated credit and deducted from the cost.
+                </p>
+
+            </article>
+
+            <article class="rule-card">
+
+                <div class="rule-icon downgrade">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <h3 class="rule-title">
+                    Downgrade
+                </h3>
+
+                <p class="rule-description">
+                    Your current plan remains active. The newly
+                    purchased plan begins automatically when the
+                    existing subscription expires.
+                </p>
+
+            </article>
+
+            <article class="rule-card">
+
+                <div class="rule-icon renewal">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+
+                <h3 class="rule-title">
+                    Renewal
+                </h3>
+
+                <p class="rule-description">
+                    Additional subscription time is appended after
+                    the end of your current subscription period.
+                </p>
+
+            </article>
+
+        </div>
+
+    </section>
+
+</section>

@@ -2,7 +2,7 @@
 
 namespace Presentation.Models;
 
-public class PaymentTransactionViewModel
+public class PaymentTransactionVm
 {
     public PaymentMethod PaymentMethod { get; set; }
 }

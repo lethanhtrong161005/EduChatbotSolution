@@ -37,4 +37,6 @@ public static class AppConstants
     /// Success message shown after a successful registration.
     /// </summary>
     public const string RegistrationSuccess = "Registration successful! Please sign in with your new account.";
+
+    public const int UnlimitedQuota = -1;
 }

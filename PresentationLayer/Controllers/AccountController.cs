@@ -1,6 +1,9 @@
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Entities;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Defaults;
 using Presentation.Models;
@@ -11,19 +14,15 @@ namespace Presentation.Controllers;
 /// Handles user authentication operations including login, registration, and logout.
 /// Uses <see cref="IAuthService"/> for BCrypt credential verification and cookie sign-in.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="AccountController"/> class.
+/// </remarks>
+/// <param name="authService">The authentication service.</param>
 [Authorize]
-public class AccountController : Controller
+public class AccountController(IAuthService authService, SignInManager<ApplicationUser> signInManager) : Controller
 {
-    private readonly IAuthService _authService;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AccountController"/> class.
-    /// </summary>
-    /// <param name="authService">The authentication service.</param>
-    public AccountController(IAuthService authService)
-    {
-        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
-    }
+    private readonly IAuthService _authService = authService;
+    private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
 
     // ── LOGIN ────────────────────────────────────────────────
 
@@ -33,11 +32,11 @@ public class AccountController : Controller
     /// <param name="returnUrl">Optional URL to redirect to after successful login.</param>
     [HttpGet(AuthenticationSettings.LoginPath)]
     [AllowAnonymous]
-    public IActionResult Login(string? returnUrl = null)
+    public IActionResult Login(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -52,20 +51,29 @@ public class AccountController : Controller
     [HttpPost(AuthenticationSettings.LoginPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginRequestViewModel model, string? returnUrl = null)
+    public async Task<IActionResult> Login(
+        LoginRequestVm model,
+        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var success = await _authService.LoginAsync(model.Email, model.Password, model.RememberMe);
+        var loginResult = await _authService.LoginAsync(model.Email, model.Password);
 
-        if (success)
+        if (loginResult.Success)
         {
-            return Redirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
+            var authProps = new AuthenticationProperties
+            {
+                IsPersistent = model.RememberMe,
+                ExpiresUtc = model.RememberMe
+                             ? DateTimeOffset.UtcNow.AddDays(30)
+                             : DateTimeOffset.UtcNow.AddHours(8)
+            };
+
+            await _signInManager.SignInWithClaimsAsync(loginResult.User, authProps, loginResult.Claims);
+            return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
         ModelState.AddModelError(string.Empty, AppConstants.InvalidCredentials);
@@ -79,13 +87,14 @@ public class AccountController : Controller
     /// </summary>
     [HttpGet(AuthenticationSettings.RegistrationPath)]
     [AllowAnonymous]
-    public IActionResult Register()
+    public IActionResult Register(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect(AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(AuthenticationSettings.FallbackReturnUrl);
         }
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View();
     }
 
@@ -97,7 +106,9 @@ public class AccountController : Controller
     [HttpPost(AuthenticationSettings.RegistrationPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterRequestViewModel model)
+    public async Task<IActionResult> Register(
+        RegisterRequestVm model,
+        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
     {
         if (!ModelState.IsValid)
         {
@@ -109,7 +120,7 @@ public class AccountController : Controller
         if (error is null)
         {
             TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
-            return RedirectToAction(nameof(Login));
+            return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
         }
 
         ModelState.AddModelError(string.Empty, error);
@@ -125,7 +136,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _authService.LogoutAsync();
+        await _signInManager.SignOutAsync();
         return RedirectToAction(nameof(Login));
     }
 }

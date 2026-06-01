@@ -4,12 +4,15 @@ using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Presentation.Defaults;
 using Presentation.Extensions;
 using Presentation.Middleware;
 using Presentation.Options;
 using Presentation.Routing;
+using System.Data;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,7 +81,11 @@ builder.Services.AddCors(opts =>
     });
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(opts =>
+{
+    opts.Conventions.Add(new RouteTokenTransformerConvention(
+                            new SlugifyParameterTransformer()));
+});
 
 var app = builder.Build();
 
@@ -97,6 +104,8 @@ app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
 
+app.UseRewriter(new RewriteOptions()
+    .Add(new KebabCaseQueryParameterRule()));
 app.UseRouting();
 
 app.UseCors("Default");

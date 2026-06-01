@@ -1,0 +1,213 @@
+﻿:root {
+    --gradient-primary: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    --gradient-secondary: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+body {
+    background: var(--color-bg-neutral);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-shell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =====================================================
+   NAVBAR
+   ===================================================== */
+
+.navbar-educhat {
+    background: white;
+    border-bottom: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    backdrop-filter: blur(12px);
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary) !important;
+    font-size: 1.25rem;
+}
+
+.brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-nav .nav-link {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
+}
+
+    .navbar-nav .nav-link:hover {
+        color: var(--color-primary);
+    }
+
+.brand-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* =====================================================
+   PAGE BACKGROUND
+   ===================================================== */
+
+.page-background {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: -1;
+}
+
+    .page-background::before {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: rgba(46, 204, 113, 0.06);
+        border-radius: 50%;
+        top: -150px;
+        right: -150px;
+    }
+
+    .page-background::after {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: rgba(52, 152, 219, 0.04);
+        border-radius: 50%;
+        bottom: -150px;
+        left: -150px;
+    }
+
+/* =====================================================
+   MAIN CONTENT
+   ===================================================== */
+
+.content-wrapper {
+    flex: 1;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+.content-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.content-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border-light);
+    padding: 2rem;
+}
+
+/* =====================================================
+   PAGE HEADER
+   ===================================================== */
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin-bottom: .5rem;
+}
+
+.page-subtitle {
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+
+.site-footer {
+    background: white;
+    border-top: 1px solid var(--color-border-light);
+    padding: 1.5rem 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.footer-brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-links {
+    display: flex;
+    gap: 1rem;
+}
+
+    .footer-links a {
+        text-decoration: none;
+        color: var(--color-text-secondary);
+    }
+
+        .footer-links a:hover {
+            color: var(--color-primary);
+        }
+
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .content-card {
+        padding: 1.25rem;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+}

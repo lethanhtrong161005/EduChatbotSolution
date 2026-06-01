@@ -1,77 +1,275 @@
-@model IEnumerable<Domain.Entities.PaymentTransaction>
+<div class="payment-page">
 
-@{
-    ViewData["Title"] = "Index";
-}
+    <div class="payment-layout">
 
-<h1>Index</h1>
+        <section class="payment-methods">
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.TransactionCode)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Amount)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PaymentMethod)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PaymentStatus)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PaidAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SubscriptionPurchase)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.TransactionCode)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Amount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaymentMethod)
-            </td>
-            <td>
-                    @Html.DisplayFor(modelItem => item.PaymentStatus)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaidAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SubscriptionPurchase.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+            <div class="section-card">
+
+                <h1 class="page-title">
+                    Select Payment Method
+                </h1>
+
+                <p class="page-description">
+                    Choose how you would like to pay.
+                </p>
+
+                <div class="payment-options">
+
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="PaymentMethod"
+                               value="BankTransfer">
+
+                        <div class="payment-option-content">
+
+                            <i class="fas fa-university"></i>
+
+                            <div>
+                                <div class="payment-name">
+                                    Direct Bank Transfer
+                                </div>
+
+                                <div class="payment-description">
+                                    Receive bank account details and transfer manually.
+                                </div>
+                            </div>
+
+                        </div>
+                    </label>
+
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="PaymentMethod"
+                               value="VNPay">
+
+                        <div class="payment-option-content">
+
+                            <img src="/images/payment/vnpay.svg"
+                                 alt="VNPay">
+
+                            <div>
+                                <div class="payment-name">
+                                    VNPay
+                                </div>
+
+                                <div class="payment-description">
+                                    ATM cards, Internet Banking, QR Pay.
+                                </div>
+                            </div>
+
+                        </div>
+                    </label>
+
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="PaymentMethod"
+                               value="ZaloPay">
+
+                        <div class="payment-option-content">
+
+                            <img src="/images/payment/zalopay.svg"
+                                 alt="ZaloPay">
+
+                            <div>
+                                <div class="payment-name">
+                                    ZaloPay
+                                </div>
+
+                                <div class="payment-description">
+                                    Wallet, ATM cards, and linked banks.
+                                </div>
+                            </div>
+
+                        </div>
+                    </label>
+
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="PaymentMethod"
+                               value="MoMo">
+
+                        <div class="payment-option-content">
+
+                            <img src="/images/payment/momo.svg"
+                                 alt="MoMo">
+
+                            <div>
+                                <div class="payment-name">
+                                    MoMo
+                                </div>
+
+                                <div class="payment-description">
+                                    Pay using your MoMo wallet.
+                                </div>
+                            </div>
+
+                        </div>
+                    </label>
+
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="PaymentMethod"
+                               value="Visa">
+
+                        <div class="payment-option-content">
+
+                            <i class="far fa-credit-card"></i>
+
+                            <div>
+                                <div class="payment-name">
+                                    Visa / Mastercard
+                                </div>
+
+                                <div class="payment-description">
+                                    International credit and debit cards.
+                                </div>
+                            </div>
+
+                        </div>
+                    </label>
+
+                </div>
+
+                <div id="bankSelector"
+                     class="bank-selector hidden">
+
+                    <h3 class="bank-selector-title">
+                        Select Bank
+                    </h3>
+
+                    <div class="bank-grid">
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="VCB">
+                            Vietcombank
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="BIDV">
+                            BIDV
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="TCB">
+                            Techcombank
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="MB">
+                            MBBank
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="ACB">
+                            ACB
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="VPB">
+                            VPBank
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="TPB">
+                            TPBank
+                        </button>
+
+                        <button type="button"
+                                class="bank-item"
+                                data-bank="SHB">
+                            SHB
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <aside class="order-summary">
+
+            <form method="post">
+
+                <input type="hidden"
+                       id="selectedMethod"
+                       name="PaymentMethod" />
+
+                <input type="hidden"
+                       id="selectedBank"
+                       name="BankCode" />
+
+                <div class="summary-card">
+
+                    <h3 class="summary-title">
+                        Order Summary
+                    </h3>
+
+                    <div class="summary-row">
+                        <span>Plan</span>
+                        <strong>Premium</strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Duration</span>
+                        <strong>365 Days</strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Price</span>
+                        <strong>300,000₫</strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Payment</span>
+                        <strong id="summaryPaymentMethod">
+                            —
+                        </strong>
+                    </div>
+
+                    <div class="summary-row hidden"
+                         id="summaryBankRow">
+
+                        <span>Bank</span>
+
+                        <strong id="summaryBank">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <hr />
+
+                    <div class="summary-row total">
+                        <span>Total Due</span>
+                        <strong>
+                            300,000₫
+                        </strong>
+                    </div>
+
+                    <button class="btn-continue"
+                            id="continueButton"
+                            disabled>
+
+                        Continue
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </aside>
+
+    </div>
+
+</div>

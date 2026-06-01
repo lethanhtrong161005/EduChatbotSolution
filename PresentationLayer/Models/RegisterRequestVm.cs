@@ -6,7 +6,7 @@ namespace Presentation.Models;
 /// Data transfer object for new user registration requests.
 /// Contains all fields required to create a new user account.
 /// </summary>
-public class RegisterRequestViewModel
+public class RegisterRequestVm
 {
     /// <summary>
     /// The email address for the new user account. Must be unique in the system.

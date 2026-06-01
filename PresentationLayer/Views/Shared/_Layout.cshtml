@@ -3,43 +3,147 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PresentationLayer</title>
+
+    <title>@ViewData["Title"] - EduChatAI</title>
+
     <script type="importmap"></script>
+
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="~/Presentation.styles.css" asp-append-version="true" />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="~/css/colors.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PresentationLayer.styles.css" asp-append-version="true" />
+
+    <!-- Layout Styles -->
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+
+    <!-- Icons -->
     <link rel="stylesheet" href="~/font-awesome/css/all.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
+
+    <style>
+
+    </style>
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Edu Chatbot</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <partial name="_NavBar" />
+    <div class="page-background"></div>
+
+    <div class="app-shell">
+
+        <!-- ==========================================
+             HEADER / NAVBAR
+             ========================================== -->
+        <header>
+            <nav class="navbar navbar-expand-lg navbar-educhat">
+                <div class="container-fluid px-4">
+
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                        <div class="brand-logo">
+                            <i class="fas fa-robot"></i>
+                        </div>
+
+                        <span class="brand-name">EduChatAI</span>
+                    </a>
+
+                    <button class="navbar-toggler"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#mainNavbar">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="mainNavbar">
+                        <partial name="_NavBar" />
+                    </div>
                 </div>
+            </nav>
+        </header>
+
+        <!-- ==========================================
+             MAIN CONTENT
+             ========================================== -->
+        <main class="content-wrapper">
+            <div class="content-container">
+
+                @if (ViewData["PageTitle"] != null)
+                {
+                    <div class="page-header">
+                        <h1 class="page-title">
+                            @ViewData["PageTitle"]
+                        </h1>
+
+                        @if (ViewData["PageSubtitle"] != null)
+                        {
+                            <p class="page-subtitle">
+                                @ViewData["PageSubtitle"]
+                            </p>
+                        }
+                    </div>
+                }
+
+                @RenderBody()
+
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
         </main>
+
+        <!-- ==========================================
+             FOOTER
+             ========================================== -->
+        <footer class="site-footer">
+            <div class="container">
+
+                <div class="footer-content">
+
+                    <div class="footer-brand">
+                        <div class="footer-brand-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+
+                        <div>
+                            <strong class="brand-name">EduChatAI</strong>
+                            <div class="text-muted small">
+                                Smart Educational Companion
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footer-links">
+                        <a asp-controller="Home"
+                           asp-action="Privacy">
+                            Privacy
+                        </a>
+
+                        <a asp-controller="Home"
+                           asp-action="Terms">
+                            Terms
+                        </a>
+
+                        <a asp-controller="Home"
+                           asp-action="Contact">
+                            Contact
+                        </a>
+                    </div>
+
+                    <div class="text-muted small">
+                        © @DateTime.UtcNow.Year EduChatAI
+                    </div>
+
+                </div>
+
+            </div>
+        </footer>
+
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PresentationLayer - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -14,7 +14,7 @@ public class ErrorController : Controller
     {
         var problemDetails = HttpContext.Items[ErrorHandlingDefaults.ProblemDetailsHttpContextItemName] as ProblemDetails;
 
-        return View(new ErrorViewModel
+        return View(new ErrorVm
         {
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
             Title = problemDetails?.Title,

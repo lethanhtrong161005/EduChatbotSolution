@@ -6,7 +6,7 @@ namespace Presentation.Models;
 /// Data transfer object for user login requests.
 /// Contains the credentials required for email/password authentication.
 /// </summary>
-public class LoginRequestViewModel
+public class LoginRequestVm
 {
     /// <summary>
     /// The email address used to identify the user account.

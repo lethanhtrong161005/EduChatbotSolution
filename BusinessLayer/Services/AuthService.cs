@@ -1,10 +1,7 @@
-using DataAccess.Data;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -15,21 +12,14 @@ namespace Business.Services;
 /// and ASP.NET Core cookie authentication. Uses the custom database schema
 /// (not ASP.NET Identity) aligned with <c>database-script.sql</c>.
 /// </summary>
-public class AuthService : IAuthService
+/// <remarks>
+/// Initializes a new instance of the <see cref="AuthService"/> class.
+/// </remarks>
+/// <param name="context">The EF Core database context.</param>
+/// <param name="httpContextAccessor">The HTTP context accessor for signing in/out.</param>
+public class AuthService(UserManager<ApplicationUser> userManager) : IAuthService
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AuthService"/> class.
-    /// </summary>
-    /// <param name="context">The EF Core database context.</param>
-    /// <param name="httpContextAccessor">The HTTP context accessor for signing in/out.</param>
-    public AuthService(EduChatbotDbContext context, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor)
-    {
-        _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-    }
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
 
     /// <summary>
     /// Authenticates a user by email and password using BCrypt verification.
@@ -38,7 +28,7 @@ public class AuthService : IAuthService
     /// <param name="request">Login credentials including email, password and remember-me flag.</param>
     /// <returns><c>true</c> if authentication succeeded; otherwise <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when request is null.</exception>
-    public async Task<bool> LoginAsync(string email, string password, bool rememberMe)
+    public async Task<LoginResult> LoginAsync(string email, string password)
     {
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(password);
@@ -46,31 +36,29 @@ public class AuthService : IAuthService
         // 1. Find active user by email
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
-            return false;
+            return new LoginResult
+            {
+                Success = false,
+                Errors = [AppConstants.InvalidCredentials],
+            };
 
         // 2. Verify password with BCrypt
         if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            return false;
+            return new LoginResult
+            {
+                Success = false,
+                Errors = [AppConstants.InvalidCredentials],
+            };
 
         // 3. Build claims identity and sign in
-        var claims = await _userManager.GetClaimsAsync(user);
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-
-        var authProps = new AuthenticationProperties
+        var loginResult = new LoginResult
         {
-            IsPersistent = rememberMe,
-            ExpiresUtc = rememberMe
-                ? DateTimeOffset.UtcNow.AddDays(30)
-                : DateTimeOffset.UtcNow.AddHours(8)
+            Success = true,
+            User = user,
+            Claims = await _userManager.GetClaimsAsync(user),
+            Errors = [],
         };
-
-        await _httpContextAccessor.HttpContext!.SignInAsync(
-            IdentityConstants.ApplicationScheme,
-            principal,
-            authProps);
-
-        return true;
+        return loginResult;
     }
 
     /// <summary>
@@ -127,6 +115,5 @@ public class AuthService : IAuthService
     /// <returns>A task representing the asynchronous sign-out operation.</returns>
     public async Task LogoutAsync()
     {
-        await _httpContextAccessor.HttpContext!.SignOutAsync(IdentityConstants.ApplicationScheme);
     }
 }

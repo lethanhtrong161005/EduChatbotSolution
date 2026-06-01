@@ -16,13 +16,19 @@ public class SubscriptionPlan : CategoryLikeEntity
     public string? Description { get; set; }
 
     /// <summary>Gets or sets the maximum number of questions per day.</summary>
-    public int DailyChatLimit { get; set; }
+    public int DailyMessageQuota { get; set; }
+
+    public int ChatSessionLimit { get; set; }
 
     /// <summary>Gets or sets whether the plan includes benchmark access.</summary>
-    public bool AllowFileUpload { get; set; }
+    public int DailyFileUploadQuota { get; set; }
+
+    public int FileLibraryLimit { get; set; }
 
     /// <summary>Gets or sets whether the plan allows using advanced AI models.</summary>
     public bool AllowAdvancedModels { get; set; }
+
+    public bool IsFeatured { get; set; }
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the subscriptions using this plan.</summary>
