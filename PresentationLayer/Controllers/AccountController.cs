@@ -127,6 +127,57 @@ public class AccountController(IAuthService authService, SignInManager<Applicati
         return View(model);
     }
 
+    // ── GOOGLE OAUTH ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Initiates the Google OAuth flow by issuing a challenge redirect to Google.
+    /// </summary>
+    /// <param name="returnUrl">URL to redirect to after successful authentication.</param>
+    [HttpGet(AuthenticationSettings.GoogleLoginPath)]
+    [AllowAnonymous]
+    public IActionResult GoogleLogin(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    {
+        var callbackUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl }, Request.Scheme)
+                         ?? AuthenticationSettings.FallbackReturnUrl;
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", callbackUrl);
+        return Challenge(properties, "Google");
+    }
+
+    /// <summary>
+    /// Handles the Google OAuth callback. Finds, links, or creates a user account,
+    /// then signs in and redirects to <paramref name="returnUrl"/>.
+    /// </summary>
+    /// <param name="returnUrl">URL to redirect to after successful authentication.</param>
+    [HttpGet(AuthenticationSettings.GoogleCallbackAction)]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleCallback(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    {
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+        {
+            ModelState.AddModelError(string.Empty, "Google sign-in failed. Please try again.");
+            return View(nameof(Login));
+        }
+
+        var result = await _authService.HandleGoogleLoginAsync(info);
+        if (result.Success)
+        {
+            var authProps = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30),
+            };
+
+            await _signInManager.SignInWithClaimsAsync(result.User, authProps, result.Claims);
+            return LocalRedirect(returnUrl);
+        }
+
+        foreach (var error in result.Errors)
+            ModelState.AddModelError(string.Empty, error);
+
+        return View(nameof(Login));
+    }
+
     // ── LOGOUT ───────────────────────────────────────────────
 
     /// <summary>

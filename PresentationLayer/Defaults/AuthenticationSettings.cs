@@ -13,4 +13,10 @@ public static class AuthenticationSettings
     public const string ReturnUrlParamName = @"return-url";
 
     public const string FallbackReturnUrl = @"/home/index";
+
+    public const string GoogleLoginPath = @"/login/google";
+
+    public const string GoogleCallbackPath = @"/login/oauth2/code/google";
+
+    public const string GoogleCallbackAction = @"/login/google/callback";
 }

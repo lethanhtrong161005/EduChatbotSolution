@@ -41,6 +41,11 @@ build/
 secrets.json
 .microsoft.dotnet.secretmanager/
 
+# OAuth & API credentials — never commit
+secret-key/
+appsettings.*.json
+!appsettings.Development.json
+
 .env
 .env.[a-zA-Z]*
 !.env.example
