@@ -7,6 +7,11 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Templates\EmailVerificationCode.html" />
+    <EmbeddedResource Include="Templates\AdminCreatedVerifyEmail.html" />
+    <EmbeddedResource Include="Templates\WelcomeWithPassword.html" />
+    <EmbeddedResource Include="Templates\EmailUpdateVerify.html" />
+    <EmbeddedResource Include="Templates\AccountDisabled.html" />
+    <EmbeddedResource Include="Templates\AccountDeleted.html" />
   </ItemGroup>
 
   <ItemGroup>

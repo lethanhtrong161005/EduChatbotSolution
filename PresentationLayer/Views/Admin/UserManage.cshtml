@@ -1,0 +1,357 @@
+@model Presentation.Models.AdminUserListVm
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="um-page">
+    <!-- Toolbar -->
+    <div class="um-toolbar">
+        <form method="get" asp-action="UserManage" asp-controller="Admin" class="um-filters" id="filterForm">
+            <div class="filter-group">
+                <i class="fas fa-search filter-icon"></i>
+                <input type="text" name="name" value="@Model.NameFilter" placeholder="Search by name..." class="filter-input" id="filterName" />
+            </div>
+            <div class="filter-group">
+                <i class="fas fa-envelope filter-icon"></i>
+                <input type="text" name="email" value="@Model.EmailFilter" placeholder="Search by email..." class="filter-input" id="filterEmail" />
+            </div>
+            <div class="filter-group">
+                <i class="fas fa-tag filter-icon"></i>
+                <select name="role" class="filter-select" id="filterRole">
+                    <option value="">All Roles</option>
+                    @foreach (var r in Model.AvailableRoles)
+                    {
+                        if (Model.RoleFilter == r)
+                        {
+                            <option value="@r" selected>@r</option>
+                        }
+                        else
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    }
+                </select>
+            </div>
+            <input type="hidden" name="limit" value="@Model.Limit" />
+            <input type="hidden" name="offset" value="0" />
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <a asp-action="UserManage" asp-controller="Admin" class="btn-reset">
+                <i class="fas fa-times"></i> Reset
+            </a>
+        </form>
+        <button class="btn-add-user" id="btnAddUser" onclick="openCreateModal()">
+            <i class="fas fa-user-plus"></i>
+            <span>Add User</span>
+        </button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="um-stats">
+        <div class="stat-item">
+            <span class="stat-number">@Model.Users.Count</span>
+            <span class="stat-label">Showing</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item">
+            <span class="stat-number">@(Model.Offset + 1)–@(Model.Offset + Model.Users.Count)</span>
+            <span class="stat-label">of all users</span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="um-table-wrapper">
+        <table class="um-table" id="userTable">
+            <thead>
+                <tr>
+                    <th class="col-user">User</th>
+                    <th class="col-email">Email</th>
+                    <th class="col-role">Role</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Users.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="um-empty">
+                            <i class="fas fa-users-slash"></i>
+                            <p>No users found matching your filters.</p>
+                        </td>
+                    </tr>
+                }
+                @foreach (var user in Model.Users)
+                {
+                    var rowClass = user.IsDeleted ? "row-deleted" : (!user.IsActive ? "row-disabled" : "");
+                    <tr class="@rowClass" data-user-id="@user.Id">
+                        <td class="col-user">
+                            <div class="user-cell">
+                                <div class="user-avatar">@user.FullName.Substring(0, 1).ToUpper()</div>
+                                <div class="user-info">
+                                    <span class="user-name">@user.FullName</span>
+                                    <span class="user-id">@user.Id.ToString().Substring(0, 8)…</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="col-email">@user.Email</td>
+                        <td class="col-role">
+                            <span class="role-badge role-@user.Role.ToLower()">@user.Role</span>
+                        </td>
+                        <td class="col-status">
+                            @if (user.IsDeleted)
+                            {
+                                <span class="status-badge status-deleted"><i class="fas fa-trash"></i> Deleted</span>
+                            }
+                            else if (!user.IsActive)
+                            {
+                                <span class="status-badge status-disabled"><i class="fas fa-ban"></i> Disabled</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-active"><i class="fas fa-check-circle"></i> Active</span>
+                            }
+                        </td>
+                        <td class="col-actions">
+                            @if (!user.IsDeleted)
+                            {
+                                <button class="action-btn btn-edit" title="Edit"
+                                        onclick="openEditModal('@user.Id','@user.FullName','@user.Email','@user.Role','@user.UpdatedAt.ToString("o")')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                @if (user.IsActive)
+                                {
+                                    <button class="action-btn btn-disable" title="Disable account"
+                                            onclick="confirmDisable('@user.Id','@user.FullName','@user.UpdatedAt.ToString("o")')">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="action-btn btn-reactivate" title="Reactivate account"
+                                            onclick="confirmReactivate('@user.Id','@user.FullName','@user.UpdatedAt.ToString("o")')">
+                                        <i class="fas fa-play-circle"></i>
+                                    </button>
+                                }
+                                <button class="action-btn btn-delete" title="Delete account"
+                                        onclick="confirmDelete('@user.Id','@user.FullName')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="no-actions">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="um-pagination">
+        @if (Model.Offset > 0)
+        {
+            var prevOffset = Math.Max(0, Model.Offset - Model.Limit);
+            <a asp-action="UserManage" asp-controller="Admin"
+               asp-route-name="@Model.NameFilter" asp-route-email="@Model.EmailFilter"
+               asp-route-role="@Model.RoleFilter" asp-route-limit="@Model.Limit"
+               asp-route-offset="@prevOffset" class="pg-btn">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        }
+        else
+        {
+            <button class="pg-btn pg-disabled" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+        }
+
+        <span class="pg-info">
+            Page @((Model.Offset / Model.Limit) + 1)
+        </span>
+
+        @if (Model.Users.Count == Model.Limit)
+        {
+            var nextOffset = Model.Offset + Model.Limit;
+            <a asp-action="UserManage" asp-controller="Admin"
+               asp-route-name="@Model.NameFilter" asp-route-email="@Model.EmailFilter"
+               asp-route-role="@Model.RoleFilter" asp-route-limit="@Model.Limit"
+               asp-route-offset="@nextOffset" class="pg-btn">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        }
+        else
+        {
+            <button class="pg-btn pg-disabled" disabled>
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        }
+    </div>
+</div>
+
+<!-- ═══════════════ CREATE MODAL ═══════════════ -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+        <div class="modal-header">
+            <h2 class="modal-title" id="createTitle"><i class="fas fa-user-plus"></i> Add New User</h2>
+            <button class="modal-close" onclick="closeModal('createModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="create-name" class="form-control" placeholder="Enter full name" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" id="create-email" class="form-control" placeholder="user@example.com" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <div class="input-eye-wrap">
+                        <input type="password" id="create-password" class="form-control" placeholder="Min 8 characters" />
+                        <button type="button" class="eye-btn" onclick="togglePwd('create-password',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role *</label>
+                    <select id="create-role" class="form-control form-select">
+                        <option value="">— Select Role —</option>
+                        @foreach (var r in Model.AvailableRoles)
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-alert" id="createAlert" hidden></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('createModal')">Cancel</button>
+            <button class="btn-modal-primary" onclick="submitCreate()" id="btnCreateSubmit">
+                <i class="fas fa-paper-plane"></i> Create & Send Invite
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT MODAL ═══════════════ -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+        <div class="modal-header">
+            <h2 class="modal-title" id="editTitle"><i class="fas fa-user-edit"></i> Edit User</h2>
+            <button class="modal-close" onclick="closeModal('editModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-user-id" />
+            <input type="hidden" id="edit-updated-at" />
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="edit-name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" id="edit-email" class="form-control" />
+                    <small class="form-hint">Changing email will trigger a verification flow</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Role *</label>
+                <select id="edit-role" class="form-control form-select">
+                    @foreach (var r in Model.AvailableRoles)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="modal-alert" id="editAlert" hidden></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+            <button class="btn-modal-primary" onclick="submitUpdate()" id="btnEditSubmit">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ CONFIRM DELETE MODAL ═══════════════ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+        <div class="modal-header modal-header-danger">
+            <h2 class="modal-title"><i class="fas fa-trash-alt"></i> Delete User</h2>
+            <button class="modal-close" onclick="closeModal('deleteModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text">Are you sure you want to delete <strong id="delete-user-name"></strong>?</p>
+            <p class="confirm-subtext">This will soft-delete the account and notify the user via email.</p>
+            <input type="hidden" id="delete-user-id" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn-modal-danger" onclick="submitDelete()" id="btnDeleteSubmit">
+                <i class="fas fa-trash-alt"></i> Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ CONFIRM DISABLE MODAL ═══════════════ -->
+<div class="modal-overlay" id="disableModal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+        <div class="modal-header modal-header-warning">
+            <h2 class="modal-title"><i class="fas fa-ban"></i> Disable Account</h2>
+            <button class="modal-close" onclick="closeModal('disableModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text">Disable account for <strong id="disable-user-name"></strong>?</p>
+            <p class="confirm-subtext">The user will be notified and cannot log in until reactivated.</p>
+            <input type="hidden" id="disable-user-id" />
+            <input type="hidden" id="disable-updated-at" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('disableModal')">Cancel</button>
+            <button class="btn-modal-warning" onclick="submitDisable()" id="btnDisableSubmit">
+                <i class="fas fa-ban"></i> Disable Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ CONFIRM REACTIVATE MODAL ═══════════════ -->
+<div class="modal-overlay" id="reactivateModal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+        <div class="modal-header modal-header-success">
+            <h2 class="modal-title"><i class="fas fa-play-circle"></i> Reactivate Account</h2>
+            <button class="modal-close" onclick="closeModal('reactivateModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text">Reactivate account for <strong id="reactivate-user-name"></strong>?</p>
+            <p class="confirm-subtext">The user will be able to log in again after reactivation.</p>
+            <input type="hidden" id="reactivate-user-id" />
+            <input type="hidden" id="reactivate-updated-at" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('reactivateModal')">Cancel</button>
+            <button class="btn-modal-primary" onclick="submitReactivate()" id="btnReactivateSubmit">
+                <i class="fas fa-play-circle"></i> Reactivate
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+    <script src="~/js/admin-user-manage.js" asp-append-version="true"></script>
+}

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Defaults;
 using Presentation.Models;
+using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
@@ -19,11 +20,15 @@ namespace Presentation.Controllers;
 public class AccountController(
     IAuthService authService,
     IEmailVerificationService emailVerificationService,
-    SignInManager<ApplicationUser> signInManager) : Controller
+    IEmailService emailService,
+    SignInManager<ApplicationUser> signInManager,
+    UserManager<ApplicationUser> userManager) : Controller
 {
     private readonly IAuthService _authService = authService;
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
+    private readonly IEmailService _emailService = emailService;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
 
     // ── LOGIN ────────────────────────────────────────────────
 
@@ -74,6 +79,14 @@ public class AccountController(
             };
 
             await _signInManager.SignInWithClaimsAsync(loginResult.User, authProps, loginResult.Claims);
+
+            // Admin users land on the admin panel instead of home
+            var isAdmin = loginResult.Claims.Any(c =>
+                c.Type == ClaimTypes.Role && c.Value == UserRole.Admin.ToString());
+
+            if (isAdmin)
+                return Redirect("/admin/user-manage");
+
             return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
@@ -182,7 +195,9 @@ public class AccountController(
         }
 
         var pending = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
-        if (pending is null)
+        var adminPending = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
+
+        if (pending is null && adminPending is null)
         {
             ModelState.AddModelError(string.Empty,
                 "Registration session has expired. Please register again.");
@@ -190,8 +205,39 @@ public class AccountController(
             return View(model);
         }
 
-        var createError = await _authService.CreateVerifiedAccountAsync(
-            model.Email, pending.Value.FullName, pending.Value.BcryptHash);
+        string? createError;
+
+        if (adminPending.HasValue)
+        {
+            // Admin-created account flow: create with assigned role
+            createError = await _authService.CreateVerifiedAccountAsync(
+                model.Email, adminPending.Value.FullName, adminPending.Value.BcryptHash);
+
+            if (createError is null)
+            {
+                // Assign the admin-chosen role
+                var newUser = await _userManager.FindByEmailAsync(model.Email);
+                if (newUser is not null)
+                {
+                    var currentRoles = await _userManager.GetRolesAsync(newUser);
+                    await _userManager.RemoveFromRolesAsync(newUser, currentRoles);
+                    await _userManager.AddToRoleAsync(newUser, adminPending.Value.Role);
+                }
+
+                // Send welcome + password email
+                try
+                {
+                    await _emailService.SendWelcomeWithPasswordAsync(
+                        model.Email, adminPending.Value.FullName, adminPending.Value.PlainPassword);
+                }
+                catch { /* Non-critical */ }
+            }
+        }
+        else
+        {
+            createError = await _authService.CreateVerifiedAccountAsync(
+                model.Email, pending!.Value.FullName, pending.Value.BcryptHash);
+        }
 
         if (createError is not null)
         {
@@ -204,6 +250,67 @@ public class AccountController(
 
         TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
         return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
+    }
+
+    // ── EMAIL UPDATE VERIFICATION ─────────────────────────────────
+
+    /// <summary>
+    /// Displays the email-update verification page. The new email being verified
+    /// is passed via query string so the OTP input page can be pre-filled.
+    /// </summary>
+    /// <param name="email">The new email address to verify.</param>
+    [HttpGet("/verify-email-update")]
+    [AllowAnonymous]
+    public IActionResult VerifyEmailUpdate(string email)
+    {
+        return View("VerifyEmail", new VerifyEmailVm { Email = email });
+    }
+
+    /// <summary>
+    /// Verifies the OTP for an admin-initiated email-address update. On success,
+    /// updates the user's email and username in the database.
+    /// </summary>
+    /// <param name="model">The email address and 6-digit code from the verification form.</param>
+    [HttpPost("/verify-email-update")]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyEmailUpdate(VerifyEmailVm model)
+    {
+        if (!ModelState.IsValid)
+            return View("VerifyEmail", model);
+
+        var (codeOk, codeError) = await _emailVerificationService.VerifyCodeAsync(model.Email, model.Code);
+        if (!codeOk)
+        {
+            ModelState.AddModelError(string.Empty, codeError ?? "Verification failed.");
+            return View("VerifyEmail", model);
+        }
+
+        var pending = await _emailVerificationService.GetPendingEmailUpdateAsync(model.Email);
+        if (pending is null)
+        {
+            ModelState.AddModelError(string.Empty,
+                "Email update session has expired. Please ask the administrator to retry.");
+            return View("VerifyEmail", model);
+        }
+
+        // Apply the email change
+        var user = await _userManager.FindByIdAsync(pending.Value.UserId.ToString());
+        if (user is not null)
+        {
+            user.Email = model.Email;
+            user.UserName = model.Email;
+            user.NormalizedEmail = model.Email.ToUpperInvariant();
+            user.NormalizedUserName = model.Email.ToUpperInvariant();
+            user.EmailConfirmed = true;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+            await _userManager.UpdateAsync(user);
+        }
+
+        await _emailVerificationService.CleanupEmailUpdateAsync(model.Email);
+
+        TempData[AppConstants.TempDataSuccess] = "Email updated successfully. Please sign in again.";
+        return RedirectToAction(nameof(Login));
     }
 
     /// <summary>

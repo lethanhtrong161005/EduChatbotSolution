@@ -49,13 +49,53 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
                 Errors = [AppConstants.InvalidCredentials],
             };
 
-        // 3. Build claims identity and sign in
+        // 3. Reject soft-deleted accounts
+        if (user.DeletedAt.HasValue)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = ["This account no longer exists. Please contact support."],
+            };
+
+        // 4. Reject disabled accounts
+        if (!user.IsActive)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = [AppConstants.AccountDisabled],
+            };
+
+        // 5. Build claims identity and sign in
+        // GetClaimsAsync returns user_claims rows; GetRolesAsync returns role names.
+        // We need BOTH so the role-based redirect and [Authorize(Roles=...)] work correctly.
+        var existingClaims = await _userManager.GetClaimsAsync(user);
+        var roles          = await _userManager.GetRolesAsync(user);
+
+        var allClaims = existingClaims.ToList();
+
+        // Ensure basic identity claims are present
+        if (!allClaims.Any(c => c.Type == ClaimTypes.NameIdentifier))
+            allClaims.Add(new(ClaimTypes.NameIdentifier, user.Id.ToString()));
+
+        if (!allClaims.Any(c => c.Type == ClaimTypes.Email))
+            allClaims.Add(new(ClaimTypes.Email, user.Email!));
+
+        if (!allClaims.Any(c => c.Type == ClaimTypes.Name))
+            allClaims.Add(new(ClaimTypes.Name, user.FullName));
+
+        // Add role claims from user_roles (these are NOT in user_claims by default)
+        foreach (var role in roles)
+        {
+            if (!allClaims.Any(c => c.Type == ClaimTypes.Role && c.Value == role))
+                allClaims.Add(new(ClaimTypes.Role, role));
+        }
+
         var loginResult = new LoginResult
         {
             Success = true,
-            User = user,
-            Claims = await _userManager.GetClaimsAsync(user),
-            Errors = [],
+            User    = user,
+            Claims  = allClaims,
+            Errors  = [],
         };
         return loginResult;
     }
