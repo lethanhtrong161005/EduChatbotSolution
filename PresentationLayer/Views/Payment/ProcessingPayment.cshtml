@@ -1,0 +1,134 @@
+﻿@model PaymentProcessingVm
+
+@{
+    ViewData["Title"] = "Processing Payment";
+}
+
+<link rel="stylesheet" href="~/css/processing-payment.css" />
+<script src="~/js/processing-payment.js"></script>
+
+<div class="payment-processing-page"
+     data-payment-id="@Model.Id">
+
+    <div class="page-header">
+
+        <h1 class="page-title">
+            Processing Your Order
+        </h1>
+
+        <p class="page-subtitle">
+            Your payment has been received and is currently being verified.
+        </p>
+
+    </div>
+
+    <div class="processing-card">
+
+        <div class="processing-spinner">
+            <i class="fas fa-circle-notch"></i>
+        </div>
+
+        <h2 class="processing-title">
+            Verification In Progress
+        </h2>
+
+        <p class="processing-description">
+            We are waiting for confirmation from the payment provider.
+            This usually takes less than one minute.
+        </p>
+
+        <div class="processing-status">
+
+            <span class="status-dot"></span>
+
+            <span id="statusText">
+                Waiting for provider confirmation...
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="info-grid">
+
+        <section class="info-card">
+
+            <h3 class="card-title">
+                Order Information
+            </h3>
+
+            <div class="detail-list">
+
+                <div class="detail-row">
+                    <span>Order Number</span>
+                    <strong>@Model.TransactionCode</strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Plan</span>
+                    <strong>@Model.PlanName</strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Duration</span>
+                    <strong>@Model.OptionName</strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Amount Paid</span>
+                    <strong>
+                        @Model.Amount.ToString("N0")₫
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="info-card">
+
+            <h3 class="card-title">
+                What Happens Next?
+            </h3>
+
+            <ul class="timeline-list">
+
+                <li>
+                    Payment provider confirms transaction
+                </li>
+
+                <li>
+                    Your subscription is activated
+                </li>
+
+                <li>
+                    You are redirected automatically
+                </li>
+
+                <li>
+                    Premium features become available
+                </li>
+
+            </ul>
+
+        </section>
+
+    </div>
+
+    <div class="actions">
+
+        <button id="refreshButton"
+                type="button"
+                class="btn-secondary">
+            Check Status
+        </button>
+
+        <a asp-controller="Subscriptions"
+           asp-action="MySubscription"
+           class="btn-primary">
+            My Subscription
+        </a>
+
+    </div>
+
+</div>

@@ -5,27 +5,34 @@ namespace Domain.Contracts;
 
 public interface ISubscriptionService
 {
-    Task<IEnumerable<SubscriptionPlan>> GetPlansAsync(CancellationToken cxlTkn = default);
-    Task<IEnumerable<UserSubscription>> GetSubscriptionsAsync(CancellationToken cxlTkn = default);
+    Task<IEnumerable<Plan>> GetPlansAsync(CancellationToken cxlTkn = default);
+    Task<IEnumerable<PlanOption>> GetPlanOptionsAsync(CancellationToken cxlTkn = default);
+    Task<IEnumerable<Subscription>> GetSubscriptionsAsync(CancellationToken cxlTkn = default);
 
-    Task<SubscriptionPlan?> GetPlanAsync(int id, CancellationToken cxlTkn = default);
-    Task<UserSubscription?> GetSubscriptionAsync(Guid id, CancellationToken cxlTkn = default);
-    Task<UserSubscription?> GetSubscriptionOfUserAsync(Guid userId, CancellationToken cxlTkn = default);
-    Task<IEnumerable<UserSubscription>> GetSubscriptionsToPlanAsync(
+    Task<Plan?> GetPlanAsync(int id, CancellationToken cxlTkn = default);
+    Task<PlanOption?> GetPlanOptionAsync(int id, CancellationToken cxlTkn = default);
+    Task<Subscription?> GetSubscriptionAsync(Guid id, CancellationToken cxlTkn = default);
+    Task<Subscription?> GetSubscriptionOfUserAsync(Guid userId, CancellationToken cxlTkn = default);
+    Task<IEnumerable<Subscription>> GetSubscriptionsToPlanAsync(
         int userId,
         SubscriptionStatus status = SubscriptionStatus.Active,
         CancellationToken cxlTkn = default);
 
-    Task<UserSubscription?> CreateSubscriptionAsync(UserSubscription entity, CancellationToken cxlTkn = default);
-    Task<UserSubscription?> UpdateSubscriptionAsync(UserSubscription entity, CancellationToken cxlTkn = default);
-    Task<UserSubscription?> DeleteSubscriptionAsync(Guid id, CancellationToken cxlTkn = default);
+    Task<Subscription?> CreateSubscriptionAsync(Subscription entity, CancellationToken cxlTkn = default);
+    Task<Subscription?> UpdateSubscriptionAsync(Subscription entity, CancellationToken cxlTkn = default);
+    Task<Subscription?> DeleteSubscriptionAsync(Guid id, CancellationToken cxlTkn = default);
 
-    Task<SubscriptionPlan?> CreatePlanAsync(SubscriptionPlan entity, CancellationToken cxlTkn = default);
-    Task<SubscriptionPlan?> UpdatePlanAsync(SubscriptionPlan entity, CancellationToken cxlTkn = default);
-    Task<SubscriptionPlan?> DeletePlanAsync(int id, CancellationToken cxlTkn = default);
+    Task<Plan?> CreatePlanAsync(Plan entity, CancellationToken cxlTkn = default);
+    Task<Plan?> UpdatePlanAsync(Plan entity, CancellationToken cxlTkn = default);
+    Task<Plan?> DeletePlanAsync(int id, CancellationToken cxlTkn = default);
 
-    Task<UserSubscription?> SubscribeUserToPlanAsync(
+    Task<PlanOption?> CreatePlanOptionAsync(PlanOption entity, CancellationToken cxlTkn = default);
+    Task<PlanOption?> UpdatePlanOptionAsync(PlanOption entity, CancellationToken cxlTkn = default);
+    Task<PlanOption?> DeletePlanOptionAsync(int id, CancellationToken cxlTkn = default);
+
+    Task<Subscription> SubscribeUserToPlanAsync(
         Guid userId,
-        SubscriptionPlanOption subPlanOptions,
+        int planOptionId,
+        bool createOrder = true,
         CancellationToken cxlTkn = default);
 }

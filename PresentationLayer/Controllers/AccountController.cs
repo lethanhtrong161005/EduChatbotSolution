@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Presentation.Defaults;
 using Presentation.Models;
+using Presentation.Settings;
 using System.Security.Claims;
 
 namespace Presentation.Controllers;

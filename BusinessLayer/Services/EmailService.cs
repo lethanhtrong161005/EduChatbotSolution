@@ -22,23 +22,23 @@ public class EmailService : IEmailService
     private readonly string _appPassword;
     private readonly ILogger<EmailService> _logger;
 
-    private const string VerifyCodeTemplate        = "Business.Templates.EmailVerificationCode.html";
-    private const string AdminVerifyTemplate        = "Business.Templates.AdminCreatedVerifyEmail.html";
-    private const string WelcomePasswordTemplate    = "Business.Templates.WelcomeWithPassword.html";
-    private const string EmailUpdateTemplate        = "Business.Templates.EmailUpdateVerify.html";
-    private const string AccountDisabledTemplate    = "Business.Templates.AccountDisabled.html";
-    private const string AccountDeletedTemplate     = "Business.Templates.AccountDeleted.html";
+    private const string VerifyCodeTemplate = "Business.Templates.EmailVerificationCode.html";
+    private const string AdminVerifyTemplate = "Business.Templates.AdminCreatedVerifyEmail.html";
+    private const string WelcomePasswordTemplate = "Business.Templates.WelcomeWithPassword.html";
+    private const string EmailUpdateTemplate = "Business.Templates.EmailUpdateVerify.html";
+    private const string AccountDisabledTemplate = "Business.Templates.AccountDisabled.html";
+    private const string AccountDeletedTemplate = "Business.Templates.AccountDeleted.html";
 
     private const string LoginUrl = "https://educhatai.com/login";
 
     public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
     {
-        _logger       = logger;
-        _smtpHost     = configuration["Email:SmtpHost"]    ?? throw new InvalidOperationException("Email:SmtpHost is not configured.");
-        _smtpPort     = int.Parse(configuration["Email:SmtpPort"] ?? "587");
-        _senderEmail  = configuration["Email:SenderEmail"] ?? throw new InvalidOperationException("Email:SenderEmail is not configured.");
-        _senderName   = configuration["Email:SenderName"]  ?? "EduChatAI";
-        _appPassword  = configuration["Email:AppPassword"] ?? throw new InvalidOperationException("Email:AppPassword is not configured.");
+        _logger = logger;
+        _smtpHost = configuration["Email:SmtpHost"] ?? throw new InvalidOperationException("Email:SmtpHost is not configured.");
+        _smtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
+        _senderEmail = configuration["Email:SenderEmail"] ?? throw new InvalidOperationException("Email:SenderEmail is not configured.");
+        _senderName = configuration["Email:SenderName"] ?? "EduChatAI";
+        _appPassword = configuration["Email:AppPassword"] ?? throw new InvalidOperationException("Email:AppPassword is not configured.");
     }
 
     // ── SELF-REGISTRATION OTP ──────────────────────────────────────

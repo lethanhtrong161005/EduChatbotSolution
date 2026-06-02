@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
-using Presentation.Defaults;
+using Presentation.Settings;
 using System.Runtime.ExceptionServices;
 
 namespace Presentation.Middleware;
@@ -17,6 +17,8 @@ public class CustomExceptionMiddleware : IMiddleware
     {
         { typeof(BadRequestException), StatusCodes.Status400BadRequest },
         { typeof(UserClaimException), StatusCodes.Status401Unauthorized },
+        { typeof(EntityNotFoundException), StatusCodes.Status404NotFound },
+        { typeof(EntityConstraintException), StatusCodes.Status422UnprocessableEntity },
     };
 
     private static readonly HashSet<string> AllowedHeaderNames = new(StringComparer.OrdinalIgnoreCase)

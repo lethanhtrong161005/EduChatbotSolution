@@ -1,0 +1,155 @@
+@model PaymentSelectMethodVm
+
+@{
+    ViewData["Title"] = "Choose how you wish to pay";
+}
+
+<link rel="stylesheet" href="~/css/payment-methods.css" />
+<script src="~/js/payment-methods.js"></script>
+
+<div class="payment-page">
+
+    <div class="payment-layout">
+
+        <section class="payment-methods">
+
+            <div class="section-card">
+
+                <h1 class="page-title">
+                    Select Payment Method
+                </h1>
+
+                <p class="page-description">
+                    Choose your preferred payment provider.
+                </p>
+
+                <div class="payment-options">
+
+                    @foreach (var method in Model.PaymentMethods)
+                    {
+                        <div class="payment-option">
+
+                            <input type="radio"
+                                   name="PaymentMethod"
+                                   value="@method.Name">
+
+                            <div class="payment-option-content">
+
+                                <div class="payment-icon">
+
+                                    @if (string.IsNullOrWhiteSpace(method.ImageSource))
+                                    {
+                                        <i class="@method.IconClass"></i>
+                                    }
+                                    else
+                                    {
+                                        <img src="@method.ImageSource"
+                                             alt="@method.ImageAlt">
+                                    }
+
+                                </div>
+
+                                <div class="payment-option-text">
+
+                                    <div class="payment-name">
+                                        @method.DisplayName
+                                    </div>
+
+                                    <div class="payment-description">
+                                        @method.Description
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <aside class="order-summary">
+
+            <form id="paymentForm"
+                  method="post" 
+                  asp-controller="Payment" asp-action="MakePayment" asp-route-id="@Model.PendingOrder.Id">
+
+                <input type="hidden"
+                       asp-for="PendingOrder.Id"
+                       value="@Model.PendingOrder.Id" />
+
+                <input type="hidden"
+                       asp-for="SelectedMethod"
+                       id="SelectedMethod" />
+
+                <div class="summary-card">
+
+                    <h3 class="summary-title">
+                        Order Summary
+                    </h3>
+
+                    <div class="summary-section">
+
+                        <div class="summary-row">
+                            <span>Plan</span>
+                            <strong>@Model.PendingOrder.PlanName</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Option</span>
+                            <strong>@Model.PendingOrder.OptionName</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Start</span>
+                            <strong>@(Model.PendingOrder.StartDate.ToString("dd-MM-yyyy HH:mm"))</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>End</span>
+                            <strong>@(Model.PendingOrder.EndDate.ToString("dd-MM-yyyy HH:mm"))</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Payment</span>
+                            <strong id="summaryPaymentMethod">
+                                —
+                            </strong>
+                        </div>
+
+                    </div>
+
+                    <hr />
+
+                    <div class="summary-row total">
+
+                        <span>Total Due</span>
+
+                        <strong>
+                            @Model.PendingOrder.Total.ToString("N0")₫
+                        </strong>
+
+                    </div>
+
+                    <button id="continueButton"
+                            class="btn-continue"
+                            type="submit"
+                            disabled>
+
+                        Continue to Payment
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </aside>
+
+    </div>
+
+</div>
