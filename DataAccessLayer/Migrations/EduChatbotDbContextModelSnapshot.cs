@@ -140,7 +140,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid")
@@ -184,7 +185,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid")
@@ -231,7 +233,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
@@ -269,7 +272,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Title")
                         .HasColumnType("text")
@@ -307,7 +311,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -386,7 +391,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("EmbeddingModel")
                         .IsRequired()
@@ -474,7 +480,47 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.PaymentTransaction", b =>
+            modelBuilder.Entity("Domain.Entities.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("ChargedAmount")
+                        .HasColumnType("money")
+                        .HasColumnName("charged_amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_orders");
+
+                    b.HasIndex("SubscriptionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_orders_subscription_id");
+
+                    b.ToTable("orders", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -488,7 +534,16 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ExternalTransactionCode")
+                        .HasColumnType("text")
+                        .HasColumnName("external_transaction_code");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone")
@@ -499,13 +554,9 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("payment_method");
 
-                    b.Property<int>("PaymentStatus")
+                    b.Property<int>("Status")
                         .HasColumnType("integer")
-                        .HasColumnName("payment_status");
-
-                    b.Property<Guid>("SubscriptionPurchaseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subscription_purchase_id");
+                        .HasColumnName("status");
 
                     b.Property<string>("TransactionCode")
                         .IsRequired()
@@ -518,52 +569,15 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_payment_transactions");
+                        .HasName("pk_payments");
 
-                    b.HasIndex("SubscriptionPurchaseId")
-                        .HasDatabaseName("ix_payment_transactions_subscription_purchase_id");
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("ix_payments_order_id");
 
-                    b.ToTable("payment_transactions", (string)null);
+                    b.ToTable("payments", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Subject", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<string>("SubjectCode")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("subject_code");
-
-                    b.Property<string>("SubjectName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("subject_name");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_subjects");
-
-                    b.ToTable("subjects", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.SubscriptionPlan", b =>
+            modelBuilder.Entity("Domain.Entities.Plan", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -583,7 +597,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<int>("DailyFileUploadQuota")
                         .HasColumnType("integer")
@@ -620,16 +635,16 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_subscription_plans");
+                        .HasName("pk_plans");
 
                     b.HasIndex("Tier")
                         .IsUnique()
-                        .HasDatabaseName("ix_subscription_plans_tier");
+                        .HasDatabaseName("ix_plans_tier");
 
-                    b.ToTable("subscription_plans", (string)null);
+                    b.ToTable("plans", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubscriptionPlanOption", b =>
+            modelBuilder.Entity("Domain.Entities.PlanOption", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -641,7 +656,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<int>("DurationDays")
                         .HasColumnType("integer")
@@ -651,18 +667,18 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_available");
 
-                    b.Property<string>("OptionName")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("option_name");
+                        .HasColumnName("name");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("integer")
+                        .HasColumnName("plan_id");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("money")
                         .HasColumnName("price");
-
-                    b.Property<int>("SubscriptionPlanId")
-                        .HasColumnType("integer")
-                        .HasColumnName("subscription_plan_id");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -670,58 +686,101 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_subscription_plan_options");
+                        .HasName("pk_plan_options");
 
-                    b.HasIndex("SubscriptionPlanId")
-                        .HasDatabaseName("ix_subscription_plan_options_subscription_plan_id");
+                    b.HasIndex("PlanId", "DurationDays")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plan_options_plan_id_duration_days");
 
-                    b.ToTable("subscription_plan_options", (string)null);
+                    b.ToTable("plan_options", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubscriptionPurchase", b =>
+            modelBuilder.Entity("Domain.Entities.Subject", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<decimal>("ChargedAmount")
-                        .HasColumnType("money")
-                        .HasColumnName("charged_amount");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
-                    b.Property<DateTime>("PurchasedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("purchased_at");
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
-                    b.Property<int>("SubscriptionPlanOptionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("subscription_plan_option_id");
+                    b.Property<string>("SubjectCode")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject_code");
+
+                    b.Property<string>("SubjectName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject_name");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<Guid>("UserSubscriptionId")
+                    b.HasKey("Id")
+                        .HasName("pk_subjects");
+
+                    b.ToTable("subjects", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Subscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("user_subscription_id");
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
+
+                    b.Property<int>("PlanOptionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("plan_option_id");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_subscription_purchases");
+                        .HasName("pk_subscriptions");
 
-                    b.HasIndex("SubscriptionPlanOptionId")
-                        .HasDatabaseName("ix_subscription_purchases_subscription_plan_option_id");
+                    b.HasIndex("PlanOptionId")
+                        .HasDatabaseName("ix_subscriptions_plan_option_id");
 
-                    b.HasIndex("UserSubscriptionId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_subscription_purchases_user_subscription_id");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_subscriptions_user_id");
 
-                    b.ToTable("subscription_purchases", (string)null);
+                    b.ToTable("subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.TestQuestion", b =>
@@ -736,7 +795,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Difficulty")
                         .HasColumnType("text")
@@ -785,7 +845,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ExperimentId")
                         .HasColumnType("uuid")
@@ -831,48 +892,6 @@ namespace DataAccessLayer.Migrations
                         .HasDatabaseName("ix_test_responses_test_question_id");
 
                     b.ToTable("test_responses", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserSubscription", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_date");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_date");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_subscriptions");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_user_subscriptions_user_id");
-
-                    b.ToTable("user_subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -1127,49 +1146,61 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Conversation");
                 });
 
-            modelBuilder.Entity("Domain.Entities.PaymentTransaction", b =>
+            modelBuilder.Entity("Domain.Entities.Order", b =>
                 {
-                    b.HasOne("Domain.Entities.SubscriptionPurchase", "SubscriptionPurchase")
-                        .WithMany()
-                        .HasForeignKey("SubscriptionPurchaseId")
+                    b.HasOne("Domain.Entities.Subscription", "Subscription")
+                        .WithOne("Order")
+                        .HasForeignKey("Domain.Entities.Order", "SubscriptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_payment_transactions_subscription_purchases_subscription_pu");
+                        .HasConstraintName("fk_orders_subscriptions_subscription_id");
 
-                    b.Navigation("SubscriptionPurchase");
+                    b.Navigation("Subscription");
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubscriptionPlanOption", b =>
+            modelBuilder.Entity("Domain.Entities.Payment", b =>
                 {
-                    b.HasOne("Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany("SubscriptionPlanOptions")
-                        .HasForeignKey("SubscriptionPlanId")
+                    b.HasOne("Domain.Entities.Order", "Order")
+                        .WithMany("Payments")
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_subscription_plan_options_subscription_plans_subscription_p");
+                        .HasConstraintName("fk_payments_orders_order_id");
 
-                    b.Navigation("SubscriptionPlan");
+                    b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubscriptionPurchase", b =>
+            modelBuilder.Entity("Domain.Entities.PlanOption", b =>
                 {
-                    b.HasOne("Domain.Entities.SubscriptionPlanOption", "SubscriptionPlanOption")
+                    b.HasOne("Domain.Entities.Plan", "Plan")
+                        .WithMany("PlanOptions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_plan_options_plans_plan_id");
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Subscription", b =>
+                {
+                    b.HasOne("Domain.Entities.PlanOption", "PlanOption")
                         .WithMany()
-                        .HasForeignKey("SubscriptionPlanOptionId")
+                        .HasForeignKey("PlanOptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_subscription_purchases_subscription_plan_options_subscripti");
+                        .HasConstraintName("fk_subscriptions_plan_options_plan_option_id");
 
-                    b.HasOne("Domain.Entities.UserSubscription", "UserSubscription")
-                        .WithOne("SubscriptionPurchase")
-                        .HasForeignKey("Domain.Entities.SubscriptionPurchase", "UserSubscriptionId")
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_subscription_purchases_user_subscriptions_user_subscription");
+                        .HasConstraintName("fk_subscriptions_users_user_id");
 
-                    b.Navigation("SubscriptionPlanOption");
+                    b.Navigation("PlanOption");
 
-                    b.Navigation("UserSubscription");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domain.Entities.TestResponse", b =>
@@ -1191,18 +1222,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Experiment");
 
                     b.Navigation("TestQuestion");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserSubscription", b =>
-                {
-                    b.HasOne("Domain.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_subscriptions_users_user_id");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -1297,25 +1316,29 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Citations");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Order", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Plan", b =>
+                {
+                    b.Navigation("PlanOptions");
+                });
+
             modelBuilder.Entity("Domain.Entities.Subject", b =>
                 {
                     b.Navigation("Chapters");
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubscriptionPlan", b =>
+            modelBuilder.Entity("Domain.Entities.Subscription", b =>
                 {
-                    b.Navigation("SubscriptionPlanOptions");
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Domain.Entities.TestQuestion", b =>
                 {
                     b.Navigation("TestResponses");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserSubscription", b =>
-                {
-                    b.Navigation("SubscriptionPurchase")
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

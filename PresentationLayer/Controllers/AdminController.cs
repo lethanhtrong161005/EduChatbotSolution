@@ -1,8 +1,8 @@
 using Domain.Contracts;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Domain.Entities;
 using Presentation.Models;
 
 namespace Presentation.Controllers;
@@ -39,12 +39,12 @@ public class AdminController(
 
         var vm = new AdminUserListVm
         {
-            NameFilter  = name,
+            NameFilter = name,
             EmailFilter = email,
-            RoleFilter  = role,
-            Limit       = limit,
-            Offset      = offset,
-            Users       = users,
+            RoleFilter = role,
+            Limit = limit,
+            Offset = offset,
+            Users = users,
             AvailableRoles = roles,
         };
         return View(vm);

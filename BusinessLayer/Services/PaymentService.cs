@@ -4,95 +4,166 @@ using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
+using System.Linq.Expressions;
 
 namespace Business.Services;
 
-public class PaymentService(
-    IUnitOfWork unitOfWork)
-    : IPaymentService
+public class PaymentService(IUnitOfWork unitOfWork) : IPaymentService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<IEnumerable<PaymentTransaction>> GetAsync(CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Payment>> GetAsync(
+        Expression<Func<Payment, bool>>? filter = null,
+        Func<IQueryable<Payment>, IOrderedQueryable<Payment>>? orderBy = null,
+        string[] includeProperties = null!,
+        CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.PaymentTransactions.GetAsync(cancellationToken: cxlTkn);
+        return await _unitOfWork.Payments.GetAsync(
+            filter: filter,
+            orderBy: orderBy,
+            includeProperties: includeProperties,
+            cancellationToken: cxlTkn);
     }
 
-    public async Task<PaymentTransaction?> GetByIdAsync(Guid id, CancellationToken cxlTkn = default)
+    public async Task<Payment?> GetByIdAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.PaymentTransactions.GetByIdAsync(id, cxlTkn);
+        return (await _unitOfWork.Payments.GetAsync(filter: e => e.Id == id,
+                                                    includeProperties: [nameof(Payment.Order)
+                                                                       + "."
+                                                                       + nameof(Payment.Order.Subscription)
+                                                                       + "."
+                                                                       + nameof(Payment.Order.Subscription.PlanOption)
+                                                                       + "."
+                                                                       + nameof(Payment.Order.Subscription.PlanOption.Plan)],
+                                                    cancellationToken: cxlTkn))
+                                          .FirstOrDefault();
     }
 
-    public async Task<PaymentTransaction?> CreateAsync(PaymentTransaction entity, CancellationToken cxlTkn = default)
+    public async Task<Payment?> CreateAsync(Payment entity, CancellationToken cxlTkn = default)
     {
-        var updatedEntity = _unitOfWork.PaymentTransactions.Insert(entity);
+        var updatedEntity = _unitOfWork.Payments.Insert(entity);
         await _unitOfWork.SaveAsync(cxlTkn);
         return updatedEntity;
     }
 
-    public async Task<PaymentTransaction?> UpdateAsync(PaymentTransaction entity, CancellationToken cxlTkn = default)
+    public async Task<Payment?> UpdateAsync(Payment entity, CancellationToken cxlTkn = default)
     {
-        var updatedEntity = _unitOfWork.PaymentTransactions.Update(entity);
+        var updatedEntity = _unitOfWork.Payments.Update(entity);
         await _unitOfWork.SaveAsync(cxlTkn);
         return updatedEntity;
     }
 
-    public async Task<PaymentTransaction?> DeleteAsync(Guid id, CancellationToken cxlTkn = default)
+    public async Task<Payment?> DeleteAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        var deletedEntity = await _unitOfWork.PaymentTransactions.DeleteAsync(id, cxlTkn);
+        var deletedEntity = await _unitOfWork.Payments.DeleteAsync(id, cxlTkn);
         await _unitOfWork.SaveAsync(cxlTkn);
         return deletedEntity;
     }
 
-    public async Task<PaymentTransaction?> CreatePendingPaymentAsync(SubscriptionPurchase subscriptionPurchase, PaymentMethod paymentMethod, CancellationToken cxlTkn = default)
+    public async Task<Payment> CreatePendingPaymentAsync(Guid orderId, PaymentMethod paymentMethod, string? extTxnCode = null, CancellationToken cxlTkn = default)
     {
-        if (subscriptionPurchase.Id == Guid.Empty)
+        var order = (await _unitOfWork.Orders.GetAsync(filter: e => e.Id == orderId,
+                                                      cancellationToken: cxlTkn))
+                                             .FirstOrDefault()
+                    ?? throw new EntityNotFoundException("No order matched the provided ID.");
+
+        if (order.Status != OrderStatus.PendingPayment)
         {
-            throw new ArgumentException("User subscription must have a valid ID.", nameof(subscriptionPurchase));
+            throw new EntityConstraintException("Only pending orders can be paid for.");
         }
 
-        var transactionCode = await GenerateTransactionCode(subscriptionPurchase);
-
-        var pendingPayment = new PaymentTransaction
+        var pendingPayment = new Payment
         {
-            SubscriptionPurchaseId = subscriptionPurchase.Id,
-            TransactionCode = transactionCode,
-            Amount = subscriptionPurchase.SubscriptionPlanOption.Price,
+            OrderId = order.Id,
+            Amount = order.ChargedAmount,
+            TransactionCode = await GenerateTransactionCode(order),
+            ExternalTransactionCode = extTxnCode,
             PaymentMethod = paymentMethod.ToString(),
-            PaymentStatus = PaymentStatus.Pending,
+            Status = PaymentStatus.Pending,
         };
 
-        var insertedEntity = _unitOfWork.PaymentTransactions.Insert(pendingPayment);
+        var insertedEntity = _unitOfWork.Payments.Insert(pendingPayment);
         await _unitOfWork.SaveAsync(cxlTkn);
         return insertedEntity;
     }
 
-    public async Task<PaymentTransaction?> CompletePaymentAsync(Guid paymentId, CancellationToken cxlTkn = default)
+    public async Task<Payment> CompletePaymentAsync(Guid? paymentId = null, string? extTxnCode = null, CancellationToken cxlTkn = default)
     {
-        var payment = await _unitOfWork.PaymentTransactions.GetByIdAsync(paymentId, cxlTkn)
-                      ?? throw new EntityNotFoundException("No transaction matched the provided ID.");
+        if (paymentId == null && extTxnCode == null)
+        {
+            throw new ArgumentException("Either payment ID or external transaction code must be provided.");
+        }
 
-        payment.PaymentStatus = PaymentStatus.Fulfilled;
-        payment.PaidAt = DateTime.Now;
-        var updatedEntity = _unitOfWork.PaymentTransactions.Update(payment);
+        Expression<Func<Payment, bool>> filter;
+        if (paymentId != null && extTxnCode != null)
+            filter = e => e.Id == paymentId && e.ExternalTransactionCode == extTxnCode;
+        else if (paymentId != null)
+            filter = e => e.Id == paymentId;
+        else
+            filter = e => e.ExternalTransactionCode == extTxnCode;
+
+        var payment = (await _unitOfWork.Payments.GetAsync(filter: filter,
+                                                           includeProperties: [nameof(Payment.Order)
+                                                                               + "."
+                                                                               + nameof(Payment.Order.Subscription)
+                                                                               + "."
+                                                                               + nameof(Payment.Order.Subscription.PlanOption)
+                                                                               + "."
+                                                                               + nameof(Payment.Order.Subscription.PlanOption.Plan)],
+                                                           cancellationToken: cxlTkn))
+                                                 .FirstOrDefault()
+                      ?? throw new EntityNotFoundException("No transaction matched the provided ID and/or transaction code.");
+
+        payment.Status = PaymentStatus.Fulfilled;
+        payment.PaidAt = DateTime.UtcNow;
+
+        var order = payment.Order;
+        var sub = order.Subscription;
+
+        order.Status = OrderStatus.Completed;
+
+        await SubscriptionHelper.NormalizeSubscriptionScheduleAndCharge(
+            _unitOfWork,
+            sub,
+            recalculateCharge: false,
+            updateOtherSubscriptions: true,
+            cxlTkn);
+
+        if (sub.StartDate > DateTime.UtcNow)
+        {
+            sub.Status = SubscriptionStatus.Upcoming;
+        }
+        else
+        {
+            //var duration = sub.PlanOption.DurationDays;
+            var duration = sub.EndDate - sub.StartDate;
+            sub.StartDate = DateTime.UtcNow;
+            sub.EndDate = DateTime.UtcNow + duration;
+            sub.Status = SubscriptionStatus.Active;
+        }
+
+        _unitOfWork.Subscriptions.Update(sub);
+        _unitOfWork.Orders.Update(order);
+        var updatedEntity = _unitOfWork.Payments.Update(payment);
         await _unitOfWork.SaveAsync(cxlTkn);
         return updatedEntity;
     }
 
-    private async Task<string> GenerateTransactionCode(SubscriptionPurchase subscriptionPurchase)
+    private async Task<string> GenerateTransactionCode(Order order)
     {
-        var activeSub = await SubscriptionHelper.GetSubscriptionOfUserAsync(_unitOfWork, subscriptionPurchase.UserId);
+        var activeSub = await SubscriptionHelper.GetSubscriptionOfUserAsync(_unitOfWork, order.UserId);
 
-        var prefix = await SubscriptionHelper.GetPurchaseType(subscriptionPurchase.UserSubscription, activeSub) switch
+        var prefix = await SubscriptionHelper.GetOrderType(order.Subscription, activeSub) switch
         {
-            PurchaseType.New => "N",
-            PurchaseType.Upgrade => "U",
-            PurchaseType.Downgrade => "D",
-            PurchaseType.Renewal => "R",
-            _ => throw new InvalidOperationException("Unknown purchase type."),
+            OrderType.New => "N",
+            OrderType.Upgrade => "U",
+            OrderType.Downgrade => "D",
+            OrderType.Renewal => "R",
+            _ => throw new InvalidOperationException("Unknown order type."),
         };
-        var plan = subscriptionPurchase.SubscriptionPlanOption.SubscriptionPlan.Name.ToUpper()[0..1];
-        var timestamp = DateTime.Now.ToString("yyMMdd-HHmmss");
-        return $"{prefix}{plan}-{timestamp}";
+        var plan = order.Plan.Name.ToUpper()[..2];
+        var duration = order.PlanOption.DurationDays.ToString();
+        var timestamp = DateTime.UtcNow.ToString("yyMMdd-HHmmss");
+        return $"{prefix}-{plan}{duration}-{timestamp}";
     }
 }

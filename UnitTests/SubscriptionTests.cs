@@ -5,12 +5,12 @@ namespace UnitTests;
 
 public class SubscriptionTests
 {
-    private readonly List<SubscriptionPlan> _plans = [];
-    private readonly List<SubscriptionPlanOption> _opts = [];
+    private readonly List<Plan> _plans = [];
+    private readonly List<PlanOption> _opts = [];
     private readonly Guid _userId = Guid.NewGuid();
 
     private static void AssertSpansCoverTarget(
-        UserSubscription target,
+        Subscription target,
         IReadOnlyList<SubscriptionHelper.TimeSegment> segments)
     {
         Assert.That(
@@ -23,31 +23,31 @@ public class SubscriptionTests
     {
         _plans.AddRange(
         [
-            new SubscriptionPlan
+            new Plan
             {
                 Id = 1,
                 Name = "Basic",
                 Tier = 1,
             },
-            new SubscriptionPlan
+            new Plan
             {
                 Id = 2,
                 Name = "Advanced",
                 Tier = 2,
             },
-            new SubscriptionPlan
+            new Plan
             {
                 Id = 3,
                 Name = "Premium",
                 Tier = 3,
             },
-            new SubscriptionPlan
+            new Plan
             {
                 Id = 4,
                 Name = "Deluxe",
                 Tier = 4,
             },
-            new SubscriptionPlan
+            new Plan
             {
                 Id = 5,
                 Name = "Ultra",
@@ -57,34 +57,34 @@ public class SubscriptionTests
 
         _opts.AddRange(
         [
-            new SubscriptionPlanOption
+            new PlanOption
             {
                 Id = 1,
-                SubscriptionPlan = _plans[0],
+                Plan = _plans[0],
                 Price = 9.99m,
             },
-            new SubscriptionPlanOption
+            new PlanOption
             {
                 Id = 2,
-                SubscriptionPlan = _plans[1],
+                Plan = _plans[1],
                 Price = 19.99m,
             },
-            new SubscriptionPlanOption
+            new PlanOption
             {
                 Id = 3,
-                SubscriptionPlan = _plans[2],
+                Plan = _plans[2],
                 Price = 29.99m,
             },
-            new SubscriptionPlanOption
+            new PlanOption
             {
                 Id = 4,
-                SubscriptionPlan = _plans[3],
+                Plan = _plans[3],
                 Price = 39.99m,
             },
-            new SubscriptionPlanOption
+            new PlanOption
             {
                 Id = 5,
-                SubscriptionPlan = _plans[4],
+                Plan = _plans[4],
                 Price = 49.99m,
             }
         ]);
@@ -93,48 +93,33 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_NoOverlap_ShouldReturnOneSegmentWithNoTier()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2026, 2, 28),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 1, 1),
             EndDate = new DateTime(2026, 1, 31),
         };
-        var existingSub2 = new UserSubscription
+        var existingSub2 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[3].Price,
-                SubscriptionPlanOption = _opts[3],
-            },
+            PlanOption = _opts[3],
             StartDate = new DateTime(2026, 3, 1),
             EndDate = new DateTime(2026, 3, 31),
         };
 
-        var existingSubs = new List<UserSubscription> { existingSub1, existingSub2 };
+        var existingSubs = new List<Subscription> { existingSub1, existingSub2 };
         var segments = SubscriptionHelper.GetOverlapTimeSegments(targetSub, existingSubs);
 
         Assert.That(segments, Has.Length.EqualTo(1));
@@ -149,43 +134,28 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_FullOverlap_ShouldReturnMultipleZeroLengthSegments_And_OneWholeLengthSegmentWithTheHighestTier()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 6, 1),
             EndDate = new DateTime(2026, 7, 1),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 6, 1),
             EndDate = new DateTime(2026, 7, 1),
         };
-        var existingSub2 = new UserSubscription
+        var existingSub2 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[3].Price,
-                SubscriptionPlanOption = _opts[3],
-            },
+            PlanOption = _opts[3],
             StartDate = new DateTime(2026, 6, 1),
             EndDate = new DateTime(2026, 7, 1),
         };
@@ -208,30 +178,20 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_PartialOverlapAtStart_ShouldReturn2SegmentsWithCorrectTiers()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2026, 2, 28),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 1, 15),
             EndDate = new DateTime(2026, 2, 15),
         };
@@ -252,30 +212,20 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_PartialOverlapAtEnd_ShouldReturn2SegmentsWithCorrectTiers()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2026, 2, 28),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 2, 15),
             EndDate = new DateTime(2026, 3, 15),
         };
@@ -296,30 +246,20 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_PartialOverlapInMiddle_ShouldReturn3SegmentsWithCorrectTiers()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 1, 1),
             EndDate = new DateTime(2026, 4, 1),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 2, 15),
             EndDate = new DateTime(2026, 3, 15),
         };
@@ -342,95 +282,60 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_ComplexOverlaps_ShouldReturnCorrectSegments()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[4].Price,
-                SubscriptionPlanOption = _opts[4],
-            },
+            PlanOption = _opts[4],
             StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2026, 12, 1),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[3].Price,
-                SubscriptionPlanOption = _opts[3],
-            },
+            PlanOption = _opts[3],
             StartDate = new DateTime(2026, 1, 1),
             EndDate = new DateTime(2026, 3, 15),
         };
-        var existingSub2 = new UserSubscription
+        var existingSub2 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[0].Price,
-                SubscriptionPlanOption = _opts[0],
-            },
+            PlanOption = _opts[0],
             StartDate = new DateTime(2026, 1, 15),
             EndDate = new DateTime(2026, 3, 1),
         };
-        var existingSub3 = new UserSubscription
+        var existingSub3 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 3, 1),
             EndDate = new DateTime(2026, 5, 1),
         };
-        var existingSub4 = new UserSubscription
+        var existingSub4 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 4, 1),
             EndDate = new DateTime(2026, 7, 1),
         };
-        var existingSub5 = new UserSubscription
+        var existingSub5 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 8, 1),
             EndDate = new DateTime(2026, 9, 1),
         };
-        var existingSub6 = new UserSubscription
+        var existingSub6 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[0].Price,
-                SubscriptionPlanOption = _opts[0],
-            },
+            PlanOption = _opts[0],
             StartDate = new DateTime(2026, 9, 1),
             EndDate = new DateTime(2026, 12, 1),
         };
@@ -451,43 +356,28 @@ public class SubscriptionTests
     [Test]
     public void GetOverlapTimeSegments_SameTierOverlap_ShouldReturnMultipleSegmentsWithSameTiers()
     {
-        var targetSub = new UserSubscription
+        var targetSub = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[2].Price,
-                SubscriptionPlanOption = _opts[2],
-            },
+            PlanOption = _opts[2],
             StartDate = new DateTime(2026, 1, 1),
             EndDate = new DateTime(2026, 4, 1),
         };
 
-        var existingSub1 = new UserSubscription
+        var existingSub1 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 1, 15),
             EndDate = new DateTime(2026, 3, 1),
         };
-        var existingSub2 = new UserSubscription
+        var existingSub2 = new Subscription
         {
             Id = Guid.NewGuid(),
             UserId = _userId,
-            SubscriptionPurchase = new SubscriptionPurchase
-            {
-                Id = Guid.NewGuid(),
-                ChargedAmount = _opts[1].Price,
-                SubscriptionPlanOption = _opts[1],
-            },
+            PlanOption = _opts[1],
             StartDate = new DateTime(2026, 2, 1),
             EndDate = new DateTime(2026, 3, 15),
         };

@@ -7,17 +7,23 @@ namespace DataAccess.UnitOfWork;
 /// Defines the Unit of Work contract, exposing lazy-loaded repositories
 /// for all aggregate roots and coordinating database saves.
 /// </summary>
-public interface IUnitOfWork
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     // ── Subscription & Payment ───────────────────────────────
-    /// <summary>Gets the repository for <see cref="SubscriptionPlan"/> entities.</summary>
-    GenericRepository<SubscriptionPlan> SubscriptionPlans { get; }
+    /// <summary>Gets the repository for <see cref="Plan"/> entities.</summary>
+    GenericRepository<Plan> Plans { get; }
 
-    /// <summary>Gets the repository for <see cref="UserSubscription"/> entities.</summary>
-    GenericRepository<UserSubscription> UserSubscriptions { get; }
+    /// <summary>Gets the repository for <see cref="PlanOption"/> entities.</summary>
+    GenericRepository<PlanOption> PlanOptions { get; }
 
-    /// <summary>Gets the repository for <see cref="PaymentTransaction"/> entities.</summary>
-    GenericRepository<PaymentTransaction> PaymentTransactions { get; }
+    /// <summary>Gets the repository for <see cref="Order"/> entities.</summary>
+    GenericRepository<Order> Orders { get; }
+
+    /// <summary>Gets the repository for <see cref="Subscription"/> entities.</summary>
+    GenericRepository<Subscription> Subscriptions { get; }
+
+    /// <summary>Gets the repository for <see cref="Payment"/> entities.</summary>
+    GenericRepository<Payment> Payments { get; }
 
     // ── Subjects & Documents ─────────────────────────────────
     /// <summary>Gets the repository for <see cref="Subject"/> entities.</summary>

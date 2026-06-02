@@ -69,7 +69,7 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
         // GetClaimsAsync returns user_claims rows; GetRolesAsync returns role names.
         // We need BOTH so the role-based redirect and [Authorize(Roles=...)] work correctly.
         var existingClaims = await _userManager.GetClaimsAsync(user);
-        var roles          = await _userManager.GetRolesAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
 
         var allClaims = existingClaims.ToList();
 
@@ -93,9 +93,9 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
         var loginResult = new LoginResult
         {
             Success = true,
-            User    = user,
-            Claims  = allClaims,
-            Errors  = [],
+            User = user,
+            Claims = allClaims,
+            Errors = [],
         };
         return loginResult;
     }

@@ -8,11 +8,13 @@ namespace DataAccess.UnitOfWork;
 /// Implements the Unit of Work pattern, providing lazy-loaded repositories
 /// for all aggregate roots and coordinating saves via a shared DbContext.
 /// </summary>
-public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork, IAsyncDisposable
+public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
 {
-    GenericRepository<SubscriptionPlan>? _subscriptionPlans;
-    GenericRepository<UserSubscription>? _userSubscriptions;
-    GenericRepository<PaymentTransaction>? _paymentTransactions;
+    GenericRepository<Plan>? _plans;
+    GenericRepository<PlanOption>? _planOptions;
+    GenericRepository<Order>? _orders;
+    GenericRepository<Subscription>? _subscriptions;
+    GenericRepository<Payment>? _payments;
     GenericRepository<Subject>? _subjects;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
@@ -25,11 +27,15 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork, IAsyncDispos
     GenericRepository<TestResponse>? _testResponses;
 
     /// <inheritdoc/>
-    public GenericRepository<SubscriptionPlan> SubscriptionPlans => _subscriptionPlans ??= new GenericRepository<SubscriptionPlan>(context);
+    public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(context);
     /// <inheritdoc/>
-    public GenericRepository<UserSubscription> UserSubscriptions => _userSubscriptions ??= new GenericRepository<UserSubscription>(context);
+    public GenericRepository<PlanOption> PlanOptions => _planOptions ??= new GenericRepository<PlanOption>(context);
     /// <inheritdoc/>
-    public GenericRepository<PaymentTransaction> PaymentTransactions => _paymentTransactions ??= new GenericRepository<PaymentTransaction>(context);
+    public GenericRepository<Order> Orders => _orders ??= new GenericRepository<Order>(context);
+    /// <inheritdoc/>
+    public GenericRepository<Subscription> Subscriptions => _subscriptions ??= new GenericRepository<Subscription>(context);
+    /// <inheritdoc/>
+    public GenericRepository<Payment> Payments => _payments ??= new GenericRepository<Payment>(context);
     /// <inheritdoc/>
     public GenericRepository<Subject> Subjects => _subjects ??= new GenericRepository<Subject>(context);
     /// <inheritdoc/>
@@ -58,6 +64,22 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork, IAsyncDispos
     }
 
     private bool _disposed = false;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+        if (disposing)
+        {
+            context.Dispose();
+        }
+        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>Releases the DbContext resources asynchronously.</summary>
     /// <param name="disposing">Indicates whether managed resources should be released.</param>

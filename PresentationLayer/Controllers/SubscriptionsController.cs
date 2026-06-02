@@ -1,11 +1,11 @@
 using AutoMapper;
-using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
+using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
@@ -13,174 +13,40 @@ namespace Presentation.Controllers;
 [Route("/plans/[action]")]
 public class SubscriptionsController(ISubscriptionService subService, IMapper mapper) : Controller
 {
-    private readonly ISubscriptionService _subService = subService;
+    private readonly ISubscriptionService _subscriptionService = subService;
     private readonly IMapper _mapper = mapper;
 
     [HttpGet("~/plans")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> SelectPlan(CancellationToken cxlTkn)
     {
-        var plans = new List<SubscriptionPlan>
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+
+        var plans = await _subscriptionService.GetPlansAsync(cxlTkn);
+        var currentSub = await _subscriptionService.GetSubscriptionOfUserAsync(userId, cxlTkn);
+
+        var planSelectVm = new SubscriptionSelectPlanVm
         {
-            new()
-            {
-                Id = 1,
-                Name = "Basic",
-                Tier = 1,
-                Description = "Perfect for casual learners.",
-                DailyMessageQuota = 100,
-                ChatSessionLimit = 10,
-                DailyFileUploadQuota = 5,
-                FileLibraryLimit = 20,
-                AllowAdvancedModels = false,
-
-                SubscriptionPlanOptions =
-                [
-                    new()
-                    {
-                        Id = 101,
-                        OptionName = "Monthly",
-                        DurationDays = 30,
-                        Price = 10_000m
-                    }
-                ]
-            },
-
-            new()
-            {
-                Id = 2,
-                Name = "Advanced",
-                Tier = 2,
-                Description = "More conversations and file storage.",
-                DailyMessageQuota = 500,
-                ChatSessionLimit = 50,
-                DailyFileUploadQuota = 20,
-                FileLibraryLimit = 100,
-                AllowAdvancedModels = false,
-
-                SubscriptionPlanOptions =
-                [
-                    new()
-                    {
-                        Id = 201,
-                        OptionName = "Monthly",
-                        DurationDays = 30,
-                        Price = 20_000m
-                    },
-
-                    new()
-                    {
-                        Id = 202,
-                        OptionName = "Quarterly",
-                        DurationDays = 90,
-                        Price = 55_000m
-                    }
-                ]
-            },
-
-            new()
-            {
-                Id = 3,
-                Name = "Premium",
-                Tier = 3,
-                Description = "Most popular plan for serious students.",
-                DailyMessageQuota = 2_000,
-                ChatSessionLimit = 200,
-                DailyFileUploadQuota = 100,
-                FileLibraryLimit = 500,
-                AllowAdvancedModels = true,
-
-                SubscriptionPlanOptions =
-                [
-                    new()
-                    {
-                        Id = 301,
-                        OptionName = "Monthly",
-                        DurationDays = 30,
-                        Price = 30_000m
-                    },
-
-                    new()
-                    {
-                        Id = 302,
-                        OptionName = "Semi-Annual",
-                        DurationDays = 180,
-                        Price = 160_000m
-                    },
-
-                    new()
-                    {
-                        Id = 303,
-                        OptionName = "Annual",
-                        DurationDays = 365,
-                        Price = 300_000m
-                    }
-                ]
-            },
-
-            new()
-            {
-                Id = 4,
-                Name = "Deluxe",
-                Tier = 4,
-                Description = "For power users who need higher limits.",
-                DailyMessageQuota = 10_000,
-                ChatSessionLimit = 1_000,
-                DailyFileUploadQuota = 500,
-                FileLibraryLimit = 2_000,
-                AllowAdvancedModels = true,
-
-                SubscriptionPlanOptions =
-                [
-                    new()
-                    {
-                        Id = 401,
-                        OptionName = "Quarterly",
-                        DurationDays = 90,
-                        Price = 150_000m
-                    },
-
-                    new()
-                    {
-                        Id = 402,
-                        OptionName = "Annual",
-                        DurationDays = 365,
-                        Price = 600_000m
-                    }
-                ]
-            },
-
-            new()
-            {
-                Id = 5,
-                Name = "Ultra",
-                Tier = 5,
-                Description = "Everything included. No practical limits.",
-                DailyMessageQuota = AppConstants.UnlimitedQuota,
-                ChatSessionLimit = AppConstants.UnlimitedQuota,
-                DailyFileUploadQuota = AppConstants.UnlimitedQuota,
-                FileLibraryLimit = AppConstants.UnlimitedQuota,
-                AllowAdvancedModels = true,
-
-                SubscriptionPlanOptions =
-                [
-                    new()
-                    {
-                        Id = 501,
-                        OptionName = "Annual",
-                        DurationDays = 365,
-                        Price = 1_000_000m
-                    }
-                ]
-            }
-        };
-
-        var planVms = _mapper.Map<IEnumerable<SubscriptionPlanCardVm>>(plans);
-        var planSelectVm = new SelectSubscriptionPlanVm
-        {
-            Plans = planVms,
+            Plans = _mapper.Map<IEnumerable<PlanCardVm>>(plans),
+            CurrentSubscription = currentSub == null ? null : _mapper.Map<CurrentSubscriptionVm>(currentSub),
         };
 
         return View(planSelectVm);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Subscribe(int id, CancellationToken cxlTkn)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+        }
+        var subscription = await _subscriptionService.SubscribeUserToPlanAsync(userId, id, createOrder: true, cxlTkn);
+
+        return RedirectToAction(
+            nameof(PaymentController.SelectMethod),
+            "Payment",
+            new { subscription.Order!.Id });
     }
 
     [HttpGet]
@@ -189,7 +55,7 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
         if (id == null)
             throw new BadRequestException("Subscription plan ID required.");
 
-        var userSubscription = await _subService.GetSubscriptionAsync(id.Value, cxlTkn);
+        var userSubscription = await _subscriptionService.GetSubscriptionAsync(id.Value, cxlTkn);
         if (userSubscription == null)
         {
             return NotFound();
@@ -206,14 +72,14 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(UserSubscription userSubscription, CancellationToken cxlTkn)
+    public async Task<IActionResult> Create(Subscription userSubscription, CancellationToken cxlTkn)
     {
         if (!ModelState.IsValid)
         {
             return View(userSubscription);
         }
 
-        await _subService.CreateSubscriptionAsync(userSubscription, cxlTkn);
+        await _subscriptionService.CreateSubscriptionAsync(userSubscription, cxlTkn);
         return RedirectToAction(nameof(Index));
     }
 
@@ -223,7 +89,7 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
         if (id == null)
             throw new BadRequestException("Subscription plan ID required.");
 
-        var userSubscription = await _subService.GetSubscriptionAsync(id.Value, cxlTkn);
+        var userSubscription = await _subscriptionService.GetSubscriptionAsync(id.Value, cxlTkn);
         if (userSubscription == null)
         {
             return NotFound();
@@ -233,7 +99,7 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, UserSubscription userSubscription, CancellationToken cxlTkn)
+    public async Task<IActionResult> Edit(Guid id, Subscription userSubscription, CancellationToken cxlTkn)
     {
         if (id != userSubscription.Id)
             throw new BadRequestException("IDs of path and data object do not match.");
@@ -241,11 +107,11 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
         if (!ModelState.IsValid)
             return View(userSubscription);
 
-        var userSubToUpdate = await _subService.GetSubscriptionAsync(id, cxlTkn);
+        var userSubToUpdate = await _subscriptionService.GetSubscriptionAsync(id, cxlTkn);
         if (userSubToUpdate == null)
             return NotFound();
 
-        await _subService.UpdateSubscriptionAsync(userSubscription, cxlTkn);
+        await _subscriptionService.UpdateSubscriptionAsync(userSubscription, cxlTkn);
 
         return RedirectToAction(nameof(Index));
     }
@@ -255,7 +121,7 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
         if (id == null)
             throw new BadRequestException("Subscription plan ID required.");
 
-        var userSubscription = await _subService.GetSubscriptionAsync(id.Value, cxlTkn);
+        var userSubscription = await _subscriptionService.GetSubscriptionAsync(id.Value, cxlTkn);
         if (userSubscription == null)
             return NotFound();
 
@@ -266,11 +132,11 @@ public class SubscriptionsController(ISubscriptionService subService, IMapper ma
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(Guid id, CancellationToken cxlTkn)
     {
-        var userSubscription = await _subService.GetSubscriptionAsync(id, cxlTkn);
+        var userSubscription = await _subscriptionService.GetSubscriptionAsync(id, cxlTkn);
         if (userSubscription == null)
             return NotFound();
 
-        await _subService.DeleteSubscriptionAsync(id, cxlTkn);
+        await _subscriptionService.DeleteSubscriptionAsync(id, cxlTkn);
 
         return RedirectToAction(nameof(Index));
     }

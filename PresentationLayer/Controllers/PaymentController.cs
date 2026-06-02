@@ -1,5 +1,8 @@
+using AutoMapper;
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -10,19 +13,22 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace Presentation.Controllers;
 
 [Authorize]
 public class PaymentController(
     ISubscriptionService subscriptionService,
+    IOrderService orderService,
     IPaymentService paymentService,
-    IOptions<PaymentServiceOptions> paymentServiceOptions) : Controller
+    IOptions<PaymentProviderOptions> paymentProviderOptions,
+    IMapper mapper) : Controller
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService;
+    private readonly IOrderService _orderService = orderService;
     private readonly IPaymentService _paymentService = paymentService;
-    private readonly PaymentServiceOptions _paymentServiceOpts = paymentServiceOptions.Value;
+    private readonly PaymentProviderOptions _paymentProviderOpts = paymentProviderOptions.Value;
+    private readonly IMapper _mapper = mapper;
 
     private readonly JsonSerializerOptions _zaloPayJsonOpts = new()
     {
@@ -32,111 +38,171 @@ public class PaymentController(
 
     private const string DefaultAppUser = "EduChatbotAI_User";
 
-    public async Task<IActionResult> SelectMethod(int id) // SubscriptionOption ID
+    [HttpGet]
+    public async Task<IActionResult> SelectMethod(Guid id, CancellationToken cxlTkn)
     {
-        // Checkout logic
+        if (id == Guid.Empty)
+            throw new BadRequestException("Missing order ID.");
 
-        return View();
+        var order = await GetAndValidateOrderAsync(id, cxlTkn);
+        if (order.Status != OrderStatus.PendingPayment)
+            throw new EntityConstraintException("Only pending orders can be paid for.");
+
+        var selectPaymentMethodVm = new PaymentSelectMethodVm
+        {
+            PaymentMethods = GetPaymentMethods(),
+            PendingOrder = _mapper.Map<OrderCheckoutVm>(order),
+        };
+        return View(selectPaymentMethodVm);
     }
 
-    public async Task<IActionResult> MakePayment(PaymentTransactionVm paymentTransaction, CancellationToken cxlTkn)
+    [HttpPost]
+    public async Task<IActionResult> MakePayment(Guid id, PaymentSelectMethodVm vm, CancellationToken cxlTkn)
     {
-        switch (paymentTransaction.PaymentMethod)
+        if (id == Guid.Empty)
+            throw new BadRequestException("Missing order ID.");
+        if (id != vm.PendingOrder.Id)
+            throw new BadRequestException("Mismatched order ID.");
+        if (!ModelState.IsValid)
+            throw new EntityConstraintException("Invalid payment method and/or order. Please try again.");
+
+        var order = await GetAndValidateOrderAsync(id, cxlTkn);
+        if (order.Status != OrderStatus.PendingPayment)
+            throw new EntityConstraintException("Only pending orders can be paid for.");
+
+        switch (vm.SelectedMethod)
         {
             case PaymentMethod.ZaloPay:
-                var zpInitTxnRes = await InitZaloPayTransaction();
+                var (zpInitTxnRes, extTxnCode) = await CreateZaloPayTransaction();
+                await _paymentService.CreatePendingPaymentAsync(order.Id, PaymentMethod.ZaloPay, extTxnCode, cxlTkn);
                 return Redirect(zpInitTxnRes.OrderUrl);
         }
 
-        return View();
+        throw new Exception("Eh!? I am confusion.");
 
-        async Task<ZaloPayInitTransactionResponse> InitZaloPayTransaction()
+        async Task<(ZaloPayCreateTransactionResponse response, string transactionCode)> CreateZaloPayTransaction()
         {
-            // TEMP: Pretend these are from the newly-generated order.
-            Guid subId = Guid.NewGuid();
-            decimal orderTotal = 100_000;
+            var orderId = order.Id;
+            var orderTotal = order.ChargedAmount;
 
-            var appId = _paymentServiceOpts.ZaloPay.AppId;
-            var appUser = User.FindFirstValue(ClaimTypes.Email) ?? DefaultAppUser;
-            var appTransId = GetTransactionCode(subId);
-            var appTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var appId = _paymentProviderOpts.ZaloPay.AppId;
+            var appUser = User.FindFirstValue(ClaimTypes.Name) ?? DefaultAppUser;
+            var appTransId = GetTransactionCode(orderId);
+            var appTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var amount = (long)orderTotal;
-            var item = "[]";    // TODO
-            var description = $"EduChatbot - Thanh toán cho đơn hàng #{appTransId}";
-            var embedData = JsonSerializer.Serialize(new
-            {
-                preferred_payment_method = new string[] { "domestic_card", "account" },
-            }, _zaloPayJsonOpts);
-            var bankCode = "";  // TODO
-            var mac = ComputeHmacZaloPay($"{appId}|{appTransId}|{appUser}|{amount}|{appTime}|{embedData}|{item}", _paymentServiceOpts.ZaloPay.Key1);
-            var callbackUrl = _paymentServiceOpts.ZaloPay.CallbackUrl;
+            var item = "[]";
+            var description = $"EduChatbotAI - Thanh toán cho đơn hàng #{appTransId}";
+            var redirectUrl = _paymentProviderOpts.ZaloPay.RedirectUrlBase + "?transaction-id=" + appTransId;
+            var embedData = $"{{\"redirecturl\": \"{redirectUrl}\"}}";
+            var bankCode = "";
+            var mac = ComputeHmacZaloPay($"{appId}|{appTransId}|{appUser}|{amount}|{appTime}|{embedData}|{item}", _paymentProviderOpts.ZaloPay.Key1);
+            var callbackUrl = _paymentProviderOpts.ZaloPay.CallbackUrl;
 
-            var client = new HttpClient();
-            var zpInitTxnResMsg = await client.PostAsJsonAsync(_paymentServiceOpts.ZaloPay.Endpoint, new
+            var param = new Dictionary<string, string>
             {
-                app_id = _paymentServiceOpts.ZaloPay.AppId,
-                app_user = appUser,
-                app_trans_id = appTransId,
-                app_time = appTime,
-                amount = amount,
-                item = item,
-                description = description,
-                embed_data = embedData,
-                bank_code = bankCode,
-                mac = mac,
-                callback_url = callbackUrl,
-            }, _zaloPayJsonOpts, cxlTkn);
+                { "app_id", appId.ToString() },
+                { "app_user", appUser },
+                { "app_trans_id", appTransId },
+                { "app_time", appTime.ToString() },
+                { "amount", amount.ToString() },
+                { "item", item },
+                { "description", description },
+                { "embed_data", embedData },
+                { "bank_code", bankCode },
+                { "mac", mac },
+                { "callback_url", callbackUrl },
+            };
+            var form = new FormUrlEncodedContent(param);
+
+            using var client = new HttpClient();
+            var zpInitTxnResMsg = await client.PostAsync(_paymentProviderOpts.ZaloPay.CreateTransactionEndpoint, form, cxlTkn);
 
             if (!zpInitTxnResMsg.IsSuccessStatusCode)
             {
-                throw new Exception("Could not initiate ZaloPay transaction.");
+                throw new Exception("Could not create ZaloPay transaction.");
             }
 
-            var zpInitTxnRes = JsonSerializer.Deserialize<ZaloPayInitTransactionResponse>(zpInitTxnResMsg.Content.ReadAsStream(cxlTkn), _zaloPayJsonOpts)
-                               ?? throw new Exception("Could not read response for ZaloPay transaction initiation.");
+            var zpCreateTxnRes = JsonSerializer.Deserialize<ZaloPayCreateTransactionResponse>(await zpInitTxnResMsg.Content.ReadAsStreamAsync(cxlTkn), _zaloPayJsonOpts)
+                               ?? throw new Exception("Could not read response for ZaloPay transaction creation.");
 
-            if (zpInitTxnRes.ReturnCode != (int)ZaloPayInitTransactionReturnCode.Success)
+            if (zpCreateTxnRes.ReturnCode != (int)ZaloPayInitTransactionReturnCode.Success)
             {
-                throw new Exception($"ZaloPay transaction initiation failed: {zpInitTxnRes.ReturnMessage} - {zpInitTxnRes.SubReturnMessage}");
+                throw new Exception($"Failed to create ZaloPay transaction: {zpCreateTxnRes.ReturnMessage} - {zpCreateTxnRes.SubReturnMessage}");
             }
 
-            return zpInitTxnRes;
+            return (zpCreateTxnRes, appTransId);
 
             static string GetTransactionCode(Guid orderId)
             {
-                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                var curDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
+                // RULES: Format: yyMMdd_<CODE>; Max length: 40; Timezone: Vietnam (UTC+7)
 
-                var bytes = orderId.ToByteArray();
-                var ints = new uint[4];
-                for (int i = 0; i < 4; i++)
-                {
-                    ints[i] = BitConverter.ToUInt32(bytes, i * 4);
-                }
-                var code = ints.Select(i => string.Format("{0:d10}", i)).Aggregate((a, b) => a + b);
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                var curDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone).ToString("yyMMdd");
+
+                var code = orderId.ToString("N");
+
+                //var bytes = orderId.ToByteArray();
+                //var ints = new uint[4];
+                //for (int i = 0; i < 4; i++)
+                //{
+                //    ints[i] = BitConverter.ToUInt32(bytes, i * 4);
+                //}
+                //var code = ints.Select(i => string.Format("{0:d10}", i)).Aggregate((a, b) => a + b);
 
                 return curDate + "_" + code;
             }
         }
     }
 
-    [HttpPost]
+    [HttpGet]
+    public async Task<IActionResult> ProcessingPayment([FromQuery] string transactionId, CancellationToken cxlTkn)
+    {
+        if (string.IsNullOrEmpty(transactionId))
+            throw new BadRequestException("Missing payment transaction code.");
+
+        var payment = await GetAndValidatePaymentAsync(transactionId, cxlTkn);
+
+        var paymentVm = _mapper.Map<PaymentProcessingVm>(payment);
+        return View(paymentVm);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Status(Guid id, CancellationToken cxlTkn)
+    {
+        if (id == Guid.Empty)
+            throw new BadRequestException("Missing transaction ID.");
+
+        var payment = await GetAndValidatePaymentAsync(id, cxlTkn);
+        return Json(new
+        {
+            Status = payment.Status.ToString(),
+            RedirectUrl = "/plans",
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MySubscription(CancellationToken cxlTkn)
+    {
+        return View();
+    }
+
+    [AllowAnonymous]
+    [HttpPost("/zp-callback")]
     public async Task<IActionResult> ZaloPayCallback([FromBody] ZaloPayCallbackRequest callbackReq, CancellationToken cxlTkn)
     {
         var result = new Dictionary<string, object>();
 
         try
         {
-            var mac = ComputeHmacZaloPay(callbackReq.Data, _paymentServiceOpts.ZaloPay.Key2);
+            var mac = ComputeHmacZaloPay(callbackReq.Data, _paymentProviderOpts.ZaloPay.Key2);
 
             if (mac == callbackReq.Mac)
             {
                 var callbackData = JsonSerializer.Deserialize<ZaloPayCallbackData>(callbackReq.Data, _zaloPayJsonOpts)
                                    ?? throw new Exception("Could not read ZaloPay callback data.");
 
-                var subId = GetSubscriptionId(callbackData.AppTransId);
-
-
+                var orderId = GetOrderId(callbackData.AppTransId);
+                await _paymentService.CompletePaymentAsync(externalTransactionCode: callbackData.AppTransId, cancellationToken: cxlTkn);
 
                 result["return_code"] = (int)ZaloPayCallbackReturnCode.Success;
                 result["return_message"] = "Success";
@@ -149,29 +215,159 @@ public class PaymentController(
         }
         catch
         {
-            result["return_code"] = 0;  // Have ZaloPay retry the callback later.
+            result["return_code"] = (int)ZaloPayCallbackReturnCode.FailureRetryLater;
             result["return_message"] = "Error processing callback data";
         }
 
         return Ok(result);
 
-        static Guid GetSubscriptionId(string appTransId)
+        static Guid GetOrderId(string appTransId)
         {
-            var code = appTransId[appTransId.IndexOf('_')..];
-            if (!Regex.IsMatch(code, @"^[\d]{40}$"))
-            {
-                throw new Exception("Invalid AppTransId received from ZaloPay callback.");
-            }
+            var code = appTransId[(appTransId.IndexOf('_') + 1)..];
+            return Guid.Parse(code);
 
-            var bytes = new byte[16];
-            for (int i = 0; i < 4; i++)
-            {
-                var segment = code[(i * 10)..((i + 1) * 10)];
-                var num = uint.Parse(segment);
-                Array.Copy(BitConverter.GetBytes(num), 0, bytes, i * 4, 4);
-            }
-            return new Guid(bytes);
+            //if (!Regex.IsMatch(code, @"^[\d]{40}$"))
+            //{
+            //    throw new Exception("Invalid AppTransId received from ZaloPay callback.");
+            //}
+
+            //var bytes = new byte[16];
+            //for (int i = 0; i < 4; i++)
+            //{
+            //    var segment = code[(i * 10)..((i + 1) * 10)];
+            //    var num = uint.Parse(segment);
+            //    Array.Copy(BitConverter.GetBytes(num), 0, bytes, i * 4, 4);
+            //}
+            //return new Guid(bytes);
         }
+    }
+
+    private async Task<Order> GetAndValidateOrderAsync(Guid orderId, CancellationToken cxlTkn = default)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+
+        var order = await _orderService.GetByIdAsync(orderId, cxlTkn)
+            ?? throw new EntityNotFoundException("No order matching the provided ID was found.");
+
+        if (order.UserId != userId)
+            throw new UserClaimException("You do not have permission to access this order.");
+
+        return order;
+    }
+
+    private async Task<Payment> GetAndValidatePaymentAsync(Guid paymentId, CancellationToken cxlTkn = default)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+
+        var payment = await _paymentService.GetByIdAsync(paymentId, cxlTkn)
+            ?? throw new EntityNotFoundException("No transaction matching the provided ID was found.");
+
+        if (payment.Order.UserId != userId)
+            throw new UserClaimException("You do not have permission to access this transaction.");
+
+        return payment;
+    }
+
+    private async Task<Payment> GetAndValidatePaymentAsync(string txnCode, CancellationToken cxlTkn = default)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+
+        var payment = (await _paymentService.GetAsync(filter: e => e.ExternalTransactionCode == txnCode,
+                                                      includeProperties: [nameof(Payment.Order)
+                                                                          + "."
+                                                                          + nameof(Payment.Order.Subscription)
+                                                                          + "."
+                                                                          + nameof(Payment.Order.Subscription.PlanOption)
+                                                                          + "."
+                                                                          + nameof(Payment.Order.Subscription.PlanOption.Plan)],
+                                                      cancellationToken: cxlTkn))
+                                            .FirstOrDefault()
+                      ?? throw new EntityNotFoundException("No transaction matching the provided transaction code was found.");
+
+        if (payment.Order.UserId != userId)
+            throw new UserClaimException("You do not have permission to access this transaction.");
+
+        return payment;
+    }
+
+    private static List<PaymentMethodVm> GetPaymentMethods()
+    {
+        return
+        [
+            new() {
+                Name = PaymentMethod.BankTransfer.ToString(),
+                IconClass = "fas fa-university",
+                DisplayName = "Direct Bank Transfer",
+                Description = "Receive bank account details and transfer manually.",
+            },
+            new()
+            {
+                Name = PaymentMethod.Visa_Mastercard.ToString(),
+                IconClass = "fas fa-credit-card",
+                DisplayName = "Visa / Mastercard",
+                Description = "International credit and debit cards.",
+            },
+            new()
+            {
+                Name = PaymentMethod.VnPay.ToString(),
+                ImageSource = "/img/payment/logo-vnpay.png",
+                ImageAlt = "VNPay",
+                DisplayName = "VNPay",
+                Description = "ATM cards, Internet Banking, QR Pay.",
+            },
+            new()
+            {
+                Name = PaymentMethod.MoMo.ToString(),
+                ImageSource = "/img/payment/logo-momo.png",
+                ImageAlt = "MoMo",
+                DisplayName = "MoMo",
+                Description = "Pay using your MoMo wallet.",
+            },
+            new()
+            {
+                Name = PaymentMethod.ZaloPay.ToString(),
+                ImageSource = "/img/payment/logo-zalopay.webp",
+                ImageAlt = "ZaloPay",
+                DisplayName = "ZaloPay",
+                Description = "Wallet, ATM cards, and linked banks.",
+            },
+        ];
+    }
+
+    private async Task<Dictionary<string, List<(string Bankcode, string Name)>>> GetZaloPayBankList(CancellationToken cxlTkn)
+    {
+        var appId = _paymentProviderOpts.ZaloPay.AppId.ToString();
+        var reqTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        var mac = ComputeHmacZaloPay($"{appId}|{reqTime}", _paymentProviderOpts.ZaloPay.Key1);
+
+        var param = new Dictionary<string, string>
+        {
+            { "appid", appId },
+            { "reqtime", reqTime },
+            { "mac", mac }
+        };
+        var form = new FormUrlEncodedContent(param);
+
+        using var client = new HttpClient();
+        var zpBankListResMsg = await client.PostAsync(_paymentProviderOpts.ZaloPay.BankListEndpoint, form, cxlTkn);
+
+        var zpBankListRes = JsonSerializer.Deserialize<ZaloPayBankListResponse>(await zpBankListResMsg.Content.ReadAsStreamAsync(cxlTkn), _zaloPayJsonOpts)
+                            ?? throw new Exception("Could not read response for ZaloPay bank list.");
+
+        var atmBanks = zpBankListRes.Banks
+                        .GetValueOrDefault((int)ZaloPayBankListCategory.ATM)?
+                        .Select(bank => (bank.Bankcode, bank.Name))
+                        .ToList();
+
+        var bankList = new Dictionary<string, List<(string Bankcode, string Name)>>();
+        if (atmBanks != null && atmBanks.Count != 0)
+        {
+            bankList.Add("ZaloPay", atmBanks);
+        }
+        return bankList;
     }
 
     private static string ComputeHmacZaloPay(string input, string key)
@@ -184,7 +380,33 @@ public class PaymentController(
     }
 }
 
-public class ZaloPayInitTransactionResponse
+public class ZaloPayBankListResponse
+{
+    public int Returncode { get; set; }
+    public string Returnmessage { get; set; } = string.Empty;
+    public Dictionary<int, List<ZaloPayBankDto>> Banks { get; set; } = [];
+}
+
+public class ZaloPayBankDto
+{
+    public string Bankcode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Displayorder { get; set; }
+    public int Pmcid { get; set; }
+    public long Minamount { get; set; }
+    public long Maxamount { get; set; }
+}
+
+public enum ZaloPayBankListCategory
+{
+    Visa_Master_JCB = 36,
+    BankAccount = 37,
+    ZaloPay = 38,
+    ATM = 39,
+    Visa_Master_Debit = 41,
+}
+
+public class ZaloPayCreateTransactionResponse
 {
     public int ReturnCode { get; set; }
     public string ReturnMessage { get; set; } = string.Empty;

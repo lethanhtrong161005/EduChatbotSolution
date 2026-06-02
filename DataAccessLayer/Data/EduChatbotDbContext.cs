@@ -15,19 +15,19 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
 {
     // ── Subscription & Payment ───────────────────────────────
     /// <summary>Gets or sets the subscription plans set.</summary>
-    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+    public DbSet<Plan> Plans { get; set; }
 
     /// <summary>Gets or sets the subscription plan options set.</summary>
-    public DbSet<SubscriptionPlanOption> SubscriptionPlanOptions { get; set; }
+    public DbSet<PlanOption> PlanOptions { get; set; }
 
-    /// <summary>Gets or sets the subscription purchases set.</summary>
-    public DbSet<SubscriptionPurchase> SubscriptionPurchases { get; set; }
+    /// <summary>Gets or sets the subscription orders set.</summary>
+    public DbSet<Order> Orders { get; set; }
 
     /// <summary>Gets or sets the user subscriptions set.</summary>
-    public DbSet<UserSubscription> UserSubscriptions { get; set; }
+    public DbSet<Subscription> Subscriptions { get; set; }
 
     /// <summary>Gets or sets the payment transactions set.</summary>
-    public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+    public DbSet<Payment> Payments { get; set; }
 
     // ── Subjects & Documents ─────────────────────────────────
     /// <summary>Gets or sets the subjects set.</summary>
@@ -65,9 +65,9 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
     /// <inheritdoc/>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.ConfigureWarnings(w =>
-            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         base.OnConfiguring(optionsBuilder);
+        //optionsBuilder.ConfigureWarnings(w =>
+        //    w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
     /// <inheritdoc/>
@@ -85,16 +85,73 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
         modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
 
-        modelBuilder.Entity<SubscriptionPlan>()
+        modelBuilder
+            .Entity<Plan>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<PlanOption>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Order>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Subscription>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Payment>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Subject>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Chapter>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Document>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Chunk>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Conversation>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Citation>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Citation>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<TestQuestion>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<Experiment>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<TestResponse>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+
+        modelBuilder.Entity<Plan>()
             .HasIndex(p => p.Tier)
             .IsUnique();
 
-        // modelBuilder.Entity<DocumentChunk>(entity =>
-        // {
-        //     entity.ToTable("DocumentChunks");
-        //     entity.HasKey(e => e.Id);
-        //     entity.Property(e => e.EmbeddingVector)
-        //           .HasColumnType("vector(1536)");
-        // });
+        modelBuilder.Entity<PlanOption>()
+            .HasIndex(e => new { e.PlanId, e.DurationDays })
+            .IsUnique();
     }
 }

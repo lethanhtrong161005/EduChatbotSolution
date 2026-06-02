@@ -3,8 +3,6 @@ using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace UnitTests;
@@ -31,11 +29,11 @@ public class UserManagementServiceTests
         string email = "alice@example.com", bool isActive = true, DateTimeOffset? updatedAt = null) =>
         new()
         {
-            Id        = Guid.NewGuid(),
-            FullName  = name,
-            Email     = email,
-            UserName  = email,
-            IsActive  = isActive,
+            Id = Guid.NewGuid(),
+            FullName = name,
+            Email = email,
+            UserName = email,
+            IsActive = isActive,
             UpdatedAt = updatedAt ?? DateTimeOffset.UtcNow,
             DeletedAt = null,
         };
@@ -57,7 +55,7 @@ public class UserManagementServiceTests
             roleStoreMock.Object,
             null, null, null, null);
 
-        _emailServiceMock             = new Mock<IEmailService>();
+        _emailServiceMock = new Mock<IEmailService>();
         _emailVerificationServiceMock = new Mock<IEmailVerificationService>();
 
         _configMock = new Mock<IConfiguration>();
@@ -103,7 +101,7 @@ public class UserManagementServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(success, Is.True);
-            Assert.That(error,   Is.Null);
+            Assert.That(error, Is.Null);
         });
 
         _emailVerificationServiceMock.Verify(
@@ -127,7 +125,7 @@ public class UserManagementServiceTests
         var (success, error) = await _sut.CreateUserAsync(dto);
 
         Assert.That(success, Is.False);
-        Assert.That(error,   Does.Contain("already exists"));
+        Assert.That(error, Does.Contain("already exists"));
 
         _emailVerificationServiceMock.VerifyNoOtherCalls();
     }
@@ -161,8 +159,8 @@ public class UserManagementServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(success,       Is.True);
-            Assert.That(error,         Is.Null);
+            Assert.That(success, Is.True);
+            Assert.That(error, Is.Null);
             Assert.That(user.FullName, Is.EqualTo("Alice Updated"));
         });
     }
@@ -183,7 +181,7 @@ public class UserManagementServiceTests
         var (success, error) = await _sut.UpdateUserAsync(dto);
 
         Assert.That(success, Is.False);
-        Assert.That(error,   Does.Contain("modified by another administrator"));
+        Assert.That(error, Does.Contain("modified by another administrator"));
     }
 
     // ── SOFT DELETE ───────────────────────────────────────────────
@@ -207,9 +205,9 @@ public class UserManagementServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(success,           Is.True);
-            Assert.That(error,             Is.Null);
-            Assert.That(user.DeletedAt,    Is.Not.Null);
+            Assert.That(success, Is.True);
+            Assert.That(error, Is.Null);
+            Assert.That(user.DeletedAt, Is.Not.Null);
         });
 
         _emailServiceMock.Verify(
@@ -225,7 +223,7 @@ public class UserManagementServiceTests
     [Test]
     public async Task DisableUser_HappyCase_SetsIsActiveAndSendsEmail()
     {
-        var user  = MakeUser(isActive: true);
+        var user = MakeUser(isActive: true);
         var stamp = user.UpdatedAt;
 
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
@@ -239,8 +237,8 @@ public class UserManagementServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(success,       Is.True);
-            Assert.That(error,         Is.Null);
+            Assert.That(success, Is.True);
+            Assert.That(error, Is.Null);
             Assert.That(user.IsActive, Is.False);
         });
 
@@ -255,15 +253,15 @@ public class UserManagementServiceTests
     [Test]
     public async Task DisableUser_StaleUpdatedAt_ReturnsConcurrencyError()
     {
-        var user  = MakeUser(isActive: true);
+        var user = MakeUser(isActive: true);
         var stale = user.UpdatedAt.AddSeconds(-30);
 
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
 
         var (success, error) = await _sut.DisableUserAsync(user.Id, stale);
 
-        Assert.That(success,       Is.False);
-        Assert.That(error,         Does.Contain("modified by another administrator"));
+        Assert.That(success, Is.False);
+        Assert.That(error, Does.Contain("modified by another administrator"));
         Assert.That(user.IsActive, Is.True); // NOT changed
     }
 
@@ -275,7 +273,7 @@ public class UserManagementServiceTests
     [Test]
     public async Task ReactivateUser_HappyCase_SetsIsActiveTrue()
     {
-        var user  = MakeUser(isActive: false);
+        var user = MakeUser(isActive: false);
         var stamp = user.UpdatedAt;
 
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
@@ -285,8 +283,8 @@ public class UserManagementServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(success,       Is.True);
-            Assert.That(error,         Is.Null);
+            Assert.That(success, Is.True);
+            Assert.That(error, Is.Null);
             Assert.That(user.IsActive, Is.True);
         });
     }

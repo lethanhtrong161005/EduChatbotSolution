@@ -7,13 +7,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
-using Presentation.Defaults;
 using Presentation.Extensions;
 using Presentation.Middleware;
 using Presentation.Options;
 using Presentation.Routing;
+using Presentation.Settings;
 using StackExchange.Redis;
-using System.Data;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +36,7 @@ builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
@@ -46,7 +46,7 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
-builder.Services.Configure<PaymentServiceOptions>(builder.Configuration.GetRequiredSection("PaymentServices"));
+builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentServices"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>

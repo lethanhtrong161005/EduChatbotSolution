@@ -18,15 +18,16 @@ public enum PlanFeature
 
 public enum SubscriptionStatus
 {
-    Cancelled = -1,
     PendingPayment,
     Upcoming,
     Active,
-    Superceded,
+    Superseded,
     Expired,
+    Cancelled,
+    Promo,
 }
 
-public enum PurchaseType
+public enum OrderType
 {
     New,
     Upgrade,
@@ -34,10 +35,21 @@ public enum PurchaseType
     Renewal,
 }
 
+public enum OrderStatus
+{
+    PendingPayment,
+    Completed,
+    Failed,
+    Cancelled,
+    //Refunded,
+}
+
 public enum PaymentMethod
 {
     BankTransfer,
-    PayPal,
+    Visa_Mastercard,
+    VnPay,
+    MoMo,
     ZaloPay,
 }
 
@@ -46,6 +58,8 @@ public enum PaymentStatus
     Pending,
     Fulfilled,
     Failed,
+    Cancelled,
+    //Refunded,
 }
 
 public enum SenderRole

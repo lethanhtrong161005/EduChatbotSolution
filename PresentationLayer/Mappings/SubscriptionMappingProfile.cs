@@ -8,19 +8,21 @@ public class SubscriptionMappingProfile : Profile
 {
     public SubscriptionMappingProfile()
     {
-        CreateMap<SubscriptionPlan, SubscriptionPlanCardVm>()
-            .ConvertUsing<SelectSubscriptionPlanConverter>();
+        CreateMap<Plan, PlanCardVm>()
+            .ConvertUsing<SelectPlanConverter>();
 
-        CreateMap<SubscriptionPlanOption, SubscriptionPlanOptionCardVm>()
-            .ReverseMap();
+        CreateMap<PlanOption, PlanOptionCardVm>();
+
+        CreateMap<Subscription, CurrentSubscriptionVm>()
+            .ForMember(dest => dest.PlanName, opts => opts.MapFrom(src => src.Plan.Name));
     }
 }
 
-public class SelectSubscriptionPlanConverter : ITypeConverter<SubscriptionPlan, SubscriptionPlanCardVm>
+public class SelectPlanConverter : ITypeConverter<Plan, PlanCardVm>
 {
-    public SubscriptionPlanCardVm Convert(SubscriptionPlan source, SubscriptionPlanCardVm destination, ResolutionContext context)
+    public PlanCardVm Convert(Plan source, PlanCardVm destination, ResolutionContext context)
     {
-        destination ??= new SubscriptionPlanCardVm();
+        destination ??= new PlanCardVm();
 
         destination.Name = source.Name;
         destination.Tier = source.Tier;
@@ -32,7 +34,7 @@ public class SelectSubscriptionPlanConverter : ITypeConverter<SubscriptionPlan, 
         destination.AllowAdvancedModels = source.AllowAdvancedModels;
         destination.IsFeatured = source.IsFeatured;
 
-        destination.Options = context.Mapper.Map<ICollection<SubscriptionPlanOptionCardVm>>(source.SubscriptionPlanOptions);
+        destination.Options = context.Mapper.Map<ICollection<PlanOptionCardVm>>(source.PlanOptions);
 
         return destination;
     }
