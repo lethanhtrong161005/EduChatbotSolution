@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — EduChatAI Admin</title>
+    <link rel="stylesheet" href="~/css/colors.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-user-manage.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="admin-body">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-name">EduChatAI</span>
+                        <span class="logo-badge">Admin Panel</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Management</div>
+                <a asp-controller="Admin" asp-action="UserManage"
+                   class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "UserManage" ? "active" : "")">
+                    <i class="fas fa-users nav-icon"></i>
+                    <span class="nav-label">User Management</span>
+                </a>
+                <div class="nav-section-title">System</div>
+                <a asp-controller="Home" asp-action="Index" class="nav-item">
+                    <i class="fas fa-home nav-icon"></i>
+                    <span class="nav-label">Back to App</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">
+                        @(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "A")
+                    </div>
+                    <div class="sidebar-user-info">
+                        <span class="sidebar-user-name">@User.Identity?.Name</span>
+                        <span class="sidebar-user-role">Administrator</span>
+                    </div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="sidebar-logout" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="admin-main" id="adminMain">
+            <!-- Topbar -->
+            <header class="admin-topbar">
+                <div class="topbar-left">
+                    <button class="topbar-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="topbar-title">@ViewData["Title"]</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-admin-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="admin-content">
+                @if (TempData["SuccessMessage"] is string success)
+                {
+                    <div class="admin-toast admin-toast-success" id="adminToast">
+                        <i class="fas fa-check-circle"></i>
+                        <span>@success</span>
+                        <button onclick="this.parentElement.remove()" class="toast-close">×</button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] is string error)
+                {
+                    <div class="admin-toast admin-toast-error" id="adminToast">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>@error</span>
+                        <button onclick="this.parentElement.remove()" class="toast-close">×</button>
+                    </div>
+                }
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <script src="~/js/admin-layout.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -33,10 +33,11 @@ public static class AppConstants
     /// </summary>
     public const string AccountNotAllowed = "Your account is not allowed to sign in. Please verify your email.";
 
-    /// <summary>
-    /// Success message shown after a successful registration.
-    /// </summary>
+    /// <summary>Success message shown after a successful registration.</summary>
     public const string RegistrationSuccess = "Registration successful! Please sign in with your new account.";
+
+    /// <summary>Error message shown when the user account is disabled by an administrator.</summary>
+    public const string AccountDisabled = "Your account has been disabled. Please contact the administrator.";
 
     public const int UnlimitedQuota = -1;
 }

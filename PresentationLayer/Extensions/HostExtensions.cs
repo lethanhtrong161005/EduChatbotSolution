@@ -36,24 +36,29 @@ public static class HostExtensions
 
         try
         {
-            // 1. Attempt standard EF Core migration
+            // Check for pending migrations WITHOUT locking the table
+            var pending = await context.Database.GetPendingMigrationsAsync();
+            var pendingList = pending.ToList();
+
+            if (pendingList.Count == 0)
+            {
+                logger.LogInformation("Database is already up-to-date. Skipping migration.");
+                return;
+            }
+
+            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                pendingList.Count, string.Join(", ", pendingList));
+
+            // Only lock + migrate when there is actually something to apply
             await context.Database.MigrateAsync();
 
-            
-            // var roleMngr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-            // await roleMngr.CreateAsync(new("Student"));
-            // await roleMngr.CreateAsync(new("Lecturer"));
-            // await roleMngr.CreateAsync(new("Admin"));
-
+            logger.LogInformation("Database migration completed successfully.");
         }
         catch (Exception ex) when (ex is PostgresException { SqlState: "42P01" or "42P07" } or InvalidOperationException)
         {
             // 42P01 = undefined_table (__EFMigrationsHistory does not exist yet)
             // 42P07 = duplicate_table   (migration tries to create an existing relation)
             // InvalidOperationException = EF Core 9+ pending model changes warning (treated as error)
-            //
-            // All these cases indicate we shouldn't (or can't) run Migrations.
-            // EnsureCreatedAsync is safe — it skips creation if the tables already exist.
             logger.LogWarning(
                 "EF Core migration skipped or failed (Exception: {Type} - {Message}). " +
                 "Falling back to EnsureCreated to check schema consistency.",
@@ -62,7 +67,6 @@ public static class HostExtensions
 
             await context.Database.EnsureCreatedAsync();
         }
-
     }
 }
 
