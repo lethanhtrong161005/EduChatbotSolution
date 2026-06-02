@@ -40,10 +40,10 @@ public static class HostExtensions
             await context.Database.MigrateAsync();
 
             
-            // var roleMngr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-            // await roleMngr.CreateAsync(new("Student"));
-            // await roleMngr.CreateAsync(new("Lecturer"));
-            // await roleMngr.CreateAsync(new("Admin"));
+            var roleMngr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+            await roleMngr.CreateAsync(new("Student"));
+            await roleMngr.CreateAsync(new("Lecturer"));
+            await roleMngr.CreateAsync(new("Admin"));
 
         }
         catch (Exception ex) when (ex is PostgresException { SqlState: "42P01" or "42P07" } or InvalidOperationException)

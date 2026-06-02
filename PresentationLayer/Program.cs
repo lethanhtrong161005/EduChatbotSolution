@@ -12,6 +12,7 @@ using Presentation.Extensions;
 using Presentation.Middleware;
 using Presentation.Options;
 using Presentation.Routing;
+using StackExchange.Redis;
 using System.Data;
 using System.Reflection;
 
@@ -26,12 +27,19 @@ builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
         .UseSnakeCaseNamingConvention();
 });
 
+// ── Redis ──────────────────────────────────────────────────────
+var redisConn = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect(redisConn));
+
 // ── Application Services ──────────────────────────────────────
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 
 // ── Helper Services ───────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
