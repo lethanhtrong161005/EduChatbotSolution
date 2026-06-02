@@ -193,6 +193,59 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
     /// <returns>A task representing the asynchronous sign-out operation.</returns>
     public Task LogoutAsync() => Task.CompletedTask;
 
+    /// <summary>
+    /// Returns <c>true</c> when an account with the given email already exists in the store.
+    /// </summary>
+    /// <param name="email">The email address to look up.</param>
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        return await _userManager.FindByEmailAsync(email) is not null;
+    }
+
+    /// <summary>
+    /// Creates a verified account using a pre-computed BCrypt hash.
+    /// Assigns the Student role and the required identity claims.
+    /// </summary>
+    /// <param name="email">The verified email address.</param>
+    /// <param name="fullName">The user's display name.</param>
+    /// <param name="bcryptHash">BCrypt hash produced during OTP initiation — stored as-is.</param>
+    /// <returns><c>null</c> on success, or an error message on failure.</returns>
+    public async Task<string?> CreateVerifiedAccountAsync(string email, string fullName, string bcryptHash)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(fullName);
+        ArgumentNullException.ThrowIfNull(bcryptHash);
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            EmailConfirmed = true,
+            IsActive = true,
+            PasswordHash = bcryptHash, // Pre-computed BCrypt hash — CreateAsync(user) preserves it as-is
+        };
+
+        var createResult = await _userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+        {
+            return createResult.Errors.FirstOrDefault()?.Description
+                   ?? "Failed to create the account. Please try again.";
+        }
+
+        await _userManager.AddToRoleAsync(user, UserRole.Student.ToString());
+        await _userManager.AddClaimsAsync(user,
+        [
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.Role, UserRole.Student.ToString()),
+        ]);
+
+        return null;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────
 
     /// <summary>

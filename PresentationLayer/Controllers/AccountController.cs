@@ -11,17 +11,18 @@ using Presentation.Models;
 namespace Presentation.Controllers;
 
 /// <summary>
-/// Handles user authentication operations including login, registration, and logout.
-/// Uses <see cref="IAuthService"/> for BCrypt credential verification and cookie sign-in.
+/// Handles user authentication operations including login, registration,
+/// email verification, and logout. Uses <see cref="IAuthService"/> for credential
+/// management and <see cref="IEmailVerificationService"/> for OTP flow.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="AccountController"/> class.
-/// </remarks>
-/// <param name="authService">The authentication service.</param>
 [Authorize]
-public class AccountController(IAuthService authService, SignInManager<ApplicationUser> signInManager) : Controller
+public class AccountController(
+    IAuthService authService,
+    IEmailVerificationService emailVerificationService,
+    SignInManager<ApplicationUser> signInManager) : Controller
 {
     private readonly IAuthService _authService = authService;
+    private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
 
     // ── LOGIN ────────────────────────────────────────────────
@@ -99,10 +100,12 @@ public class AccountController(IAuthService authService, SignInManager<Applicati
     }
 
     /// <summary>
-    /// Processes the registration form. Creates a new account with BCrypt-hashed password.
-    /// Redirects to login with a success message on completion.
+    /// Validates the registration form, checks for duplicate email, then sends an OTP
+    /// and redirects to the email verification page. Account creation is deferred until
+    /// the OTP is verified.
     /// </summary>
     /// <param name="model">Registration data.</param>
+    /// <param name="returnUrl">Optional return URL after eventual login.</param>
     [HttpPost(AuthenticationSettings.RegistrationPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
@@ -112,19 +115,115 @@ public class AccountController(IAuthService authService, SignInManager<Applicati
     {
         if (!ModelState.IsValid)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             return View(model);
         }
 
-        var error = await _authService.RegisterAsync(model.Email, model.FullName, model.Password);
-
-        if (error is null)
+        if (await _authService.EmailExistsAsync(model.Email))
         {
-            TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
-            return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
+            ModelState.AddModelError(string.Empty, "An account with this email address already exists.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
         }
 
-        ModelState.AddModelError(string.Empty, error);
-        return View(model);
+        var (success, error) = await _emailVerificationService.InitiateVerificationAsync(
+            model.Email, model.FullName, model.Password);
+
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "Failed to send verification code.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        return RedirectToAction(nameof(VerifyEmail), new { email = model.Email, returnUrl });
+    }
+
+    // ── EMAIL VERIFICATION ────────────────────────────────────
+
+    /// <summary>
+    /// Displays the email verification page with a pre-filled email address.
+    /// </summary>
+    /// <param name="email">The email address to verify.</param>
+    /// <param name="returnUrl">Optional return URL after successful account creation.</param>
+    [HttpGet(AuthenticationSettings.VerifyEmailPath)]
+    [AllowAnonymous]
+    public IActionResult VerifyEmail(string email, string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+        return View(new VerifyEmailVm { Email = email });
+    }
+
+    /// <summary>
+    /// Verifies the submitted OTP, creates the user account from pending Redis data,
+    /// and redirects to the login page with a success message.
+    /// </summary>
+    /// <param name="model">The email address and 6-digit code from the verification form.</param>
+    /// <param name="returnUrl">Optional return URL after login.</param>
+    [HttpPost(AuthenticationSettings.VerifyEmailPath)]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyEmail(
+        VerifyEmailVm model,
+        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    {
+        if (!ModelState.IsValid)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        var (codeOk, codeError) = await _emailVerificationService.VerifyCodeAsync(model.Email, model.Code);
+        if (!codeOk)
+        {
+            ModelState.AddModelError(string.Empty, codeError ?? "Verification failed.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        var pending = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
+        if (pending is null)
+        {
+            ModelState.AddModelError(string.Empty,
+                "Registration session has expired. Please register again.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        var createError = await _authService.CreateVerifiedAccountAsync(
+            model.Email, pending.Value.FullName, pending.Value.BcryptHash);
+
+        if (createError is not null)
+        {
+            ModelState.AddModelError(string.Empty, createError);
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        await _emailVerificationService.CleanupAsync(model.Email);
+
+        TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
+        return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
+    }
+
+    /// <summary>
+    /// Re-sends a new OTP to the email. Returns JSON so the client can restart the countdown timer.
+    /// </summary>
+    /// <param name="email">The email address to resend the verification code to.</param>
+    [HttpPost(AuthenticationSettings.ResendCodePath)]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendCode([FromForm] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return BadRequest(new { success = false, error = "Email is required." });
+        }
+
+        var (success, error, remainingSeconds) =
+            await _emailVerificationService.ResendCodeAsync(email);
+
+        return Json(new { success, error, remainingSeconds });
     }
 
     // ── GOOGLE OAUTH ─────────────────────────────────────────────

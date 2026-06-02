@@ -43,6 +43,25 @@ public interface IAuthService
     /// Signs out the currently authenticated user and clears the authentication cookie.
     /// </summary>
     Task LogoutAsync();
+
+    /// <summary>
+    /// Checks whether an account with the given email already exists in the store.
+    /// Used before initiating the email verification flow to catch duplicates early.
+    /// </summary>
+    /// <param name="email">The email address to look up.</param>
+    /// <returns><c>true</c> if an account exists; otherwise <c>false</c>.</returns>
+    Task<bool> EmailExistsAsync(string email);
+
+    /// <summary>
+    /// Creates a verified user account using a pre-computed BCrypt password hash.
+    /// Called after email OTP verification succeeds so the password is never re-hashed.
+    /// Assigns the default Student role and required claims.
+    /// </summary>
+    /// <param name="email">The verified email address.</param>
+    /// <param name="fullName">The user's display name.</param>
+    /// <param name="bcryptHash">A BCrypt hash of the user's password, produced during OTP initiation.</param>
+    /// <returns><c>null</c> on success, or an error message string on failure.</returns>
+    Task<string?> CreateVerifiedAccountAsync(string email, string fullName, string bcryptHash);
 }
 
 /// <summary>

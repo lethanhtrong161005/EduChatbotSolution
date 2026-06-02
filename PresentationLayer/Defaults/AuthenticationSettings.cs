@@ -19,4 +19,8 @@ public static class AuthenticationSettings
     public const string GoogleCallbackPath = @"/login/oauth2/code/google";
 
     public const string GoogleCallbackAction = @"/login/google/callback";
+
+    public const string VerifyEmailPath = @"/verify-email";
+
+    public const string ResendCodePath = @"/verify-email/resend";
 }
