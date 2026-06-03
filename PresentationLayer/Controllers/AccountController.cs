@@ -90,7 +90,7 @@ public class AccountController(
             return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
         }
 
-        ModelState.AddModelError(string.Empty, AppConstants.InvalidCredentials);
+        ModelState.AddModelError(string.Empty, loginResult.Errors.FirstOrDefault() ?? AppConstants.InvalidCredentials);
         return View(model);
     }
 
@@ -194,10 +194,28 @@ public class AccountController(
             return View(model);
         }
 
-        var pending = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
-        var adminPending = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
+        // New DB-first path: user pre-created with EmailConfirmed = false
+        var existingUser = await _userManager.FindByEmailAsync(model.Email);
+        if (existingUser is not null && !existingUser.EmailConfirmed)
+        {
+            var pending = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
+            var adminPending = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
 
-        if (pending is null && adminPending is null)
+            if (pending is null && !adminPending.HasValue)
+            {
+                // This is the new DB-first path (no Redis pending data)
+                existingUser.EmailConfirmed = true;
+                await _userManager.UpdateAsync(existingUser);
+                await _emailVerificationService.CleanupAsync(model.Email);
+                TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
+                return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
+            }
+        }
+
+        var pendingReg = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
+        var adminPendingReg = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
+
+        if (pendingReg is null && adminPendingReg is null)
         {
             ModelState.AddModelError(string.Empty,
                 "Registration session has expired. Please register again.");
@@ -207,11 +225,11 @@ public class AccountController(
 
         string? createError;
 
-        if (adminPending.HasValue)
+        if (adminPendingReg.HasValue)
         {
-            // Admin-created account flow: create with assigned role
+            // Old admin-created account flow: create with assigned role
             createError = await _authService.CreateVerifiedAccountAsync(
-                model.Email, adminPending.Value.FullName, adminPending.Value.BcryptHash);
+                model.Email, adminPendingReg.Value.FullName, adminPendingReg.Value.BcryptHash);
 
             if (createError is null)
             {
@@ -221,14 +239,14 @@ public class AccountController(
                 {
                     var currentRoles = await _userManager.GetRolesAsync(newUser);
                     await _userManager.RemoveFromRolesAsync(newUser, currentRoles);
-                    await _userManager.AddToRoleAsync(newUser, adminPending.Value.Role);
+                    await _userManager.AddToRoleAsync(newUser, adminPendingReg.Value.Role);
                 }
 
                 // Send welcome + password email
                 try
                 {
                     await _emailService.SendWelcomeWithPasswordAsync(
-                        model.Email, adminPending.Value.FullName, adminPending.Value.PlainPassword);
+                        model.Email, adminPendingReg.Value.FullName, adminPendingReg.Value.PlainPassword);
                 }
                 catch { /* Non-critical */ }
             }
@@ -236,7 +254,7 @@ public class AccountController(
         else
         {
             createError = await _authService.CreateVerifiedAccountAsync(
-                model.Email, pending!.Value.FullName, pending.Value.BcryptHash);
+                model.Email, pendingReg!.Value.FullName, pendingReg.Value.BcryptHash);
         }
 
         if (createError is not null)

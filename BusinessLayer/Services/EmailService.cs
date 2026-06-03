@@ -29,7 +29,7 @@ public class EmailService : IEmailService
     private const string AccountDisabledTemplate = "Business.Templates.AccountDisabled.html";
     private const string AccountDeletedTemplate = "Business.Templates.AccountDeleted.html";
 
-    private const string LoginUrl = "https://educhatai.com/login";
+    private readonly string _appBaseUrl;
 
     public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
     {
@@ -39,6 +39,7 @@ public class EmailService : IEmailService
         _senderEmail = configuration["Email:SenderEmail"] ?? throw new InvalidOperationException("Email:SenderEmail is not configured.");
         _senderName = configuration["Email:SenderName"] ?? "EduChatAI";
         _appPassword = configuration["Email:AppPassword"] ?? throw new InvalidOperationException("Email:AppPassword is not configured.");
+        _appBaseUrl = configuration["AppBaseUrl"] ?? "https://educhatai.com";
     }
 
     // ── SELF-REGISTRATION OTP ──────────────────────────────────────
@@ -66,9 +67,11 @@ public class EmailService : IEmailService
     /// <param name="code">The 6-digit OTP to embed.</param>
     public async Task SendAdminCreatedVerifyAsync(string toEmail, string toName, string code)
     {
+        var verifyUrl = $"{_appBaseUrl}/verify-email?email={Uri.EscapeDataString(toEmail)}";
         var html = (await LoadTemplateAsync(AdminVerifyTemplate))
             .Replace("{{NAME}}", toName)
-            .Replace("{{CODE}}", code);
+            .Replace("{{CODE}}", code)
+            .Replace("{{VERIFY_URL}}", verifyUrl);
         await SendAsync(toEmail, toName, "EduChatAI – Activate Your Account", html);
     }
 
@@ -80,11 +83,12 @@ public class EmailService : IEmailService
     /// <param name="plainPassword">The plain-text password to include in the email body.</param>
     public async Task SendWelcomeWithPasswordAsync(string toEmail, string toName, string plainPassword)
     {
+        var loginUrl = $"{_appBaseUrl}/login";
         var html = (await LoadTemplateAsync(WelcomePasswordTemplate))
             .Replace("{{NAME}}", toName)
             .Replace("{{EMAIL}}", toEmail)
             .Replace("{{PASSWORD}}", plainPassword)
-            .Replace("{{LOGIN_URL}}", LoginUrl);
+            .Replace("{{LOGIN_URL}}", loginUrl);
         await SendAsync(toEmail, toName, "Welcome to EduChatAI! 🎉", html);
     }
 
@@ -98,9 +102,11 @@ public class EmailService : IEmailService
     /// <param name="code">The 6-digit OTP to embed.</param>
     public async Task SendEmailUpdateVerifyAsync(string toEmail, string toName, string code)
     {
+        var verifyUrl = $"{_appBaseUrl}/verify-email?email={Uri.EscapeDataString(toEmail)}";
         var html = (await LoadTemplateAsync(EmailUpdateTemplate))
             .Replace("{{NAME}}", toName)
-            .Replace("{{CODE}}", code);
+            .Replace("{{CODE}}", code)
+            .Replace("{{VERIFY_URL}}", verifyUrl);
         await SendAsync(toEmail, toName, "EduChatAI – Verify Your New Email", html);
     }
 

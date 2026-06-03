@@ -1,4 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Domain.Common;
+using Domain.Contracts;
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
 
 namespace Presentation.Extensions;
@@ -52,6 +57,7 @@ public static class HostExtensions
             await context.Database.MigrateAsync();
 
 
+            
             // var roleMngr = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
             // await roleMngr.CreateAsync(new("Admin"));
             // await roleMngr.CreateAsync(new("Student"));
@@ -59,7 +65,7 @@ public static class HostExtensions
 
             //    var subService = scope.ServiceProvider.GetRequiredService<ISubscriptionService>();
             //    var plans = new List<Plan>
-            //{
+            // {
             //    new()
             //    {
             //        Id = 1,
@@ -124,15 +130,15 @@ public static class HostExtensions
             //        FileLibraryLimit = AppConstants.UnlimitedQuota,
             //        AllowAdvancedModels = true,
             //    }
-            //};
+            // };
 
             //    var options = new List<PlanOption>
-            //{
+            // {
             //            new()
             //            {
             //                Id = 101,
             //                PlanId = 1,
-            //                OptionName = "Monthly",
+            //                Name = "Monthly",
             //                DurationDays = 30,
             //                Price = 10_000m
             //            },
@@ -141,7 +147,7 @@ public static class HostExtensions
             //            {
             //                Id = 201,
             //                PlanId = 2,
-            //                OptionName = "Monthly",
+            //                Name = "Monthly",
             //                DurationDays = 30,
             //                Price = 20_000m
             //            },
@@ -150,7 +156,7 @@ public static class HostExtensions
             //            {
             //                Id = 202,
             //                PlanId = 2,
-            //                OptionName = "Quarterly",
+            //                Name = "Quarterly",
             //                DurationDays = 90,
             //                Price = 55_000m
             //            },
@@ -159,7 +165,7 @@ public static class HostExtensions
             //            {
             //                Id = 301,
             //                PlanId = 3,
-            //                OptionName = "Monthly",
+            //                Name = "Monthly",
             //                DurationDays = 30,
             //                Price = 30_000m
             //            },
@@ -168,7 +174,7 @@ public static class HostExtensions
             //            {
             //                Id = 302,
             //                PlanId = 3,
-            //                OptionName = "Semi-Annual",
+            //                Name = "Semi-Annual",
             //                DurationDays = 180,
             //                Price = 160_000m
             //            },
@@ -177,7 +183,7 @@ public static class HostExtensions
             //            {
             //                Id = 303,
             //                PlanId= 3,
-            //                OptionName = "Annual",
+            //                Name = "Annual",
             //                DurationDays = 365,
             //                Price = 300_000m
             //            },
@@ -186,7 +192,7 @@ public static class HostExtensions
             //            {
             //                Id = 401,
             //                PlanId =4,
-            //                OptionName = "Quarterly",
+            //                Name = "Quarterly",
             //                DurationDays = 90,
             //                Price = 150_000m
             //            },
@@ -195,7 +201,7 @@ public static class HostExtensions
             //            {
             //                Id = 402,
             //                PlanId =4,
-            //                OptionName = "Annual",
+            //                Name = "Annual",
             //                DurationDays = 365,
             //                Price = 600_000m
             //            },
@@ -204,11 +210,11 @@ public static class HostExtensions
             //            {
             //                Id = 501,
             //                PlanId =5,
-            //                OptionName = "Annual",
+            //                Name = "Annual",
             //                DurationDays = 365,
             //                Price = 1_000_000m
             //            }
-            //};
+            // };
 
             //    foreach (var plan in plans)
             //    {
