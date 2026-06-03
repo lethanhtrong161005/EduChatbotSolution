@@ -128,7 +128,7 @@ public class EmailVerificationService : IEmailVerificationService
 
     /// <summary>
     /// Initiates an email verification flow for a user already created in the database.
-    /// Stores OTP in Redis, then sends verification email synchronously.
+    /// Stores OTP and pending registration marker in Redis, then sends verification email synchronously.
     /// Email send errors are logged but do not prevent the OTP from being stored.
     /// </summary>
     /// <param name="email">The email address to verify.</param>
@@ -141,8 +141,13 @@ public class EmailVerificationService : IEmailVerificationService
 
         var code = GenerateCode();
 
+        // Store OTP
         var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
         await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
+
+        // Store marker indicating this is an admin-created account (no password in pending data, just fullname)
+        var adminPending = JsonSerializer.Serialize(new AdminPendingRegistration(fullName, "", "", ""));
+        await _redis.StringSetAsync(PendingAdminRegKey(email), adminPending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
 
         try
         {
