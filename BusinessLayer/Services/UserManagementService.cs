@@ -189,8 +189,8 @@ public class UserManagementService(
     // ── UPDATE ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Updates a user's profile. Applies optimistic-concurrency check against <c>UpdatedAt</c>.
-    /// If the email changes, triggers an email-update verification flow for the new address.
+    /// Updates a user's profile. Saves changes to database immediately, including email changes.
+    /// If email changes, sets EmailConfirmed = false and sends verification email asynchronously.
     /// </summary>
     /// <param name="dto">Update data with the current <c>UpdatedAt</c> timestamp from the UI.</param>
     /// <returns>Success/error tuple. Returns a 409-style error on concurrency conflict.</returns>
@@ -216,14 +216,15 @@ public class UserManagementService(
             if (existing is not null && existing.Id != user.Id)
                 return (false, "The new email address is already in use by another account.");
 
-            // Initiate email-update verification (stores userId + newEmail in Redis)
-            var (ok, err) = await _emailVerificationService
-                .InitiateEmailUpdateVerificationAsync(dto.Email, dto.FullName, user.Id);
-            if (!ok)
-                return (false, err);
+            // Update email and set EmailConfirmed = false (will be confirmed after verification)
+            user.Email = dto.Email;
+            user.NormalizedEmail = dto.Email.ToUpperInvariant();
+            user.UserName = dto.Email;
+            user.NormalizedUserName = dto.Email.ToUpperInvariant();
+            user.EmailConfirmed = false;
         }
 
-        // 4. Update non-email fields
+        // 4. Update profile fields
         user.FullName = dto.FullName;
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -242,9 +243,28 @@ public class UserManagementService(
             await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, dto.Role));
         }
 
+        // 6. Save all changes to database
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             return (false, result.Errors.FirstOrDefault()?.Description ?? "Failed to update user.");
+
+        // 7. If email changed, send verification email (async, non-blocking)
+        if (emailChanged)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailVerificationService.InitiateEmailUpdateVerificationAsync(
+                        dto.Email, dto.FullName, user.Id);
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't block the update
+                    System.Diagnostics.Debug.WriteLine($"Failed to send email verification: {ex.Message}");
+                }
+            });
+        }
 
         return (true, null);
     }
