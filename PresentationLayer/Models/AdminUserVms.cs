@@ -76,6 +76,9 @@ public class AdminUpdateUserVm
     [EmailAddress(ErrorMessage = "Invalid email address.")]
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>Gets or sets the original email address before update.</summary>
+    public string OriginalEmail { get; set; } = string.Empty;
+
     /// <summary>Gets or sets the updated role name.</summary>
     [Required(ErrorMessage = "Role is required.")]
     public string Role { get; set; } = string.Empty;
