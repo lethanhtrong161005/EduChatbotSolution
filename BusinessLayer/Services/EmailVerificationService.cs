@@ -1,4 +1,5 @@
 using Domain.Contracts;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -19,16 +20,19 @@ public class EmailVerificationService : IEmailVerificationService
 
     private readonly IDatabase _redis;
     private readonly IEmailService _emailService;
+    private readonly ILogger<EmailVerificationService> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="EmailVerificationService"/>.
     /// </summary>
     /// <param name="multiplexer">The Redis connection multiplexer (singleton).</param>
     /// <param name="emailService">The SMTP email sender service.</param>
-    public EmailVerificationService(IConnectionMultiplexer multiplexer, IEmailService emailService)
+    /// <param name="logger">Logger for background task errors and successes.</param>
+    public EmailVerificationService(IConnectionMultiplexer multiplexer, IEmailService emailService, ILogger<EmailVerificationService> logger)
     {
         _redis = multiplexer.GetDatabase();
         _emailService = emailService;
+        _logger = logger;
     }
 
     // ── SELF-REGISTRATION FLOW ────────────────────────────────────
@@ -122,6 +126,41 @@ public class EmailVerificationService : IEmailVerificationService
         return data is null ? null : (data.FullName, data.BcryptHash, data.Role, data.PlainPassword);
     }
 
+    /// <summary>
+    /// Initiates an email verification flow for a user already created in the database.
+    /// Stores OTP in Redis, then sends verification email in a background task.
+    /// Email delivery errors are logged but do not block; always returns success immediately.
+    /// </summary>
+    /// <param name="email">The email address to verify.</param>
+    /// <param name="fullName">The user's full name.</param>
+    /// <returns>Success (always true) and optional error message (always null).</returns>
+    public async Task<(bool Success, string? Error)> InitiateEmailVerificationForExistingUserAsync(string email, string fullName)
+    {
+        var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
+        if (!allowed) return (false, error);
+
+        var code = GenerateCode();
+
+        var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
+        await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
+
+        // Fire-and-forget: send email in background, log errors without blocking
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _emailService.SendAdminCreatedVerifyAsync(email, fullName, code);
+                _logger.LogInformation("Admin-created verification email sent to {Email}", email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send admin-created verification email to {Email}", email);
+            }
+        });
+
+        return (true, null);
+    }
+
     // ── EMAIL-UPDATE FLOW ─────────────────────────────────────────
 
     /// <summary>
@@ -147,15 +186,21 @@ public class EmailVerificationService : IEmailVerificationService
         await _redis.StringSetAsync(
             PendingEmailUpdateKey(newEmail), updatePending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
 
-        try
+        // Fire-and-forget: send email in background, log errors without blocking
+        _ = Task.Run(async () =>
         {
-            await _emailService.SendEmailUpdateVerifyAsync(newEmail, fullName, code);
-            return (true, null);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Failed to send email-update verification: {ex.Message}");
-        }
+            try
+            {
+                await _emailService.SendEmailUpdateVerifyAsync(newEmail, fullName, code);
+                _logger.LogInformation("Email-update verification email sent to {Email}", newEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email-update verification email to {Email}", newEmail);
+            }
+        });
+
+        return (true, null);
     }
 
     /// <summary>

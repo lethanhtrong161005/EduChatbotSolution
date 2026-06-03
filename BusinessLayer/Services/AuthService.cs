@@ -290,10 +290,27 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
 
     /// <summary>
     /// Loads stored claims for the user and returns a successful <see cref="LoginResult"/>.
+    /// Checks IsActive and DeletedAt to prevent disabled/deleted users from logging in.
     /// </summary>
     /// <param name="user">The resolved user entity.</param>
     private async Task<LoginResult> BuildLoginResultAsync(ApplicationUser user)
     {
+        // Reject soft-deleted accounts
+        if (user.DeletedAt.HasValue)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = ["This account no longer exists. Please contact support."],
+            };
+
+        // Reject disabled accounts
+        if (!user.IsActive)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = [AppConstants.AccountDisabled],
+            };
+
         var claims = (await _userManager.GetClaimsAsync(user)).ToList();
 
         // Guarantee Name claim required by the antiforgery system

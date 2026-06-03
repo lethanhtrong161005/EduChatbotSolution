@@ -110,9 +110,9 @@ public class UserManagementService(
     // ── CREATE ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a new user with the given role. Stores registration data in Redis and
-    /// sends an admin-created verification email. Account is finalized only after
-    /// the user verifies their email address.
+    /// Creates a new user in the database with the given role and initiates email verification.
+    /// User is saved immediately with EmailConfirmed = false; account activation happens after
+    /// the user verifies their email via OTP.
     /// </summary>
     /// <param name="dto">Creation data: full name, email, password, and role.</param>
     /// <returns>Success/error tuple. <c>Error</c> is null on success.</returns>
@@ -129,11 +129,39 @@ public class UserManagementService(
         if (!await _roleManager.RoleExistsAsync(dto.Role))
             return (false, $"Role '{dto.Role}' does not exist.");
 
-        // 3. Initiate admin verification flow in Redis (stores fullName, role, plainPassword)
-        var (success, error) = await _emailVerificationService
-            .InitiateAdminVerificationAsync(dto.Email, dto.FullName, dto.Role, dto.Password);
+        // 3. Create user in database immediately with EmailConfirmed = false
+        var user = new ApplicationUser
+        {
+            UserName = dto.Email,
+            Email = dto.Email,
+            FullName = dto.FullName,
+            EmailConfirmed = false,
+            IsActive = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+        };
 
-        return success ? (true, null) : (false, error);
+        var createResult = await _userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+            return (false, createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.");
+
+        // 4. Assign role
+        var roleResult = await _userManager.AddToRoleAsync(user, dto.Role);
+        if (!roleResult.Succeeded)
+            return (false, roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign role.");
+
+        // 5. Add identity claims
+        await _userManager.AddClaimsAsync(user,
+        [
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Role, dto.Role),
+        ]);
+
+        // 6. Initiate email verification (background task, fire-and-forget)
+        await _emailVerificationService.InitiateEmailVerificationForExistingUserAsync(dto.Email, dto.FullName);
+
+        return (true, null);
     }
 
     // ── UPDATE ────────────────────────────────────────────────────

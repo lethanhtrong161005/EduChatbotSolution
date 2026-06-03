@@ -31,6 +31,17 @@ public interface IEmailVerificationService
         string email, string fullName, string role, string plainPassword);
 
     /// <summary>
+    /// Initiates an email verification flow for a user already created in the database.
+    /// Stores OTP in Redis, then sends verification email in a background task (fire-and-forget).
+    /// Always returns success immediately; email delivery errors are logged but do not block.
+    /// </summary>
+    /// <param name="email">The email address to verify.</param>
+    /// <param name="fullName">The user's full name.</param>
+    /// <returns>Success flag (always true) and optional error message.</returns>
+    Task<(bool Success, string? Error)> InitiateEmailVerificationForExistingUserAsync(
+        string email, string fullName);
+
+    /// <summary>
     /// Initiates an email-update verification flow. Stores the new email, user ID, and full name
     /// in Redis, then sends a verification email to the new address.
     /// </summary>
