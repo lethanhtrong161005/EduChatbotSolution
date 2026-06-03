@@ -47,13 +47,13 @@ public class UserManagementServiceTests
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object,
-            null, null, null, null, null, null, null, null);
+            null!, null!, null!, null!, null!, null!, null!, null!);
 
         // RoleManager
         var roleStoreMock = new Mock<IRoleStore<IdentityRole<Guid>>>();
         _roleManagerMock = new Mock<RoleManager<IdentityRole<Guid>>>(
             roleStoreMock.Object,
-            null, null, null, null);
+            null!, null!, null!, null!);
 
         _emailServiceMock = new Mock<IEmailService>();
         _emailVerificationServiceMock = new Mock<IEmailVerificationService>();

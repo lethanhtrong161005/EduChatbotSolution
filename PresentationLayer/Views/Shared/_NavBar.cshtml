@@ -37,7 +37,7 @@
     {
         @if (userRole is UserRole.Student or UserRole.Lecturer)
         {
-            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Subscriptions" asp-action="Index">Plans</a></li>
+            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Plans" asp-action="Index">Plans</a></li>
             <li class="nav-item"><a class="nav-link text-dark" asp-controller="Profile" asp-action="Index">Profile</a></li>
         }
         <li class="nav-item">

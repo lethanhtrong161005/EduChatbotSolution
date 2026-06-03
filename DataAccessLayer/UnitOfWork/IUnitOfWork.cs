@@ -40,10 +40,10 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     // ── Conversations ────────────────────────────────────────
     /// <summary>Gets the repository for <see cref="Conversation"/> entities.</summary>
-    GenericRepository<Conversation> Conversations { get; }
+    GenericRepository<ChatSession> ChatSessions { get; }
 
-    /// <summary>Gets the repository for <see cref="Message"/> entities.</summary>
-    GenericRepository<Message> Messages { get; }
+    /// <summary>Gets the repository for <see cref="ChatMessage"/> entities.</summary>
+    GenericRepository<ChatMessage> ChatMessages { get; }
 
     /// <summary>Gets the repository for <see cref="Citation"/> entities.</summary>
     GenericRepository<Citation> Citations { get; }

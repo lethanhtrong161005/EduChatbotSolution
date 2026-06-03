@@ -15,9 +15,11 @@ public class Citation : NaturalEntity
     /// <summary>Gets or sets the quoted text from the chunk (nullable).</summary>
     public string QuotedText { get; set; } = string.Empty;
 
+    public double SimilarityScore { get; set; }
+
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent message.</summary>
-    public virtual Message Message { get; set; } = null!;
+    public virtual ChatMessage Message { get; set; } = null!;
 
     /// <summary>Gets or sets the source chunk.</summary>
     public virtual Chunk Chunk { get; set; } = null!;

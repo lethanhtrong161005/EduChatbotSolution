@@ -19,8 +19,8 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
     GenericRepository<Chunk>? _chunks;
-    GenericRepository<Conversation>? _conversations;
-    GenericRepository<Message>? _messages;
+    GenericRepository<ChatSession>? _chatSessions;
+    GenericRepository<ChatMessage>? _chatMessages;
     GenericRepository<Citation>? _citations;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
@@ -45,9 +45,9 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<Chunk> Chunks => _chunks ??= new GenericRepository<Chunk>(context);
     /// <inheritdoc/>
-    public GenericRepository<Conversation> Conversations => _conversations ??= new GenericRepository<Conversation>(context);
+    public GenericRepository<ChatSession> ChatSessions => _chatSessions ??= new GenericRepository<ChatSession>(context);
     /// <inheritdoc/>
-    public GenericRepository<Message> Messages => _messages ??= new GenericRepository<Message>(context);
+    public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(context);
     /// <inheritdoc/>
     public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(context);
     /// <inheritdoc/>

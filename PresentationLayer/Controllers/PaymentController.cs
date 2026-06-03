@@ -188,7 +188,7 @@ public class PaymentController(
 
     [AllowAnonymous]
     [HttpPost("/zp-callback")]
-    public async Task<IActionResult> ZaloPayCallback([FromBody] ZaloPayCallbackRequest callbackReq, CancellationToken cxlTkn)
+    public async Task<IActionResult> ZaloPayCallback([FromBody] ZaloPayCallbackRequest callbackReq)
     {
         var result = new Dictionary<string, object>();
 
@@ -202,7 +202,7 @@ public class PaymentController(
                                    ?? throw new Exception("Could not read ZaloPay callback data.");
 
                 var orderId = GetOrderId(callbackData.AppTransId);
-                await _paymentService.CompletePaymentAsync(externalTransactionCode: callbackData.AppTransId, cancellationToken: cxlTkn);
+                await _paymentService.CompletePaymentAsync(externalTransactionCode: callbackData.AppTransId, cancellationToken: CancellationToken.None);
 
                 result["return_code"] = (int)ZaloPayCallbackReturnCode.Success;
                 result["return_message"] = "Success";
@@ -242,7 +242,7 @@ public class PaymentController(
         }
     }
 
-    private async Task<Order> GetAndValidateOrderAsync(Guid orderId, CancellationToken cxlTkn = default)
+    private async Task<Order> GetAndValidateOrderAsync(Guid orderId, CancellationToken cxlTkn)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
@@ -256,7 +256,7 @@ public class PaymentController(
         return order;
     }
 
-    private async Task<Payment> GetAndValidatePaymentAsync(Guid paymentId, CancellationToken cxlTkn = default)
+    private async Task<Payment> GetAndValidatePaymentAsync(Guid paymentId, CancellationToken cxlTkn)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
@@ -270,7 +270,7 @@ public class PaymentController(
         return payment;
     }
 
-    private async Task<Payment> GetAndValidatePaymentAsync(string txnCode, CancellationToken cxlTkn = default)
+    private async Task<Payment> GetAndValidatePaymentAsync(string txnCode, CancellationToken cxlTkn)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");

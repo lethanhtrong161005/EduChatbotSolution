@@ -1,5 +1,4 @@
-﻿using Domain.Common;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
@@ -33,4 +32,13 @@ public class Payment : NaturalEntity
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the associated order.</summary>
     public virtual Order Order { get; set; } = null!;
+}
+
+public enum PaymentStatus
+{
+    Pending,
+    Fulfilled,
+    Failed,
+    Cancelled,
+    Refunded,
 }

@@ -1,7 +1,7 @@
 ﻿@using System.Security.Claims
 @{
     ViewData["Title"] = "Dashboard - EduChatAI";
-    Layout = null;
+    // Layout = null;
 
     var userName = User.FindFirstValue(ClaimTypes.Name) ?? "User";
     var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
@@ -272,7 +272,7 @@
 </head>
 <body>
     <!-- ── Navbar ── -->
-    <nav class="dashboard-navbar">
+    @* <nav class="dashboard-navbar">
         <a class="navbar-brand-logo" href="/home/index">
             <div class="brand-icon">
                 <i class="fas fa-robot"></i>
@@ -295,7 +295,7 @@
                 </button>
             </form>
         </div>
-    </nav>
+    </nav> *@
 
     <!-- ── Main Content ── -->
     <main class="dashboard-main">

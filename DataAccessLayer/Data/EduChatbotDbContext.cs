@@ -33,21 +33,27 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
     /// <summary>Gets or sets the subjects set.</summary>
     public DbSet<Subject> Subjects { get; set; }
 
+    public DbSet<SubjectMembership> SubjectMemberships { get; set; }
+
+    public DbSet<SubjectAiConfiguration> SubjectAiConfigurations { get; set; }
+
     /// <summary>Gets or sets the chapters set.</summary>
     public DbSet<Chapter> Chapters { get; set; }
 
     /// <summary>Gets or sets the documents set.</summary>
     public DbSet<Document> Documents { get; set; }
 
+    public DbSet<DocumentComment> DocumentComments { get; set; }
+
     /// <summary>Gets or sets the document chunks set.</summary>
     public DbSet<Chunk> Chunks { get; set; }
 
     // ── Conversations ────────────────────────────────────────
     /// <summary>Gets or sets the conversations set.</summary>
-    public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<ChatSession> Conversations { get; set; }
 
     /// <summary>Gets or sets the messages set.</summary>
-    public DbSet<Message> Messages { get; set; }
+    public DbSet<ChatMessage> Messages { get; set; }
 
     /// <summary>Gets or sets the citations set.</summary>
     public DbSet<Citation> Citations { get; set; }
@@ -66,8 +72,6 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        //optionsBuilder.ConfigureWarnings(w =>
-        //    w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
     /// <inheritdoc/>
@@ -110,6 +114,14 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
         modelBuilder
+            .Entity<SubjectMembership>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
+            .Entity<SubjectAiConfiguration>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
             .Entity<Chapter>()
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
@@ -118,11 +130,15 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
         modelBuilder
+            .Entity<DocumentComment>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
             .Entity<Chunk>()
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
         modelBuilder
-            .Entity<Conversation>()
+            .Entity<ChatSession>()
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
         modelBuilder
@@ -153,5 +169,29 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
         modelBuilder.Entity<PlanOption>()
             .HasIndex(e => new { e.PlanId, e.DurationDays })
             .IsUnique();
+
+        modelBuilder
+            .Entity<SubjectMembership>()
+            .HasIndex(e => new { e.UserId, e.SubjectId })
+            .IsUnique();
+        modelBuilder.Entity<SubjectMembership>()
+            .HasIndex(e => new { e.SubjectId, e.Role })
+            .HasFilter($"\"role\" = {(int)MembershipRole.Chief}")
+            .IsUnique();
+
+        modelBuilder.Entity<Chunk>()
+            .Property(e => e.Embedding)
+            .HasColumnType("vector(1536)");
+        modelBuilder.Entity<Chunk>()
+            .HasIndex(x => x.Embedding)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops")
+            .HasStorageParameter("m", 32)
+            .HasStorageParameter("ef_construction", 128);
+
+        modelBuilder.Entity<ChatSession>()
+            .ToTable("chat_sessions");
+        modelBuilder.Entity<ChatMessage>()
+            .ToTable("chat_messages");
     }
 }

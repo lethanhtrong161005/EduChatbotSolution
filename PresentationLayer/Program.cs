@@ -22,7 +22,10 @@ builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
 {
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
                   ?? throw new KeyNotFoundException("Could not find connection string.");
-    opts.UseNpgsql(connStr)
+    opts.UseNpgsql(connStr, opts =>
+    {
+        opts.UseVector();
+    })
         .UseSnakeCaseNamingConvention();
 });
 
@@ -46,7 +49,7 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
-builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentServices"));
+builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>

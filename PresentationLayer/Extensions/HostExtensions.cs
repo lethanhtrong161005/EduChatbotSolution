@@ -1,8 +1,4 @@
-﻿using Domain.Common;
-using Domain.Contracts;
-using Domain.Entities;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
 
@@ -57,7 +53,7 @@ public static class HostExtensions
             await context.Database.MigrateAsync();
 
 
-            
+
             // var roleMngr = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
             // await roleMngr.CreateAsync(new("Admin"));
             // await roleMngr.CreateAsync(new("Student"));

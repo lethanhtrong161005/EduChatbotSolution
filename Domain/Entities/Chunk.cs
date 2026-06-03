@@ -1,4 +1,7 @@
-﻿namespace Domain.Entities;
+﻿
+using Pgvector;
+
+namespace Domain.Entities;
 
 /// <summary>
 /// Represents a text chunk from a document, mapped to the <c>document_chunks</c> table.
@@ -14,17 +17,21 @@ public class Chunk : NaturalEntity
     /// <summary>Gets or sets the raw text content of this chunk.</summary>
     public string ChunkText { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the embedding model used to vectorize this chunk.</summary>
-    public string EmbeddingModel { get; set; } = string.Empty;
+    public int? PageNumber { get; set; }
+
+    public string? SectionTitle { get; set; }
 
     /// <summary>Gets or sets the chunking strategy used (e.g., fixed-size, semantic).</summary>
     public string ChunkStrategy { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the vector store ID for retrieval (nullable).</summary>
-    public string? VectorId { get; set; }
+    /// <summary>Gets or sets the embedding model used to vectorize this chunk.</summary>
+    public string EmbeddingModel { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the number of tokens in this chunk (nullable).</summary>
     public int? TokenCount { get; set; }
+
+    /// <summary>Gets or sets the vector store ID for retrieval (nullable).</summary>
+    public Vector Embedding { get; set; } = null!;
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent document.</summary>

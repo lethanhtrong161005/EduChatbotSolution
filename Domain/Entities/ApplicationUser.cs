@@ -34,5 +34,6 @@ public class ApplicationUser : IdentityUser<Guid>
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the conversations belonging to this user.</summary>
-    public virtual ICollection<Conversation> Conversations { get; set; } = [];
+    public virtual ICollection<ChatSession> ChatSessions { get; set; } = [];
+    public virtual ICollection<SubjectMembership> SubjectMemberships { get; set; } = [];
 }

@@ -1,6 +1,4 @@
-﻿using Domain.Common;
-
-namespace Domain.Entities;
+﻿namespace Domain.Entities;
 
 /// <summary>
 /// Represents a user's subscription to a plan option, mapped to the <c>user_subscriptions</c> table.
@@ -37,4 +35,15 @@ public class Subscription : NaturalEntity
 
     // ── Convenience ─────────────────────────────────────────
     public Plan Plan => PlanOption.Plan;
+}
+
+public enum SubscriptionStatus
+{
+    PendingPayment,
+    Upcoming,
+    Active,
+    Superseded,
+    Expired,
+    Cancelled,
+    Promo,
 }

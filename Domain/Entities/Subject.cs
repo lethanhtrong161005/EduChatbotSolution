@@ -18,4 +18,6 @@ public class Subject : NaturalEntity
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the chapters belonging to this subject.</summary>
     public virtual ICollection<Chapter> Chapters { get; set; } = [];
+    public virtual ICollection<SubjectMembership> Memberships { get; set; } = [];
+    public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
 }

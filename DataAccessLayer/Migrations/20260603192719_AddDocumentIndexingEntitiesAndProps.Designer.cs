@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatbotDbContext))]
-    partial class EduChatbotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603192719_AddDocumentIndexingEntitiesAndProps")]
+    partial class AddDocumentIndexingEntitiesAndProps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -221,12 +224,12 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_chat_messages");
+                        .HasName("pk_messages");
 
                     b.HasIndex("ChatSessionId")
-                        .HasDatabaseName("ix_chat_messages_chat_session_id");
+                        .HasDatabaseName("ix_messages_chat_session_id");
 
-                    b.ToTable("chat_messages", (string)null);
+                    b.ToTable("messages", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.ChatSession", b =>
@@ -260,15 +263,15 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_chat_sessions");
+                        .HasName("pk_conversations");
 
                     b.HasIndex("SubjectId")
-                        .HasDatabaseName("ix_chat_sessions_subject_id");
+                        .HasDatabaseName("ix_conversations_subject_id");
 
                     b.HasIndex("UserId")
-                        .HasDatabaseName("ix_chat_sessions_user_id");
+                        .HasDatabaseName("ix_conversations_user_id");
 
-                    b.ToTable("chat_sessions", (string)null);
+                    b.ToTable("conversations", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Chunk", b =>
@@ -334,14 +337,6 @@ namespace DataAccessLayer.Migrations
 
                     b.HasIndex("DocumentId")
                         .HasDatabaseName("ix_chunks_document_id");
-
-                    b.HasIndex("Embedding")
-                        .HasDatabaseName("ix_chunks_embedding")
-                        .HasAnnotation("Npgsql:StorageParameter:ef_construction", 128)
-                        .HasAnnotation("Npgsql:StorageParameter:m", 32);
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
 
                     b.ToTable("chunks", (string)null);
                 });
@@ -1285,7 +1280,7 @@ namespace DataAccessLayer.Migrations
                         .HasForeignKey("ChatSessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_chat_messages_chat_sessions_chat_session_id");
+                        .HasConstraintName("fk_messages_conversations_chat_session_id");
 
                     b.Navigation("ChatSession");
                 });
@@ -1297,14 +1292,14 @@ namespace DataAccessLayer.Migrations
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_chat_sessions_subjects_subject_id");
+                        .HasConstraintName("fk_conversations_subjects_subject_id");
 
                     b.HasOne("Domain.Entities.ApplicationUser", "User")
                         .WithMany("ChatSessions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_chat_sessions_users_user_id");
+                        .HasConstraintName("fk_conversations_users_user_id");
 
                     b.Navigation("Subject");
 

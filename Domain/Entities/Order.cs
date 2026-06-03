@@ -1,5 +1,4 @@
-﻿using Domain.Common;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
@@ -21,4 +20,13 @@ public class Order : NaturalEntity
     public Guid UserId => Subscription.UserId;
     public PlanOption PlanOption => Subscription.PlanOption;
     public Plan Plan => PlanOption.Plan;
+}
+
+public enum OrderStatus
+{
+    PendingPayment,
+    Completed,
+    Failed,
+    Cancelled,
+    Refunded,
 }
