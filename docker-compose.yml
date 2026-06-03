@@ -23,6 +23,17 @@ services:
     networks:
       - net
 
+  redis-ui:
+    image: redis/redisinsight:latest
+    container_name: educhatbot_redis_ui
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    networks:
+      - net
+    depends_on:
+      - redis
+
   web:
     image: ${DOCKER_REGISTRY-}educhatbot-mvc
     container_name: educhatbot_mvc
