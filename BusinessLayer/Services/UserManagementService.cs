@@ -125,6 +125,10 @@ public class UserManagementService(
         if (await _userManager.FindByEmailAsync(dto.Email) is not null)
             return (false, "An account with this email address already exists.");
 
+        // 1b. Check username uniqueness (username = email normalized)
+        if (await _userManager.FindByNameAsync(dto.Email) is not null)
+            return (false, "An account with this email address already exists (username conflict).");
+
         // 2. Validate role exists in DB
         if (!await _roleManager.RoleExistsAsync(dto.Role))
             return (false, $"Role '{dto.Role}' does not exist.");
@@ -133,7 +137,9 @@ public class UserManagementService(
         var user = new ApplicationUser
         {
             UserName = dto.Email,
+            NormalizedUserName = dto.Email.ToUpperInvariant(),
             Email = dto.Email,
+            NormalizedEmail = dto.Email.ToUpperInvariant(),
             FullName = dto.FullName,
             EmailConfirmed = false,
             IsActive = true,
