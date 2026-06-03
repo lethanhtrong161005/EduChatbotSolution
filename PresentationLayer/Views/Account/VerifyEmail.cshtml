@@ -85,7 +85,6 @@
 
                 <!-- OTP Verification Form -->
                 <form id="verifyForm" method="post"
-                      asp-controller="Account" asp-action="VerifyEmail"
                       asp-route-return-url="@returnUrl">
 
                     @Html.AntiForgeryToken()

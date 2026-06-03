@@ -103,6 +103,14 @@ public class AdminController(
         var (success, error) = await _userMgmt.UpdateUserAsync(
             new Domain.Contracts.UpdateUserDto(vm.UserId, vm.FullName, vm.Email, vm.Role, vm.UpdatedAt));
 
+        if (success)
+        {
+            var message = vm.Email != vm.OriginalEmail
+                ? "Changes saved! A verification email has been sent to the new email address."
+                : "Changes saved successfully!";
+            return Json(new { success, message });
+        }
+
         return Json(new { success, error });
     }
 

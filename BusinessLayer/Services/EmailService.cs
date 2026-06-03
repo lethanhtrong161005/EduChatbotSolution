@@ -102,7 +102,7 @@ public class EmailService : IEmailService
     /// <param name="code">The 6-digit OTP to embed.</param>
     public async Task SendEmailUpdateVerifyAsync(string toEmail, string toName, string code)
     {
-        var verifyUrl = $"{_appBaseUrl}/verify-email?email={Uri.EscapeDataString(toEmail)}";
+        var verifyUrl = $"{_appBaseUrl}/verify-email-update?email={Uri.EscapeDataString(toEmail)}";
         var html = (await LoadTemplateAsync(EmailUpdateTemplate))
             .Replace("{{NAME}}", toName)
             .Replace("{{CODE}}", code)
