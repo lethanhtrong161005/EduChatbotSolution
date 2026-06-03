@@ -327,7 +327,7 @@ public class AccountController(
 
         await _emailVerificationService.CleanupEmailUpdateAsync(model.Email);
 
-        TempData[AppConstants.TempDataSuccess] = "Email updated successfully. Please sign in again.";
+        TempData[AppConstants.TempDataSuccess] = "Email verified successfully! Please log in with your new email address.";
         return RedirectToAction(nameof(Login));
     }
 
