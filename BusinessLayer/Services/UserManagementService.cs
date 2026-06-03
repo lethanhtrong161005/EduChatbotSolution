@@ -121,6 +121,16 @@ public class UserManagementService(
     {
         ArgumentNullException.ThrowIfNull(dto);
 
+        // 0. Validate required fields
+        if (string.IsNullOrWhiteSpace(dto.Email))
+            return (false, "Email is required.");
+        if (string.IsNullOrWhiteSpace(dto.FullName))
+            return (false, "Full name is required.");
+        if (string.IsNullOrWhiteSpace(dto.Password))
+            return (false, "Password is required.");
+        if (string.IsNullOrWhiteSpace(dto.Role))
+            return (false, "Role is required.");
+
         // 1. Check email uniqueness
         if (await _userManager.FindByEmailAsync(dto.Email) is not null)
             return (false, "An account with this email address already exists.");
