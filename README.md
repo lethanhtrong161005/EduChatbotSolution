@@ -6,7 +6,7 @@ EduChatAI is an enterprise-grade, **4-tier architecture** web application built 
 
 ## 🛠️ Tech Stack
 
-* **Framework:** .NET 10.0 (ASP.NET Core MVC)
+* **Framework:** .NET 10.0 (ASP.NET Core MVC).
 * **Database:** PostgreSQL 18 with `pgvector` (Vector Similarity Search)
 * **ORM:** Entity Framework Core (EF Core) via Npgsql
 * **Authentication:** Custom BCrypt + Cookie Authentication (no ASP.NET Identity)
