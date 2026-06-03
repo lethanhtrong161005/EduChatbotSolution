@@ -65,7 +65,15 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
                 Errors = [AppConstants.AccountDisabled],
             };
 
-        // 5. Build claims identity and sign in
+        // 5. Reject unconfirmed email accounts
+        if (!user.EmailConfirmed)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = ["Please verify your email address first. Check your inbox for a verification code."],
+            };
+
+        // 7. Build claims identity and sign in
         // GetClaimsAsync returns user_claims rows; GetRolesAsync returns role names.
         // We need BOTH so the role-based redirect and [Authorize(Roles=...)] work correctly.
         var existingClaims = await _userManager.GetClaimsAsync(user);
@@ -290,7 +298,7 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
 
     /// <summary>
     /// Loads stored claims for the user and returns a successful <see cref="LoginResult"/>.
-    /// Checks IsActive and DeletedAt to prevent disabled/deleted users from logging in.
+    /// Checks IsActive, DeletedAt, and EmailConfirmed to prevent unauthorized users from logging in.
     /// </summary>
     /// <param name="user">The resolved user entity.</param>
     private async Task<LoginResult> BuildLoginResultAsync(ApplicationUser user)
@@ -309,6 +317,14 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
             {
                 Success = false,
                 Errors = [AppConstants.AccountDisabled],
+            };
+
+        // Reject unconfirmed email accounts
+        if (!user.EmailConfirmed)
+            return new LoginResult
+            {
+                Success = false,
+                Errors = ["Please verify your email address first. Check your inbox for a verification code."],
             };
 
         var claims = (await _userManager.GetClaimsAsync(user)).ToList();
