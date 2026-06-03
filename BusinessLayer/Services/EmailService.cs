@@ -102,9 +102,11 @@ public class EmailService : IEmailService
     /// <param name="code">The 6-digit OTP to embed.</param>
     public async Task SendEmailUpdateVerifyAsync(string toEmail, string toName, string code)
     {
+        var verifyUrl = $"{_appBaseUrl}/verify-email?email={Uri.EscapeDataString(toEmail)}";
         var html = (await LoadTemplateAsync(EmailUpdateTemplate))
             .Replace("{{NAME}}", toName)
-            .Replace("{{CODE}}", code);
+            .Replace("{{CODE}}", code)
+            .Replace("{{VERIFY_URL}}", verifyUrl);
         await SendAsync(toEmail, toName, "EduChatAI – Verify Your New Email", html);
     }
 
