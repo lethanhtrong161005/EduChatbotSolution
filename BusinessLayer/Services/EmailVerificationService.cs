@@ -128,12 +128,12 @@ public class EmailVerificationService : IEmailVerificationService
 
     /// <summary>
     /// Initiates an email verification flow for a user already created in the database.
-    /// Stores OTP in Redis, then sends verification email in a background task.
-    /// Email delivery errors are logged but do not block; always returns success immediately.
+    /// Stores OTP in Redis, then sends verification email synchronously.
+    /// Email send errors are logged but do not prevent the OTP from being stored.
     /// </summary>
     /// <param name="email">The email address to verify.</param>
     /// <param name="fullName">The user's full name.</param>
-    /// <returns>Success (always true) and optional error message (always null).</returns>
+    /// <returns>Success/Error tuple.</returns>
     public async Task<(bool Success, string? Error)> InitiateEmailVerificationForExistingUserAsync(string email, string fullName)
     {
         var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
@@ -144,21 +144,17 @@ public class EmailVerificationService : IEmailVerificationService
         var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
         await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
 
-        // Fire-and-forget: send email in background, log errors without blocking
-        _ = Task.Run(async () =>
+        try
         {
-            try
-            {
-                await _emailService.SendAdminCreatedVerifyAsync(email, fullName, code);
-                _logger.LogInformation("Admin-created verification email sent to {Email}", email);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send admin-created verification email to {Email}", email);
-            }
-        });
-
-        return (true, null);
+            await _emailService.SendAdminCreatedVerifyAsync(email, fullName, code);
+            _logger.LogInformation("Admin-created verification email sent to {Email}", email);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send admin-created verification email to {Email}", email);
+            return (false, $"Failed to send verification email: {ex.Message}");
+        }
     }
 
     // ── EMAIL-UPDATE FLOW ─────────────────────────────────────────
@@ -186,21 +182,17 @@ public class EmailVerificationService : IEmailVerificationService
         await _redis.StringSetAsync(
             PendingEmailUpdateKey(newEmail), updatePending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
 
-        // Fire-and-forget: send email in background, log errors without blocking
-        _ = Task.Run(async () =>
+        try
         {
-            try
-            {
-                await _emailService.SendEmailUpdateVerifyAsync(newEmail, fullName, code);
-                _logger.LogInformation("Email-update verification email sent to {Email}", newEmail);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send email-update verification email to {Email}", newEmail);
-            }
-        });
-
-        return (true, null);
+            await _emailService.SendEmailUpdateVerifyAsync(newEmail, fullName, code);
+            _logger.LogInformation("Email-update verification email sent to {Email}", newEmail);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email-update verification email to {Email}", newEmail);
+            return (false, $"Failed to send email-update verification: {ex.Message}");
+        }
     }
 
     /// <summary>

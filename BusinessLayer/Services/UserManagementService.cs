@@ -158,8 +158,14 @@ public class UserManagementService(
             new Claim(ClaimTypes.Role, dto.Role),
         ]);
 
-        // 6. Initiate email verification (background task, fire-and-forget)
-        await _emailVerificationService.InitiateEmailVerificationForExistingUserAsync(dto.Email, dto.FullName);
+        // 6. Initiate email verification
+        var (emailSuccess, emailError) = await _emailVerificationService.InitiateEmailVerificationForExistingUserAsync(dto.Email, dto.FullName);
+        if (!emailSuccess)
+        {
+            // Email send failed — delete the user we just created
+            await _userManager.DeleteAsync(user);
+            return (false, emailError ?? "Failed to send verification email.");
+        }
 
         return (true, null);
     }
