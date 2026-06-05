@@ -44,6 +44,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
 
 // ── Helper Services ───────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();

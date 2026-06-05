@@ -85,13 +85,28 @@ public class UserManagementServiceTests
             .Setup(m => m.FindByEmailAsync("bob@example.com"))
             .ReturnsAsync((ApplicationUser?)null);           // email not taken
 
+        _userManagerMock
+            .Setup(m => m.FindByNameAsync("bob@example.com"))
+            .ReturnsAsync((ApplicationUser?)null);
+
         _roleManagerMock
             .Setup(m => m.RoleExistsAsync("Student"))
             .ReturnsAsync(true);
 
+        _userManagerMock
+            .Setup(m => m.CreateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        _userManagerMock
+            .Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Student"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        _userManagerMock
+            .Setup(m => m.AddClaimsAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<System.Security.Claims.Claim>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
         _emailVerificationServiceMock
-            .Setup(m => m.InitiateAdminVerificationAsync(
-                "bob@example.com", "Bob Jones", "Student", "P@ssword1"))
+            .Setup(m => m.InitiateEmailVerificationForExistingUserAsync("bob@example.com", "Bob Jones"))
             .ReturnsAsync((true, (string?)null));
 
         // Act
@@ -105,8 +120,7 @@ public class UserManagementServiceTests
         });
 
         _emailVerificationServiceMock.Verify(
-            m => m.InitiateAdminVerificationAsync(
-                "bob@example.com", "Bob Jones", "Student", "P@ssword1"),
+            m => m.InitiateEmailVerificationForExistingUserAsync("bob@example.com", "Bob Jones"),
             Times.Once);
     }
 

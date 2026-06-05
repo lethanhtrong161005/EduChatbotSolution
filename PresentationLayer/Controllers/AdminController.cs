@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Presentation.Controllers;
 
@@ -15,10 +19,12 @@ namespace Presentation.Controllers;
 [Route("admin")]
 public class AdminController(
     IUserManagementService userManagementService,
-    UserManager<ApplicationUser> userManager) : Controller
+    UserManager<ApplicationUser> userManager,
+    ISubjectService subjectService) : Controller
 {
     private readonly IUserManagementService _userMgmt = userManagementService;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly ISubjectService _subjectService = subjectService;
 
     // ── USER MANAGE PAGE ──────────────────────────────────────────
 
@@ -157,6 +163,250 @@ public class AdminController(
     {
         var (success, error) = await _userMgmt.ReactivateUserAsync(id, body.UpdatedAt);
         return Json(new { success, error });
+    }
+
+    // ── SUBJECTS MANAGEMENT ───────────────────────────────────────
+
+    /// <summary>
+    /// Displays the subject management page with a paginated, filtered list of subjects.
+    /// </summary>
+    [HttpGet("subject-manage")]
+    public async Task<IActionResult> SubjectManage(
+        string? code, string? name, int limit = 10, int offset = 0)
+    {
+        var subjects = await _subjectService.GetPagedSubjectsAsync(code, name, limit, offset);
+
+        var vm = new AdminSubjectListVm
+        {
+            CodeFilter = code,
+            NameFilter = name,
+            Limit = limit,
+            Offset = offset,
+            Subjects = subjects
+        };
+        return View(vm);
+    }
+
+    [HttpPost("subjects/create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateSubject([FromBody] AdminCreateSubjectVm vm)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, error = "Invalid input data." });
+
+        try
+        {
+            var subject = await _subjectService.CreateSubjectAsync(vm.SubjectCode, vm.SubjectName, vm.Description);
+            return Json(new { success = true, subject });
+        }
+        catch (Domain.Exceptions.BadRequestException ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"System error: {ex.Message}" });
+        }
+    }
+
+    [HttpPut("subjects/update/{id:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateSubject(Guid id, [FromBody] AdminUpdateSubjectVm vm)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, error = "Invalid input data." });
+        if (id != vm.Id)
+            return BadRequest(new { success = false, error = "Subject ID mismatch." });
+
+        try
+        {
+            var subject = await _subjectService.UpdateSubjectAsync(vm.Id, vm.SubjectCode, vm.SubjectName, vm.Description);
+            return Json(new { success = true, subject });
+        }
+        catch (Domain.Exceptions.BadRequestException ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"System error: {ex.Message}" });
+        }
+    }
+
+    [HttpDelete("subjects/delete/{id:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteSubject(Guid id)
+    {
+        try
+        {
+            await _subjectService.DeleteSubjectAsync(id);
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"Error deleting subject: {ex.Message}" });
+        }
+    }
+
+    // ── CHAPTERS MANAGEMENT ───────────────────────────────────────
+
+    [HttpGet("subjects/{id:guid}/chapters")]
+    public async Task<IActionResult> GetChapters(Guid id)
+    {
+        try
+        {
+            var chapters = await _subjectService.GetChaptersBySubjectIdAsync(id);
+            return Json(chapters.Select(c => new { c.Id, c.ChapterName, c.ChapterNumber }));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("chapters/create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateChapter([FromBody] AdminCreateChapterVm vm)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, error = "Invalid input data." });
+
+        try
+        {
+            var chapter = await _subjectService.CreateChapterAsync(vm.SubjectId, vm.ChapterName, vm.ChapterNumber);
+            return Json(new { success = true, chapter });
+        }
+        catch (Domain.Exceptions.BadRequestException ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"System error: {ex.Message}" });
+        }
+    }
+
+    [HttpPut("chapters/update/{id:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateChapter(Guid id, [FromBody] AdminUpdateChapterVm vm)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, error = "Invalid input data." });
+        if (id != vm.Id)
+            return BadRequest(new { success = false, error = "Chapter ID mismatch." });
+
+        try
+        {
+            var chapter = await _subjectService.UpdateChapterAsync(vm.Id, vm.ChapterName, vm.ChapterNumber);
+            return Json(new { success = true, chapter });
+        }
+        catch (Domain.Exceptions.BadRequestException ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"System error: {ex.Message}" });
+        }
+    }
+
+    [HttpDelete("chapters/delete/{id:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteChapter(Guid id)
+    {
+        try
+        {
+            await _subjectService.DeleteChapterAsync(id);
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"Error deleting chapter: {ex.Message}" });
+        }
+    }
+
+    // ── MEMBERS MANAGEMENT ────────────────────────────────────────
+
+    [HttpGet("subjects/{id:guid}/members")]
+    public async Task<IActionResult> GetMembers(Guid id)
+    {
+        try
+        {
+            var members = await _subjectService.GetMembershipsBySubjectIdAsync(id);
+            var list = members.Select(m => new SubjectMemberItemDto(
+                m.UserId,
+                m.User.FullName,
+                m.User.Email ?? string.Empty,
+                m.Role.ToString(),
+                m.AssignedAt
+            ));
+            return Json(list);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("subjects/{id:guid}/eligible-users")]
+    public async Task<IActionResult> GetEligibleUsers(Guid id, string role, string? search)
+    {
+        if (!Enum.TryParse<MembershipRole>(role, true, out var membershipRole))
+            return BadRequest(new { success = false, error = "Invalid assignment role." });
+
+        try
+        {
+            var users = await _subjectService.GetEligibleUsersForAssignmentAsync(id, membershipRole, search);
+            var list = users.Select(u => new EligibleUserItemDto(
+                u.Id,
+                u.FullName,
+                u.Email ?? string.Empty
+            ));
+            return Json(list);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("subjects/{id:guid}/members/assign")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignMember(Guid id, [FromBody] AdminAssignMemberVm vm)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, error = "Invalid input data." });
+        if (!Enum.TryParse<MembershipRole>(vm.Role, true, out var membershipRole))
+            return BadRequest(new { success = false, error = "Invalid assignment role." });
+
+        try
+        {
+            await _subjectService.AssignMemberAsync(id, vm.UserId, membershipRole);
+            return Json(new { success = true });
+        }
+        catch (Domain.Exceptions.BadRequestException ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"System error: {ex.Message}" });
+        }
+    }
+
+    [HttpDelete("subjects/{id:guid}/members/remove/{userId:guid}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+    {
+        try
+        {
+            await _subjectService.RemoveMemberAsync(id, userId);
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = $"Error removing member: {ex.Message}" });
+        }
     }
 }
 

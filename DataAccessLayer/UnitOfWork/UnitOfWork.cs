@@ -1,4 +1,4 @@
-﻿using DataAccess.Data;
+using DataAccess.Data;
 using DataAccess.Repositories;
 using Domain.Entities;
 
@@ -16,6 +16,7 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     GenericRepository<Subscription>? _subscriptions;
     GenericRepository<Payment>? _payments;
     GenericRepository<Subject>? _subjects;
+    GenericRepository<SubjectMembership>? _subjectMemberships;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
     GenericRepository<Chunk>? _chunks;
@@ -38,6 +39,8 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     public GenericRepository<Payment> Payments => _payments ??= new GenericRepository<Payment>(context);
     /// <inheritdoc/>
     public GenericRepository<Subject> Subjects => _subjects ??= new GenericRepository<Subject>(context);
+    /// <inheritdoc/>
+    public GenericRepository<SubjectMembership> SubjectMemberships => _subjectMemberships ??= new GenericRepository<SubjectMembership>(context);
     /// <inheritdoc/>
     public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(context);
     /// <inheritdoc/>
