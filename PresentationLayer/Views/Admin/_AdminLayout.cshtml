@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="~/css/colors.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-layout.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-user-manage.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-subject-manage.css" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -36,6 +37,11 @@
                    class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "UserManage" ? "active" : "")">
                     <i class="fas fa-users nav-icon"></i>
                     <span class="nav-label">User Management</span>
+                </a>
+                <a asp-controller="Admin" asp-action="SubjectManage"
+                   class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "SubjectManage" ? "active" : "")">
+                    <i class="fas fa-book nav-icon"></i>
+                    <span class="nav-label">Subject Management</span>
                 </a>
                 <div class="nav-section-title">System</div>
                 <a asp-controller="Home" asp-action="Index" class="nav-item">

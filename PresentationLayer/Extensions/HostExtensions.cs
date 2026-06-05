@@ -1,5 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.AspNetCore.Identity;
+using Domain.Entities;
+using Domain.Common;
+using Domain.Contracts;
 using Npgsql;
 
 namespace Presentation.Extensions;
@@ -40,187 +44,16 @@ public static class HostExtensions
             var pending = await context.Database.GetPendingMigrationsAsync();
             var pendingList = pending.ToList();
 
-            if (pendingList.Count == 0)
+            if (pendingList.Count > 0)
+            {
+                logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                    pendingList.Count, string.Join(", ", pendingList));
+                await context.Database.MigrateAsync();
+            }
+            else
             {
                 logger.LogInformation("Database is already up-to-date. Skipping migration.");
-                return;
             }
-
-            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
-                pendingList.Count, string.Join(", ", pendingList));
-
-            // Only lock + migrate when there is actually something to apply
-            await context.Database.MigrateAsync();
-
-
-
-            // var roleMngr = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-            // await roleMngr.CreateAsync(new("Admin"));
-            // await roleMngr.CreateAsync(new("Student"));
-            // await roleMngr.CreateAsync(new("Lecturer"));
-
-            //    var subService = scope.ServiceProvider.GetRequiredService<ISubscriptionService>();
-            //    var plans = new List<Plan>
-            // {
-            //    new()
-            //    {
-            //        Id = 1,
-            //        Name = "Basic",
-            //        Tier = 1,
-            //        Description = "Perfect for casual learners.",
-            //        DailyMessageQuota = 100,
-            //        ChatSessionLimit = 10,
-            //        DailyFileUploadQuota = 5,
-            //        FileLibraryLimit = 20,
-            //        AllowAdvancedModels = false,
-            //    },
-
-            //    new()
-            //    {
-            //        Id = 2,
-            //        Name = "Advanced",
-            //        Tier = 2,
-            //        Description = "More conversations and file storage.",
-            //        DailyMessageQuota = 500,
-            //        ChatSessionLimit = 50,
-            //        DailyFileUploadQuota = 20,
-            //        FileLibraryLimit = 100,
-            //        AllowAdvancedModels = false,
-            //    },
-
-            //    new()
-            //    {
-            //        Id = 3,
-            //        Name = "Premium",
-            //        Tier = 3,
-            //        Description = "Most popular plan for serious students.",
-            //        DailyMessageQuota = 2_000,
-            //        ChatSessionLimit = 200,
-            //        DailyFileUploadQuota = 100,
-            //        FileLibraryLimit = 500,
-            //        AllowAdvancedModels = true,
-            //    },
-
-            //    new()
-            //    {
-            //        Id = 4,
-            //        Name = "Deluxe",
-            //        Tier = 4,
-            //        Description = "For power users who need higher limits.",
-            //        DailyMessageQuota = 10_000,
-            //        ChatSessionLimit = 1_000,
-            //        DailyFileUploadQuota = 500,
-            //        FileLibraryLimit = 2_000,
-            //        AllowAdvancedModels = true,
-            //    },
-
-            //    new()
-            //    {
-            //        Id = 5,
-            //        Name = "Ultra",
-            //        Tier = 5,
-            //        Description = "Everything included. No practical limits.",
-            //        DailyMessageQuota = AppConstants.UnlimitedQuota,
-            //        ChatSessionLimit = AppConstants.UnlimitedQuota,
-            //        DailyFileUploadQuota = AppConstants.UnlimitedQuota,
-            //        FileLibraryLimit = AppConstants.UnlimitedQuota,
-            //        AllowAdvancedModels = true,
-            //    }
-            // };
-
-            //    var options = new List<PlanOption>
-            // {
-            //            new()
-            //            {
-            //                Id = 101,
-            //                PlanId = 1,
-            //                Name = "Monthly",
-            //                DurationDays = 30,
-            //                Price = 10_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 201,
-            //                PlanId = 2,
-            //                Name = "Monthly",
-            //                DurationDays = 30,
-            //                Price = 20_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 202,
-            //                PlanId = 2,
-            //                Name = "Quarterly",
-            //                DurationDays = 90,
-            //                Price = 55_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 301,
-            //                PlanId = 3,
-            //                Name = "Monthly",
-            //                DurationDays = 30,
-            //                Price = 30_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 302,
-            //                PlanId = 3,
-            //                Name = "Semi-Annual",
-            //                DurationDays = 180,
-            //                Price = 160_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 303,
-            //                PlanId= 3,
-            //                Name = "Annual",
-            //                DurationDays = 365,
-            //                Price = 300_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 401,
-            //                PlanId =4,
-            //                Name = "Quarterly",
-            //                DurationDays = 90,
-            //                Price = 150_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 402,
-            //                PlanId =4,
-            //                Name = "Annual",
-            //                DurationDays = 365,
-            //                Price = 600_000m
-            //            },
-
-            //            new()
-            //            {
-            //                Id = 501,
-            //                PlanId =5,
-            //                Name = "Annual",
-            //                DurationDays = 365,
-            //                Price = 1_000_000m
-            //            }
-            // };
-
-            //    foreach (var plan in plans)
-            //    {
-            //        await subService.CreatePlanAsync(plan);
-            //    }
-
-            //    foreach (var option in options)
-            //    {
-            //        await subService.CreatePlanOptionAsync(option);
-            //    }
         }
         catch (Exception ex) when (ex is PostgresException { SqlState: "42P01" or "42P07" } or InvalidOperationException)
         {
@@ -234,6 +67,231 @@ public static class HostExtensions
                 ex.Message);
 
             await context.Database.EnsureCreatedAsync();
+        }
+
+        try
+        {
+            var roleMngr = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+            var userMngr = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+            // Ensure roles exist in the database
+            string[] roles = ["Admin", "Lecturer", "Student"];
+            foreach (var r in roles)
+            {
+                if (!await roleMngr.RoleExistsAsync(r))
+                {
+                    await roleMngr.CreateAsync(new IdentityRole<Guid>(r));
+                    logger.LogInformation("Seeded role: {Role}", r);
+                }
+            }
+
+            // Ensure default admin user exists for development testing
+            var adminEmail = "admin@educhatai.com";
+            var adminUser = await userMngr.FindByEmailAsync(adminEmail);
+            if (adminUser == null)
+            {
+                adminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FullName = "System Admin",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123456!"),
+                };
+                var createResult = await userMngr.CreateAsync(adminUser);
+                if (createResult.Succeeded)
+                {
+                    await userMngr.AddToRoleAsync(adminUser, "Admin");
+                    await userMngr.AddClaimsAsync(adminUser,
+                    [
+                        new(System.Security.Claims.ClaimTypes.NameIdentifier, adminUser.Id.ToString()),
+                        new(System.Security.Claims.ClaimTypes.Email, adminUser.Email ?? adminEmail),
+                        new(System.Security.Claims.ClaimTypes.Name, adminUser.FullName),
+                        new(System.Security.Claims.ClaimTypes.Role, "Admin"),
+                    ]);
+                    logger.LogInformation("Successfully seeded default Admin user.");
+                }
+                else
+                {
+                    logger.LogError("Failed to seed default Admin user: {Errors}",
+                        string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                }
+            }
+
+            // Seed plans and options
+            var subService = services.GetRequiredService<ISubscriptionService>();
+            var existingPlans = await subService.GetPlansAsync();
+            if (!existingPlans.Any())
+            {
+                logger.LogInformation("Seeding default subscription plans and options...");
+                var plans = new List<Plan>
+                {
+                    new()
+                    {
+                        Id = 1,
+                        Name = "Basic",
+                        Tier = 1,
+                        Description = "Perfect for casual learners.",
+                        DailyMessageQuota = 100,
+                        ChatSessionLimit = 10,
+                        DailyFileUploadQuota = 5,
+                        FileLibraryLimit = 20,
+                        AllowAdvancedModels = false,
+                    },
+
+                    new()
+                    {
+                        Id = 2,
+                        Name = "Advanced",
+                        Tier = 2,
+                        Description = "More conversations and file storage.",
+                        DailyMessageQuota = 500,
+                        ChatSessionLimit = 50,
+                        DailyFileUploadQuota = 20,
+                        FileLibraryLimit = 100,
+                        AllowAdvancedModels = false,
+                    },
+
+                    new()
+                    {
+                        Id = 3,
+                        Name = "Premium",
+                        Tier = 3,
+                        Description = "Most popular plan for serious students.",
+                        DailyMessageQuota = 2_000,
+                        ChatSessionLimit = 200,
+                        DailyFileUploadQuota = 100,
+                        FileLibraryLimit = 500,
+                        AllowAdvancedModels = true,
+                    },
+
+                    new()
+                    {
+                        Id = 4,
+                        Name = "Deluxe",
+                        Tier = 4,
+                        Description = "For power users who need higher limits.",
+                        DailyMessageQuota = 10_000,
+                        ChatSessionLimit = 1_000,
+                        DailyFileUploadQuota = 500,
+                        FileLibraryLimit = 2_000,
+                        AllowAdvancedModels = true,
+                    },
+
+                    new()
+                    {
+                        Id = 5,
+                        Name = "Ultra",
+                        Tier = 5,
+                        Description = "Everything included. No practical limits.",
+                        DailyMessageQuota = AppConstants.UnlimitedQuota,
+                        ChatSessionLimit = AppConstants.UnlimitedQuota,
+                        DailyFileUploadQuota = AppConstants.UnlimitedQuota,
+                        FileLibraryLimit = AppConstants.UnlimitedQuota,
+                        AllowAdvancedModels = true,
+                    }
+                };
+
+                var options = new List<PlanOption>
+                {
+                    new()
+                    {
+                        Id = 101,
+                        PlanId = 1,
+                        Name = "Monthly",
+                        DurationDays = 30,
+                        Price = 10_000m
+                    },
+
+                    new()
+                    {
+                        Id = 201,
+                        PlanId = 2,
+                        Name = "Monthly",
+                        DurationDays = 30,
+                        Price = 20_000m
+                    },
+
+                    new()
+                    {
+                        Id = 202,
+                        PlanId = 2,
+                        Name = "Quarterly",
+                        DurationDays = 90,
+                        Price = 55_000m
+                    },
+
+                    new()
+                    {
+                        Id = 301,
+                        PlanId = 3,
+                        Name = "Monthly",
+                        DurationDays = 30,
+                        Price = 30_000m
+                    },
+
+                    new()
+                    {
+                        Id = 302,
+                        PlanId = 3,
+                        Name = "Semi-Annual",
+                        DurationDays = 180,
+                        Price = 160_000m
+                    },
+
+                    new()
+                    {
+                        Id = 303,
+                        PlanId = 3,
+                        Name = "Annual",
+                        DurationDays = 365,
+                        Price = 300_000m
+                    },
+
+                    new()
+                    {
+                        Id = 401,
+                        PlanId = 4,
+                        Name = "Quarterly",
+                        DurationDays = 90,
+                        Price = 150_000m
+                    },
+
+                    new()
+                    {
+                        Id = 402,
+                        PlanId = 4,
+                        Name = "Annual",
+                        DurationDays = 365,
+                        Price = 600_000m
+                    },
+
+                    new()
+                    {
+                        Id = 501,
+                        PlanId = 5,
+                        Name = "Annual",
+                        DurationDays = 365,
+                        Price = 1_000_000m
+                    }
+                };
+
+                foreach (var plan in plans)
+                {
+                    await subService.CreatePlanAsync(plan);
+                }
+
+                foreach (var option in options)
+                {
+                    await subService.CreatePlanOptionAsync(option);
+                }
+                logger.LogInformation("Successfully seeded subscription plans and options.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred during database seeding.");
         }
     }
 }

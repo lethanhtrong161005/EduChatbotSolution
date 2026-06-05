@@ -196,20 +196,28 @@ public class AccountController(
 
         // New DB-first path: user pre-created with EmailConfirmed = false
         var existingUser = await _userManager.FindByEmailAsync(model.Email);
-        if (existingUser is not null && !existingUser.EmailConfirmed)
+        if (existingUser is not null)
         {
-            var pending = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
-            var adminPending = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
-
-            if (pending is null && !adminPending.HasValue)
+            if (existingUser.EmailConfirmed)
             {
-                // This is the new DB-first path (no Redis pending data)
-                existingUser.EmailConfirmed = true;
-                await _userManager.UpdateAsync(existingUser);
-                await _emailVerificationService.CleanupAsync(model.Email);
-                TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
+                TempData[AppConstants.TempDataSuccess] = "Email is already verified. Please log in.";
                 return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
             }
+
+            existingUser.EmailConfirmed = true;
+            existingUser.UpdatedAt = DateTimeOffset.UtcNow;
+            
+            var updateResult = await _userManager.UpdateAsync(existingUser);
+            if (!updateResult.Succeeded)
+            {
+                ModelState.AddModelError(string.Empty, updateResult.Errors.FirstOrDefault()?.Description ?? "Failed to update user confirmation status.");
+                ViewData["ReturnUrl"] = returnUrl;
+                return View(model);
+            }
+            
+            await _emailVerificationService.CleanupAsync(model.Email);
+            TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
+            return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });
         }
 
         var pendingReg = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);

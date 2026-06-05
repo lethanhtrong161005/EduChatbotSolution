@@ -1,0 +1,331 @@
+@model Presentation.Models.AdminSubjectListVm
+@{
+    ViewData["Title"] = "Subject Management";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="sm-page">
+    <!-- Toolbar -->
+    <div class="sm-toolbar">
+        <form method="get" asp-action="SubjectManage" asp-controller="Admin" class="sm-filters" id="filterForm">
+            <div class="filter-group">
+                <i class="fas fa-barcode filter-icon"></i>
+                <input type="text" name="code" value="@Model.CodeFilter" placeholder="Filter by code..." class="filter-input" id="filterCode" />
+            </div>
+            <div class="filter-group">
+                <i class="fas fa-search filter-icon"></i>
+                <input type="text" name="name" value="@Model.NameFilter" placeholder="Filter by name..." class="filter-input" id="filterName" />
+            </div>
+            <input type="hidden" name="limit" value="@Model.Limit" />
+            <input type="hidden" name="offset" value="0" />
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <a asp-action="SubjectManage" asp-controller="Admin" class="btn-reset">
+                <i class="fas fa-times"></i> Reset
+            </a>
+        </form>
+        <button class="btn-add-subject" id="btnAddSubject" onclick="openCreateSubjectModal()">
+            <i class="fas fa-plus-circle"></i>
+            <span>Add Subject</span>
+        </button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="sm-stats">
+        <div class="stat-item">
+            <span class="stat-number">@Model.Subjects.Count</span>
+            <span class="stat-label">Showing</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item">
+            <span class="stat-number">@(Model.Offset + 1)–@(Model.Offset + Model.Subjects.Count)</span>
+            <span class="stat-label">subjects</span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="sm-table-wrapper">
+        <table class="sm-table" id="subjectTable">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Subject Code</th>
+                    <th style="width: 30%">Subject Name</th>
+                    <th style="width: 25%">Description</th>
+                    <th style="width: 30%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Subjects.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="um-empty" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-book-open" style="font-size: 36px; color: #9ca3af; margin-bottom: 10px; display: block;"></i>
+                            <p>No matching subjects found.</p>
+                        </td>
+                    </tr>
+                }
+                @foreach (var sub in Model.Subjects)
+                {
+                    <tr data-subject-id="@sub.Id">
+                        <td>
+                            <span class="subject-code-badge">@sub.SubjectCode</span>
+                        </td>
+                        <td>
+                            <strong style="color: #111827;">@sub.SubjectName</strong>
+                        </td>
+                        <td>
+                            <span style="color: #6b7280; font-size: 13px;">@(string.IsNullOrWhiteSpace(sub.Description) ? "—" : sub.Description)</span>
+                        </td>
+                        <td class="col-actions">
+                            <button class="action-btn btn-edit" title="Edit subject"
+                                    onclick="openEditSubjectModal('@sub.Id','@sub.SubjectCode','@sub.SubjectName','@sub.Description')">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="action-btn btn-chapters" title="Manage chapters"
+                                    onclick="openChapterModal('@sub.Id','@sub.SubjectName')">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                            <button class="action-btn btn-members" title="Manage members"
+                                    onclick="openMemberModal('@sub.Id','@sub.SubjectName')">
+                                <i class="fas fa-user-grad"></i>
+                            </button>
+                            <button class="action-btn btn-delete" title="Delete subject"
+                                    onclick="confirmDeleteSubject('@sub.Id','@sub.SubjectName')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="um-pagination">
+        @if (Model.Offset > 0)
+        {
+            var prevOffset = Math.Max(0, Model.Offset - Model.Limit);
+            <a asp-action="SubjectManage" asp-controller="Admin"
+               asp-route-code="@Model.CodeFilter" asp-route-name="@Model.NameFilter"
+               asp-route-limit="@Model.Limit" asp-route-offset="@prevOffset" class="pg-btn">
+                <i class="fas fa-chevron-left"></i> Prev
+            </a>
+        }
+        else
+        {
+            <button class="pg-btn pg-disabled" disabled>
+                <i class="fas fa-chevron-left"></i> Prev
+            </button>
+        }
+
+        <span class="pg-info">
+            Page @((Model.Offset / Model.Limit) + 1)
+        </span>
+
+        @if (Model.Subjects.Count == Model.Limit)
+        {
+            var nextOffset = Model.Offset + Model.Limit;
+            <a asp-action="SubjectManage" asp-controller="Admin"
+               asp-route-code="@Model.CodeFilter" asp-route-name="@Model.NameFilter"
+               asp-route-limit="@Model.Limit" asp-route-offset="@nextOffset" class="pg-btn">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        }
+        else
+        {
+            <button class="pg-btn pg-disabled" disabled>
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        }
+    </div>
+</div>
+
+<!-- ═══════════════ CREATE SUBJECT MODAL ═══════════════ -->
+<div class="modal-overlay" id="createSubjectModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createSubjectTitle">
+        <div class="modal-header">
+            <h2 class="modal-title" id="createSubjectTitle"><i class="fas fa-plus-circle text-success"></i> Add New Subject</h2>
+            <button class="modal-close" onclick="closeModal('createSubjectModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Subject Code *</label>
+                <input type="text" id="create-sub-code" class="form-control" placeholder="e.g. SE101, CS110..." />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject Name *</label>
+                <input type="text" id="create-sub-name" class="form-control" placeholder="Enter subject name..." />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject Description</label>
+                <textarea id="create-sub-desc" class="form-control" style="resize: vertical; min-height: 80px;" placeholder="Enter detailed description (optional)..."></textarea>
+            </div>
+            <div class="modal-alert" id="createSubjectAlert" hidden></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('createSubjectModal')">Cancel</button>
+            <button class="btn-modal-primary" onclick="submitCreateSubject()" id="btnCreateSubjectSubmit">
+                <i class="fas fa-save"></i> Create Subject
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ EDIT SUBJECT MODAL ═══════════════ -->
+<div class="modal-overlay" id="editSubjectModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editSubjectTitle">
+        <div class="modal-header">
+            <h2 class="modal-title" id="editSubjectTitle"><i class="fas fa-pen text-primary"></i> Edit Subject Information</h2>
+            <button class="modal-close" onclick="closeModal('editSubjectModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-sub-id" />
+            <div class="form-group">
+                <label class="form-label">Subject Code *</label>
+                <input type="text" id="edit-sub-code" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject Name *</label>
+                <input type="text" id="edit-sub-name" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject Description</label>
+                <textarea id="edit-sub-desc" class="form-control" style="resize: vertical; min-height: 80px;"></textarea>
+            </div>
+            <div class="modal-alert" id="editSubjectAlert" hidden></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('editSubjectModal')">Cancel</button>
+            <button class="btn-modal-primary" onclick="submitUpdateSubject()" id="btnUpdateSubjectSubmit">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ DELETE SUBJECT MODAL ═══════════════ -->
+<div class="modal-overlay" id="deleteSubjectModal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+        <div class="modal-header modal-header-danger">
+            <h2 class="modal-title"><i class="fas fa-trash-alt"></i> Delete Subject</h2>
+            <button class="modal-close" onclick="closeModal('deleteSubjectModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text">Are you sure you want to delete the subject <strong id="delete-sub-name" style="color: #b91c1c;"></strong>?</p>
+            <p class="confirm-subtext" style="margin-top: 10px;"><strong>This action cannot be undone!</strong> Deleting a subject will automatically delete all its chapters, documents, and related member assignments.</p>
+            <input type="hidden" id="delete-sub-id" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('deleteSubjectModal')">Cancel</button>
+            <button class="btn-modal-danger" onclick="submitDeleteSubject()" id="btnDeleteSubjectSubmit">
+                <i class="fas fa-trash-alt"></i> Confirm Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ CHAPTER MANAGER MODAL ═══════════════ -->
+<div class="modal-overlay" id="chapterModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="chapterTitle" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="chapterTitle"><i class="fas fa-list-ol text-success"></i> Manage Chapters: <span id="chapter-subject-name" style="font-weight: 500;"></span></h2>
+            <button class="modal-close" onclick="closeModal('chapterModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="chapter-sub-id" />
+            
+            <div class="chapter-manager-section">
+                <!-- Add Chapter Form -->
+                <div class="chapter-form-row">
+                    <div class="form-group" style="width: 100px; margin-bottom: 0;">
+                        <label class="form-label">Chapter No.</label>
+                        <input type="number" id="new-chapter-num" class="form-control" placeholder="No..." min="1" />
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label">Chapter Name *</label>
+                        <input type="text" id="new-chapter-name" class="form-control" placeholder="e.g. Chapter 1: Introduction..." />
+                    </div>
+                    <button class="btn-modal-primary" onclick="submitCreateChapter()" style="margin-bottom: 0; padding: 10px 18px;" id="btnCreateChapter">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+
+                <div class="modal-alert" id="chapterAlert" hidden></div>
+
+                <!-- Chapters List -->
+                <h4 style="margin-top: 10px; font-weight: 600; color: #374151; font-size: 14px;">Current Chapter List:</h4>
+                <div class="chapter-list-container">
+                    <div id="chapterList">
+                        <!-- Chapter rows will be loaded dynamically via AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('chapterModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ MEMBER MANAGER MODAL ═══════════════ -->
+<div class="modal-overlay" id="memberModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="memberTitle" style="max-width: 750px;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="memberTitle"><i class="fas fa-user-grad text-primary"></i> Subject Members: <span id="member-subject-name" style="font-weight: 500;"></span></h2>
+            <button class="modal-close" onclick="closeModal('memberModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="member-sub-id" />
+
+            <div class="member-manager-section">
+                <!-- Assign Member Form -->
+                <div class="member-assign-row">
+                    <h5 style="margin: 0; font-weight: 600; font-size: 13px; color: #4b5563;">Assign New Member:</h5>
+                    <div class="assign-inputs">
+                        <div class="form-group" style="margin-bottom: 0; position: relative;">
+                            <label class="form-label">Search Member (Name or Email)</label>
+                            <div class="search-container">
+                                <input type="text" id="member-search-input" class="form-control" placeholder="Type name or email to search..." autocomplete="off" />
+                                <div class="autocomplete-list" id="searchSuggestions" hidden></div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Member Role</label>
+                            <select id="member-role-select" class="form-control form-select">
+                                <option value="Student">Student</option>
+                                <option value="Lecturer">Lecturer</option>
+                                <option value="Chief">Subject-Lead</option>
+                            </select>
+                        </div>
+                        <button class="btn-modal-primary" onclick="submitAssignMember()" style="margin-bottom: 0; padding: 10px 18px;" id="btnAssignMember">
+                            <i class="fas fa-user-plus"></i> Assign
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-alert" id="memberAlert" hidden></div>
+
+                <!-- Members List -->
+                <h4 style="margin-top: 10px; font-weight: 600; color: #374151; font-size: 14px;">Current Member List:</h4>
+                <div class="member-list-container">
+                    <div id="memberList">
+                        <!-- Member rows will be loaded dynamically via AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('memberModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+    <script src="~/js/admin-subject-manage.js" asp-append-version="true"></script>
+}

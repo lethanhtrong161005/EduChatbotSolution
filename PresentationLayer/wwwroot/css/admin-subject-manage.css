@@ -1,0 +1,423 @@
+/* ============================================================
+   ADMIN SUBJECT MANAGE CSS
+   EduChatAI – Subject & Chapter Management Page Styles
+   ============================================================ */
+
+/* ── Page Layout ────────────────────────────────────────────── */
+.sm-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+.sm-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+    flex-wrap: wrap;
+}
+
+.sm-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.btn-add-subject {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--color-primary, #2ecc71), var(--color-primary-dark, #27ae60));
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-add-subject:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(46, 204, 113, 0.4);
+}
+
+/* ── Stats Bar ────────────────────────────────────────────────── */
+.sm-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+}
+
+/* ── Table & Columns ──────────────────────────────────────────── */
+.sm-table-wrapper {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+    overflow: hidden;
+    border: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.sm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.sm-table thead th {
+    background: var(--color-neutral-50, #f9fafb);
+    color: var(--color-neutral-500, #6b7280);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 13px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.sm-table tbody tr {
+    border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+    transition: background 0.12s;
+}
+
+.sm-table tbody tr:hover {
+    background: var(--color-neutral-50, #f9fafb);
+}
+
+.sm-table td {
+    padding: 13px 16px;
+    vertical-align: middle;
+}
+
+.subject-code-badge {
+    background: var(--color-neutral-100, #f3f4f6);
+    color: var(--color-neutral-700, #374151);
+    font-family: monospace;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    border: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.btn-chapters {
+    background: #ecfdf5;
+    color: #059669;
+}
+.btn-chapters:hover {
+    background: #059669;
+    color: #fff;
+    transform: scale(1.08);
+}
+
+.btn-members {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+.btn-members:hover {
+    background: #7c3aed;
+    color: #fff;
+    transform: scale(1.08);
+}
+
+/* ── Role Badges ─────────────────────────────────────────────── */
+.role-badge-sm {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.role-badge-sm.student {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.role-badge-sm.lecturer {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
+
+.role-badge-sm.chief {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+/* ── Chapter Modal Section ───────────────────────────────────── */
+.chapter-manager-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chapter-form-row {
+    background: var(--color-neutral-50, #f9fafb);
+    border: 1.5px dashed var(--color-neutral-200, #e5e7eb);
+    padding: 12px 16px;
+    border-radius: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.chapter-list-container {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--color-neutral-200, #e5e7eb);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.chapter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+    transition: background-color 0.15s;
+}
+
+.chapter-item:hover {
+    background-color: var(--color-neutral-50, #f9fafb);
+}
+
+.chapter-item:last-child {
+    border-bottom: none;
+}
+
+.chapter-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chapter-num {
+    background: var(--color-neutral-100, #f3f4f6);
+    color: var(--color-neutral-600, #4b5563);
+    font-weight: 700;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.chapter-title-text {
+    font-weight: 500;
+    color: var(--color-text-primary, #111827);
+}
+
+.chapter-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.chapter-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--color-neutral-400, #9ca3af);
+    font-size: 13px;
+}
+
+/* ── Members Modal Section ───────────────────────────────────── */
+.member-manager-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.member-assign-row {
+    background: var(--color-neutral-50, #f9fafb);
+    border: 1.5px dashed var(--color-neutral-200, #e5e7eb);
+    padding: 14px 18px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assign-inputs {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.search-container {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--color-neutral-300, #d1d5db);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 2500;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+    display: flex;
+    flex-direction: column;
+}
+
+.autocomplete-item:hover {
+    background-color: var(--color-neutral-50, #f9fafb);
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.ac-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-text-primary, #111827);
+}
+
+.ac-email {
+    font-size: 11px;
+    color: var(--color-neutral-400, #9ca3af);
+}
+
+.member-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--color-neutral-200, #e5e7eb);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-neutral-100, #f3f4f6);
+    color: var(--color-neutral-600, #4b5563);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.member-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-text-primary, #111827);
+}
+
+.member-email {
+    font-size: 11px;
+    color: var(--color-neutral-400, #9ca3af);
+}
+
+.member-role-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.member-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--color-neutral-400, #9ca3af);
+    font-size: 13px;
+}
+
+/* ── Inline Edit Chapter Fields ──────────────────────────────── */
+.inline-edit-chapter {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    align-items: center;
+}
+
+.inline-edit-chapter input {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--color-neutral-300, #d1d5db);
+    font-size: 13px;
+}
+
+.inline-edit-number {
+    width: 45px;
+    text-align: center;
+    font-family: monospace;
+}
+
+.inline-edit-name {
+    flex: 1;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .sm-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sm-filters {
+        flex-direction: column;
+    }
+
+    .btn-add-subject {
+        justify-content: center;
+    }
+
+    .assign-inputs {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}

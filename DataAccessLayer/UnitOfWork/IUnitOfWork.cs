@@ -1,4 +1,4 @@
-﻿using DataAccess.Repositories;
+using DataAccess.Repositories;
 using Domain.Entities;
 
 namespace DataAccess.UnitOfWork;
@@ -28,6 +28,9 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     // ── Subjects & Documents ─────────────────────────────────
     /// <summary>Gets the repository for <see cref="Subject"/> entities.</summary>
     GenericRepository<Subject> Subjects { get; }
+
+    /// <summary>Gets the repository for <see cref="SubjectMembership"/> entities.</summary>
+    GenericRepository<SubjectMembership> SubjectMemberships { get; }
 
     /// <summary>Gets the repository for <see cref="Chapter"/> entities.</summary>
     GenericRepository<Chapter> Chapters { get; }

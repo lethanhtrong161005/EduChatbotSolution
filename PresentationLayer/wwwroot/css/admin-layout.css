@@ -13,6 +13,13 @@
 }
 
 body.admin-body {
+    --color-bg-light: #ffffff;
+    --color-bg-neutral: #f9fafb;
+    --color-text-primary: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border-light: #e5e7eb;
+    --color-border-neutral: #d1d5db;
+
     font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
     background: var(--color-neutral-100, #f3f4f6);
     color: var(--color-text-primary, #111827);
