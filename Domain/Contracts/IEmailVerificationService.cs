@@ -3,7 +3,7 @@ namespace Domain.Contracts;
 /// <summary>
 /// Manages OTP-based email verification flow with Redis-backed storage and rate limiting.
 /// Coordinates code generation, delivery, and pending registration data lifecycle.
-/// Supports self-registration, admin-created accounts, and email-update flows.
+/// Supports self-registration, email-update, and password-reset flows.
 /// </summary>
 public interface IEmailVerificationService
 {
@@ -18,30 +18,6 @@ public interface IEmailVerificationService
     Task<(bool Success, string? Error)> InitiateVerificationAsync(string email, string fullName, string password);
 
     /// <summary>
-    /// Initiates an admin-created account verification flow. Stores the pending account data
-    /// (role and plain-text password for the welcome email) in Redis under a separate key,
-    /// then sends the admin-flavored verification email.
-    /// </summary>
-    /// <param name="email">The email address to verify.</param>
-    /// <param name="fullName">The user's full name.</param>
-    /// <param name="role">The role assigned by the admin.</param>
-    /// <param name="plainPassword">The plain-text password — stored temporarily for the welcome email.</param>
-    /// <returns>Success flag and an optional error message.</returns>
-    Task<(bool Success, string? Error)> InitiateAdminVerificationAsync(
-        string email, string fullName, string role, string plainPassword);
-
-    /// <summary>
-    /// Initiates an email verification flow for a user already created in the database.
-    /// Stores OTP in Redis, then sends verification email in a background task (fire-and-forget).
-    /// Always returns success immediately; email delivery errors are logged but do not block.
-    /// </summary>
-    /// <param name="email">The email address to verify.</param>
-    /// <param name="fullName">The user's full name.</param>
-    /// <returns>Success flag (always true) and optional error message.</returns>
-    Task<(bool Success, string? Error)> InitiateEmailVerificationForExistingUserAsync(
-        string email, string fullName);
-
-    /// <summary>
     /// Initiates an email-update verification flow. Stores the new email, user ID, and full name
     /// in Redis, then sends a verification email to the new address.
     /// </summary>
@@ -51,6 +27,17 @@ public interface IEmailVerificationService
     /// <returns>Success flag and an optional error message.</returns>
     Task<(bool Success, string? Error)> InitiateEmailUpdateVerificationAsync(
         string newEmail, string fullName, Guid userId);
+
+    /// <summary>
+    /// Initiates a password-reset verification flow for an existing account.
+    /// Stores a pending reset marker in Redis and sends a 6-digit OTP.
+    /// </summary>
+    /// <param name="email">The account email address.</param>
+    /// <param name="fullName">The user's full name.</param>
+    /// <param name="userId">The ID of the account requesting password reset.</param>
+    /// <returns>Success flag and an optional error message.</returns>
+    Task<(bool Success, string? Error)> InitiatePasswordResetAsync(
+        string email, string fullName, Guid userId);
 
     /// <summary>
     /// Validates the submitted OTP against the Redis-stored code. Increments the failed-attempt
@@ -76,18 +63,18 @@ public interface IEmailVerificationService
     Task<(string FullName, string BcryptHash)?> GetPendingRegistrationAsync(string email);
 
     /// <summary>
-    /// Retrieves admin-created pending registration data from Redis.
-    /// Returns <c>null</c> if the entry has expired or does not exist.
-    /// </summary>
-    /// <param name="email">The email whose pending admin registration to retrieve.</param>
-    Task<(string FullName, string BcryptHash, string Role, string PlainPassword)?> GetPendingAdminRegistrationAsync(string email);
-
-    /// <summary>
     /// Retrieves the pending email-update data from Redis.
     /// Returns <c>null</c> if the entry has expired or does not exist.
     /// </summary>
     /// <param name="newEmail">The new email whose pending update to retrieve.</param>
     Task<(Guid UserId, string FullName)?> GetPendingEmailUpdateAsync(string newEmail);
+
+    /// <summary>
+    /// Retrieves the pending password-reset data from Redis.
+    /// Returns <c>null</c> if the entry has expired or does not exist.
+    /// </summary>
+    /// <param name="email">The email whose pending password reset to retrieve.</param>
+    Task<(Guid UserId, string FullName)?> GetPendingPasswordResetAsync(string email);
 
     /// <summary>
     /// Removes OTP and pending registration keys from Redis after successful account creation.
@@ -100,4 +87,10 @@ public interface IEmailVerificationService
     /// </summary>
     /// <param name="newEmail">The new email whose Redis keys should be removed.</param>
     Task CleanupEmailUpdateAsync(string newEmail);
+
+    /// <summary>
+    /// Removes password-reset OTP and pending reset keys after the password is changed.
+    /// </summary>
+    /// <param name="email">The email whose password-reset Redis keys should be removed.</param>
+    Task CleanupPasswordResetAsync(string email);
 }

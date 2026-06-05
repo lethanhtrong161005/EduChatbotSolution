@@ -294,6 +294,38 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
         return null;
     }
 
+    /// <summary>
+    /// Replaces the password for an existing active account after OTP verification succeeds.
+    /// Stores the new password as a BCrypt hash.
+    /// </summary>
+    /// <param name="email">The verified account email address.</param>
+    /// <param name="newPassword">The new plain-text password to hash and store.</param>
+    /// <returns><c>null</c> on success, or an error message string on failure.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when email or newPassword is null.</exception>
+    public async Task<string?> ResetPasswordAsync(string email, string newPassword)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(newPassword);
+
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null || user.DeletedAt.HasValue)
+            return "Account not found.";
+
+        if (!user.IsActive)
+            return AppConstants.AccountDisabled;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+            return updateResult.Errors.FirstOrDefault()?.Description
+                   ?? "Failed to reset password. Please try again.";
+
+        return null;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────
 
     /// <summary>

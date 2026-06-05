@@ -20,13 +20,11 @@ namespace Presentation.Controllers;
 public class AccountController(
     IAuthService authService,
     IEmailVerificationService emailVerificationService,
-    IEmailService emailService,
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager) : Controller
 {
     private readonly IAuthService _authService = authService;
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
-    private readonly IEmailService _emailService = emailService;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
 
@@ -92,6 +90,117 @@ public class AccountController(
 
         ModelState.AddModelError(string.Empty, loginResult.Errors.FirstOrDefault() ?? AppConstants.InvalidCredentials);
         return View(model);
+    }
+
+    // ── FORGOT PASSWORD ─────────────────────────────────────
+
+    /// <summary>
+    /// Displays the forgot-password page where a user can request a reset code.
+    /// </summary>
+    [HttpGet(AuthenticationSettings.ForgotPasswordPath)]
+    [AllowAnonymous]
+    public IActionResult ForgotPassword()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return LocalRedirect(AuthenticationSettings.FallbackReturnUrl);
+        }
+
+        return View(new ForgotPasswordVm());
+    }
+
+    /// <summary>
+    /// Sends a password-reset verification code when the email belongs to an active account.
+    /// Uses a generic redirect message so account existence is not exposed in the UI.
+    /// </summary>
+    /// <param name="model">The email address submitted by the user.</param>
+    [HttpPost(AuthenticationSettings.ForgotPasswordPath)]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordVm model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user is not null && user.IsActive && !user.DeletedAt.HasValue)
+        {
+            var (success, error) = await _emailVerificationService.InitiatePasswordResetAsync(
+                user.Email ?? model.Email, user.FullName, user.Id);
+
+            if (!success)
+            {
+                ModelState.AddModelError(string.Empty, error ?? "Failed to send password-reset code.");
+                return View(model);
+            }
+        }
+
+        TempData[AppConstants.TempDataSuccess] =
+            "If an account exists for that email, a password-reset code has been sent.";
+        return RedirectToAction(nameof(ResetPassword), new { email = model.Email });
+    }
+
+    /// <summary>
+    /// Displays the password-reset page with OTP and new-password fields.
+    /// </summary>
+    /// <param name="email">The account email address that requested password reset.</param>
+    [HttpGet(AuthenticationSettings.ResetPasswordPath)]
+    [AllowAnonymous]
+    public IActionResult ResetPassword(string email)
+    {
+        return View(new ResetPasswordVm { Email = email });
+    }
+
+    /// <summary>
+    /// Verifies the password-reset OTP and stores the new password as a BCrypt hash.
+    /// </summary>
+    /// <param name="model">The email, OTP code, and new password fields.</param>
+    [HttpPost(AuthenticationSettings.ResetPasswordPath)]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordVm model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var (codeOk, codeError) = await _emailVerificationService.VerifyCodeAsync(model.Email, model.Code);
+        if (!codeOk)
+        {
+            ModelState.AddModelError(string.Empty, codeError ?? "Verification failed.");
+            return View(model);
+        }
+
+        var pending = await _emailVerificationService.GetPendingPasswordResetAsync(model.Email);
+        if (pending is null)
+        {
+            ModelState.AddModelError(string.Empty,
+                "Password reset session has expired. Please request a new code.");
+            return View(model);
+        }
+
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user is null || user.Id != pending.Value.UserId)
+        {
+            ModelState.AddModelError(string.Empty,
+                "Password reset session is no longer valid. Please request a new code.");
+            return View(model);
+        }
+
+        var resetError = await _authService.ResetPasswordAsync(model.Email, model.Password);
+        if (resetError is not null)
+        {
+            ModelState.AddModelError(string.Empty, resetError);
+            return View(model);
+        }
+
+        await _emailVerificationService.CleanupPasswordResetAsync(model.Email);
+
+        TempData[AppConstants.TempDataSuccess] = "Password reset successfully. Please sign in with your new password.";
+        return RedirectToAction(nameof(Login));
     }
 
     // ── REGISTER ─────────────────────────────────────────────
@@ -221,9 +330,8 @@ public class AccountController(
         }
 
         var pendingReg = await _emailVerificationService.GetPendingRegistrationAsync(model.Email);
-        var adminPendingReg = await _emailVerificationService.GetPendingAdminRegistrationAsync(model.Email);
 
-        if (pendingReg is null && adminPendingReg is null)
+        if (pendingReg is null)
         {
             ModelState.AddModelError(string.Empty,
                 "Registration session has expired. Please register again.");
@@ -233,37 +341,8 @@ public class AccountController(
 
         string? createError;
 
-        if (adminPendingReg.HasValue)
-        {
-            // Old admin-created account flow: create with assigned role
-            createError = await _authService.CreateVerifiedAccountAsync(
-                model.Email, adminPendingReg.Value.FullName, adminPendingReg.Value.BcryptHash);
-
-            if (createError is null)
-            {
-                // Assign the admin-chosen role
-                var newUser = await _userManager.FindByEmailAsync(model.Email);
-                if (newUser is not null)
-                {
-                    var currentRoles = await _userManager.GetRolesAsync(newUser);
-                    await _userManager.RemoveFromRolesAsync(newUser, currentRoles);
-                    await _userManager.AddToRoleAsync(newUser, adminPendingReg.Value.Role);
-                }
-
-                // Send welcome + password email
-                try
-                {
-                    await _emailService.SendWelcomeWithPasswordAsync(
-                        model.Email, adminPendingReg.Value.FullName, adminPendingReg.Value.PlainPassword);
-                }
-                catch { /* Non-critical */ }
-            }
-        }
-        else
-        {
-            createError = await _authService.CreateVerifiedAccountAsync(
-                model.Email, pendingReg!.Value.FullName, pendingReg.Value.BcryptHash);
-        }
+        createError = await _authService.CreateVerifiedAccountAsync(
+            model.Email, pendingReg.Value.FullName, pendingReg.Value.BcryptHash);
 
         if (createError is not null)
         {

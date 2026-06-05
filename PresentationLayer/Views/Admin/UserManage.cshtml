@@ -42,10 +42,16 @@
                 <i class="fas fa-times"></i> Reset
             </a>
         </form>
-        <button class="btn-add-user" id="btnAddUser" onclick="openCreateModal()">
-            <i class="fas fa-user-plus"></i>
-            <span>Add User</span>
-        </button>
+        <div class="um-actions">
+            <button class="btn-import-user" id="btnImportUser" onclick="openImportModal()">
+                <i class="fas fa-file-excel"></i>
+                <span>Import Excel</span>
+            </button>
+            <button class="btn-add-user" id="btnAddUser" onclick="openCreateModal()">
+                <i class="fas fa-user-plus"></i>
+                <span>Add User</span>
+            </button>
+        </div>
     </div>
 
     <!-- Stats Bar -->
@@ -193,6 +199,25 @@
     </div>
 </div>
 
+<!-- ═══════════════ IMPORT EXCEL MODAL ═══════════════ -->
+<div class="modal-overlay" id="importModal">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+        <div class="modal-header">
+            <h2 class="modal-title" id="importTitle"><i class="fas fa-file-excel"></i> Import Users</h2>
+            <button class="modal-close" onclick="closeModal('importModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text">Import users from Excel is still in development.</p>
+            <p class="confirm-subtext">This feature has not been implemented yet.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-primary" onclick="closeModal('importModal')">
+                <i class="fas fa-check"></i> OK
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════ CREATE MODAL ═══════════════ -->
 <div class="modal-overlay" id="createModal">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="createTitle">
@@ -237,7 +262,7 @@
         <div class="modal-footer">
             <button class="btn-modal-cancel" onclick="closeModal('createModal')">Cancel</button>
             <button class="btn-modal-primary" onclick="submitCreate()" id="btnCreateSubmit">
-                <i class="fas fa-paper-plane"></i> Create & Send Invite
+                <i class="fas fa-paper-plane"></i> Create & Send Credentials
             </button>
         </div>
     </div>

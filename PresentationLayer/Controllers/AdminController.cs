@@ -71,7 +71,7 @@ public class AdminController(
     // ── CREATE ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a new user account and triggers the email-verification flow.
+    /// Creates a new active user account and emails the initial login credentials.
     /// Returns JSON so the page can show inline success/error without a full reload.
     /// </summary>
     /// <param name="vm">Create-user form data submitted via AJAX.</param>

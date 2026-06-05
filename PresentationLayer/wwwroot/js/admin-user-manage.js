@@ -110,6 +110,10 @@ function setLoading(btnId, loading) {
 
 // ── CREATE ────────────────────────────────────────────────────
 
+function openImportModal() {
+    openModal('importModal');
+}
+
 function openCreateModal() {
     // Clear previous inputs
     ['create-name', 'create-email', 'create-password'].forEach(id => {
@@ -153,7 +157,7 @@ async function submitCreate() {
 
         if (data.success) {
             closeModal('createModal');
-            showToast('success', `Verification email sent to ${email}. Account will be active after user verifies.`);
+            showToast('success', `Account created. Login credentials sent to ${email}.`);
             setTimeout(() => location.reload(), 2500);
         } else {
             showAlert('createAlert', 'error', data.error ?? 'Failed to create user.');

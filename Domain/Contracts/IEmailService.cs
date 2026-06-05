@@ -2,7 +2,7 @@ namespace Domain.Contracts;
 
 /// <summary>
 /// Defines the contract for sending transactional emails via SMTP.
-/// Covers OTP verification, admin-created account flows, and lifecycle notifications.
+/// Covers OTP verification, admin-created account credential delivery, and lifecycle notifications.
 /// </summary>
 public interface IEmailService
 {
@@ -16,22 +16,22 @@ public interface IEmailService
     Task SendVerificationCodeAsync(string toEmail, string toName, string code);
 
     /// <summary>
-    /// Sends an email to a user created by an admin, prompting them to verify their address
-    /// before they can access the system. The email contains the 6-digit OTP code.
+    /// Sends login credentials for a user account created directly by an administrator.
+    /// Admin-created accounts are already email-confirmed, so no OTP is included.
     /// </summary>
     /// <param name="toEmail">The new account's email address.</param>
     /// <param name="toName">The user's full name.</param>
-    /// <param name="code">The 6-digit OTP code to embed in the email.</param>
-    Task SendAdminCreatedVerifyAsync(string toEmail, string toName, string code);
+    /// <param name="plainPassword">The plain-text password set by the admin.</param>
+    Task SendAdminCreatedCredentialsAsync(string toEmail, string toName, string plainPassword);
 
     /// <summary>
-    /// Sends a welcome email after the admin-created user successfully verifies their email.
-    /// Includes the plain-text password set by the admin so the user can log in.
+    /// Sends a password-reset verification code to the account owner.
+    /// The code must be verified before a new password is saved.
     /// </summary>
-    /// <param name="toEmail">The verified email address.</param>
+    /// <param name="toEmail">The account email address.</param>
     /// <param name="toName">The user's full name.</param>
-    /// <param name="plainPassword">The plain-text password to include in the email body.</param>
-    Task SendWelcomeWithPasswordAsync(string toEmail, string toName, string plainPassword);
+    /// <param name="code">The 6-digit OTP code to embed in the email.</param>
+    Task SendPasswordResetCodeAsync(string toEmail, string toName, string code);
 
     /// <summary>
     /// Sends a verification email when an admin updates a user's email to a new address.

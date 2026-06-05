@@ -62,6 +62,15 @@ public interface IAuthService
     /// <param name="bcryptHash">A BCrypt hash of the user's password, produced during OTP initiation.</param>
     /// <returns><c>null</c> on success, or an error message string on failure.</returns>
     Task<string?> CreateVerifiedAccountAsync(string email, string fullName, string bcryptHash);
+
+    /// <summary>
+    /// Replaces the password for an existing active account after OTP verification succeeds.
+    /// Stores the new password as a BCrypt hash.
+    /// </summary>
+    /// <param name="email">The verified account email address.</param>
+    /// <param name="newPassword">The new plain-text password to hash and store.</param>
+    /// <returns><c>null</c> on success, or an error message string on failure.</returns>
+    Task<string?> ResetPasswordAsync(string email, string newPassword);
 }
 
 /// <summary>

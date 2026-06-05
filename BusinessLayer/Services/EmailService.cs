@@ -23,8 +23,8 @@ public class EmailService : IEmailService
     private readonly ILogger<EmailService> _logger;
 
     private const string VerifyCodeTemplate = "Business.Templates.EmailVerificationCode.html";
-    private const string AdminVerifyTemplate = "Business.Templates.AdminCreatedVerifyEmail.html";
-    private const string WelcomePasswordTemplate = "Business.Templates.WelcomeWithPassword.html";
+    private const string AdminCredentialsTemplate = "Business.Templates.AdminCreatedAccountCredentials.html";
+    private const string PasswordResetTemplate = "Business.Templates.PasswordResetCode.html";
     private const string EmailUpdateTemplate = "Business.Templates.EmailUpdateVerify.html";
     private const string AccountDisabledTemplate = "Business.Templates.AccountDisabled.html";
     private const string AccountDeletedTemplate = "Business.Templates.AccountDeleted.html";
@@ -59,37 +59,38 @@ public class EmailService : IEmailService
     // ── ADMIN-CREATED ACCOUNT FLOWS ───────────────────────────────
 
     /// <summary>
-    /// Sends the verification email for an account created by an admin.
-    /// Uses the admin-flavored template to set expectations for the new user.
+    /// Sends login credentials for a user account created directly by an administrator.
     /// </summary>
     /// <param name="toEmail">The new account's email address.</param>
     /// <param name="toName">The user's full name.</param>
-    /// <param name="code">The 6-digit OTP to embed.</param>
-    public async Task SendAdminCreatedVerifyAsync(string toEmail, string toName, string code)
-    {
-        var verifyUrl = $"{_appBaseUrl}/verify-email?email={Uri.EscapeDataString(toEmail)}";
-        var html = (await LoadTemplateAsync(AdminVerifyTemplate))
-            .Replace("{{NAME}}", toName)
-            .Replace("{{CODE}}", code)
-            .Replace("{{VERIFY_URL}}", verifyUrl);
-        await SendAsync(toEmail, toName, "EduChatAI – Activate Your Account", html);
-    }
-
-    /// <summary>
-    /// Sends the welcome email with the plain-text password after a successful admin-created verification.
-    /// </summary>
-    /// <param name="toEmail">The verified email address.</param>
-    /// <param name="toName">The user's full name.</param>
-    /// <param name="plainPassword">The plain-text password to include in the email body.</param>
-    public async Task SendWelcomeWithPasswordAsync(string toEmail, string toName, string plainPassword)
+    /// <param name="plainPassword">The plain-text password set by the admin.</param>
+    public async Task SendAdminCreatedCredentialsAsync(string toEmail, string toName, string plainPassword)
     {
         var loginUrl = $"{_appBaseUrl}/login";
-        var html = (await LoadTemplateAsync(WelcomePasswordTemplate))
+        var html = (await LoadTemplateAsync(AdminCredentialsTemplate))
             .Replace("{{NAME}}", toName)
             .Replace("{{EMAIL}}", toEmail)
             .Replace("{{PASSWORD}}", plainPassword)
             .Replace("{{LOGIN_URL}}", loginUrl);
-        await SendAsync(toEmail, toName, "Welcome to EduChatAI! 🎉", html);
+        await SendAsync(toEmail, toName, "EduChatAI – Your Account Is Ready", html);
+    }
+
+    // ── PASSWORD RESET FLOW ───────────────────────────────────────
+
+    /// <summary>
+    /// Sends a password-reset verification code to the account owner.
+    /// </summary>
+    /// <param name="toEmail">The account email address.</param>
+    /// <param name="toName">The user's full name.</param>
+    /// <param name="code">The 6-digit OTP to embed.</param>
+    public async Task SendPasswordResetCodeAsync(string toEmail, string toName, string code)
+    {
+        var resetUrl = $"{_appBaseUrl}/reset-password?email={Uri.EscapeDataString(toEmail)}";
+        var html = (await LoadTemplateAsync(PasswordResetTemplate))
+            .Replace("{{NAME}}", toName)
+            .Replace("{{CODE}}", code)
+            .Replace("{{RESET_URL}}", resetUrl);
+        await SendAsync(toEmail, toName, "EduChatAI – Password Reset Code", html);
     }
 
     // ── EMAIL-UPDATE FLOW ──────────────────────────────────────────

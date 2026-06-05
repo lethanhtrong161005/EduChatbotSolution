@@ -23,4 +23,8 @@ public static class AuthenticationSettings
     public const string VerifyEmailPath = @"/verify-email";
 
     public const string ResendCodePath = @"/verify-email/resend";
+
+    public const string ForgotPasswordPath = @"/forgot-password";
+
+    public const string ResetPasswordPath = @"/reset-password";
 }
