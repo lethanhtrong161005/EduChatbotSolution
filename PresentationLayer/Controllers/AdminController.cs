@@ -209,9 +209,9 @@ public class AdminController(
         }
     }
 
-    [HttpPut("subjects/update/{id:guid}")]
+    [HttpPut("subjects/update/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateSubject(Guid id, [FromBody] AdminUpdateSubjectVm vm)
+    public async Task<IActionResult> UpdateSubject(int id, [FromBody] AdminUpdateSubjectVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid input data." });
@@ -233,9 +233,9 @@ public class AdminController(
         }
     }
 
-    [HttpDelete("subjects/delete/{id:guid}")]
+    [HttpDelete("subjects/delete/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteSubject(Guid id)
+    public async Task<IActionResult> DeleteSubject(int id)
     {
         try
         {
@@ -250,13 +250,13 @@ public class AdminController(
 
     // ── CHAPTERS MANAGEMENT ───────────────────────────────────────
 
-    [HttpGet("subjects/{id:guid}/chapters")]
-    public async Task<IActionResult> GetChapters(Guid id)
+    [HttpGet("subjects/{id:int}/chapters")]
+    public async Task<IActionResult> GetChapters(int id)
     {
         try
         {
             var chapters = await _subjectService.GetChaptersBySubjectIdAsync(id);
-            return Json(chapters.Select(c => new { c.Id, c.ChapterName, c.ChapterNumber }));
+            return Json(chapters.Select(c => new { c.Id, c.Name, c.ChapterNumber }));
         }
         catch (Exception ex)
         {
@@ -286,9 +286,9 @@ public class AdminController(
         }
     }
 
-    [HttpPut("chapters/update/{id:guid}")]
+    [HttpPut("chapters/update/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateChapter(Guid id, [FromBody] AdminUpdateChapterVm vm)
+    public async Task<IActionResult> UpdateChapter(int id, [FromBody] AdminUpdateChapterVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid input data." });
@@ -310,9 +310,9 @@ public class AdminController(
         }
     }
 
-    [HttpDelete("chapters/delete/{id:guid}")]
+    [HttpDelete("chapters/delete/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteChapter(Guid id)
+    public async Task<IActionResult> DeleteChapter(int id)
     {
         try
         {
@@ -327,8 +327,8 @@ public class AdminController(
 
     // ── MEMBERS MANAGEMENT ────────────────────────────────────────
 
-    [HttpGet("subjects/{id:guid}/members")]
-    public async Task<IActionResult> GetMembers(Guid id)
+    [HttpGet("subjects/{id:int}/members")]
+    public async Task<IActionResult> GetMembers(int id)
     {
         try
         {
@@ -348,8 +348,8 @@ public class AdminController(
         }
     }
 
-    [HttpGet("subjects/{id:guid}/eligible-users")]
-    public async Task<IActionResult> GetEligibleUsers(Guid id, string role, string? search)
+    [HttpGet("subjects/{id:int}/eligible-users")]
+    public async Task<IActionResult> GetEligibleUsers(int id, string role, string? search)
     {
         if (!Enum.TryParse<MembershipRole>(role, true, out var membershipRole))
             return BadRequest(new { success = false, error = "Invalid assignment role." });
@@ -370,9 +370,9 @@ public class AdminController(
         }
     }
 
-    [HttpPost("subjects/{id:guid}/members/assign")]
+    [HttpPost("subjects/{id:int}/members/assign")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignMember(Guid id, [FromBody] AdminAssignMemberVm vm)
+    public async Task<IActionResult> AssignMember(int id, [FromBody] AdminAssignMemberVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid input data." });
@@ -394,9 +394,9 @@ public class AdminController(
         }
     }
 
-    [HttpDelete("subjects/{id:guid}/members/remove/{userId:guid}")]
+    [HttpDelete("subjects/{id:int}/members/remove/{userId:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+    public async Task<IActionResult> RemoveMember(int id, Guid userId)
     {
         try
         {

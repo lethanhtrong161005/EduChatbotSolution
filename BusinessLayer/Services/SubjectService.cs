@@ -38,17 +38,17 @@ public class SubjectService(
         {
             var code = searchCode.Trim().ToLower();
             var name = searchName.Trim().ToLower();
-            filter = s => s.SubjectCode.ToLower().Contains(code) && s.SubjectName.ToLower().Contains(name);
+            filter = s => s.Code.ToLower().Contains(code) && s.Name.ToLower().Contains(name);
         }
         else if (!string.IsNullOrWhiteSpace(searchCode))
         {
             var code = searchCode.Trim().ToLower();
-            filter = s => s.SubjectCode.ToLower().Contains(code);
+            filter = s => s.Code.ToLower().Contains(code);
         }
         else if (!string.IsNullOrWhiteSpace(searchName))
         {
             var name = searchName.Trim().ToLower();
-            filter = s => s.SubjectName.ToLower().Contains(name);
+            filter = s => s.Name.ToLower().Contains(name);
         }
 
         // 2. Setup pagination
@@ -58,7 +58,7 @@ public class SubjectService(
         // 3. Query
         var paginatedResult = await _unitOfWork.Subjects.GetAsync(
             filter: filter,
-            orderBy: q => q.OrderBy(s => s.SubjectCode),
+            orderBy: q => q.OrderBy(s => s.Code),
             paginationSettings: (pageSize, pageIndex)
         );
 
@@ -66,7 +66,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Subject?> GetSubjectByIdAsync(Guid id)
+    public async Task<Subject?> GetSubjectByIdAsync(int id)
     {
         return await _unitOfWork.Subjects.GetByIdAsync(id);
     }
@@ -82,15 +82,15 @@ public class SubjectService(
         // Check uniqueness of subjectCode
         var code = subjectCode.Trim();
         var existing = await _unitOfWork.Subjects.GetAsync(
-            filter: s => s.SubjectCode.ToLower() == code.ToLower());
-        
+            filter: s => s.Code.ToLower() == code.ToLower());
+
         if (existing.Any())
             throw new BadRequestException($"Subject code '{code}' already exists in the system.");
 
         var subject = new Subject
         {
-            SubjectCode = code,
-            SubjectName = subjectName.Trim(),
+            Code = code,
+            Name = subjectName.Trim(),
             Description = description?.Trim(),
             CreatedAt = DateTime.UtcNow
         };
@@ -102,7 +102,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Subject> UpdateSubjectAsync(Guid id, string subjectCode, string subjectName, string? description)
+    public async Task<Subject> UpdateSubjectAsync(int id, string subjectCode, string subjectName, string? description)
     {
         if (string.IsNullOrWhiteSpace(subjectCode))
             throw new BadRequestException("Subject code cannot be empty.");
@@ -115,13 +115,13 @@ public class SubjectService(
         // Check uniqueness of subjectCode (excluding current subject)
         var code = subjectCode.Trim();
         var existing = await _unitOfWork.Subjects.GetAsync(
-            filter: s => s.SubjectCode.ToLower() == code.ToLower() && s.Id != id);
+            filter: s => s.Code.ToLower() == code.ToLower() && s.Id != id);
 
         if (existing.Any())
             throw new BadRequestException($"Subject code '{code}' is already in use by another subject.");
 
-        subject.SubjectCode = code;
-        subject.SubjectName = subjectName.Trim();
+        subject.Code = code;
+        subject.Name = subjectName.Trim();
         subject.Description = description?.Trim();
         subject.UpdatedAt = DateTime.UtcNow;
 
@@ -132,7 +132,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task DeleteSubjectAsync(Guid id)
+    public async Task DeleteSubjectAsync(int id)
     {
         var subject = await _unitOfWork.Subjects.GetByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
@@ -144,23 +144,23 @@ public class SubjectService(
     // ── Chapters CRUD ─────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<List<Chapter>> GetChaptersBySubjectIdAsync(Guid subjectId)
+    public async Task<List<Chapter>> GetChaptersBySubjectIdAsync(int subjectId)
     {
         var chapters = await _unitOfWork.Chapters.GetAsync(
             filter: c => c.SubjectId == subjectId,
-            orderBy: q => q.OrderBy(c => c.ChapterNumber).ThenBy(c => c.ChapterName)
+            orderBy: q => q.OrderBy(c => c.ChapterNumber).ThenBy(c => c.Name)
         );
         return chapters.ToList();
     }
 
     /// <inheritdoc/>
-    public async Task<Chapter?> GetChapterByIdAsync(Guid id)
+    public async Task<Chapter?> GetChapterByIdAsync(int id)
     {
         return await _unitOfWork.Chapters.GetByIdAsync(id);
     }
 
     /// <inheritdoc/>
-    public async Task<Chapter> CreateChapterAsync(Guid subjectId, string chapterName, int? chapterNumber)
+    public async Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int? chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
@@ -171,7 +171,7 @@ public class SubjectService(
         var chapter = new Chapter
         {
             SubjectId = subjectId,
-            ChapterName = chapterName.Trim(),
+            Name = chapterName.Trim(),
             ChapterNumber = chapterNumber,
             CreatedAt = DateTime.UtcNow
         };
@@ -183,7 +183,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Chapter> UpdateChapterAsync(Guid id, string chapterName, int? chapterNumber)
+    public async Task<Chapter> UpdateChapterAsync(int id, string chapterName, int? chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
@@ -191,7 +191,7 @@ public class SubjectService(
         var chapter = await _unitOfWork.Chapters.GetByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
 
-        chapter.ChapterName = chapterName.Trim();
+        chapter.Name = chapterName.Trim();
         chapter.ChapterNumber = chapterNumber;
         chapter.UpdatedAt = DateTime.UtcNow;
 
@@ -202,7 +202,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task DeleteChapterAsync(Guid id)
+    public async Task DeleteChapterAsync(int id)
     {
         var chapter = await _unitOfWork.Chapters.GetByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
@@ -214,7 +214,7 @@ public class SubjectService(
     // ── Memberships Management ────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<List<SubjectMembership>> GetMembershipsBySubjectIdAsync(Guid subjectId)
+    public async Task<List<SubjectMembership>> GetMembershipsBySubjectIdAsync(int subjectId)
     {
         var memberships = await _unitOfWork.SubjectMemberships.GetAsync(
             includeProperties: ["User"],
@@ -225,7 +225,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task AssignMemberAsync(Guid subjectId, Guid userId, MembershipRole role)
+    public async Task AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
     {
         var subject = await _unitOfWork.Subjects.GetByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
@@ -300,11 +300,11 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task RemoveMemberAsync(Guid subjectId, Guid userId)
+    public async Task RemoveMemberAsync(int subjectId, Guid userId)
     {
         var existing = await _unitOfWork.SubjectMemberships.GetAsync(
             filter: m => m.SubjectId == subjectId && m.UserId == userId);
-        
+
         var existingList = existing.ToList();
         if (existingList.Count > 0)
         {
@@ -315,13 +315,13 @@ public class SubjectService(
 
     /// <inheritdoc/>
     public async Task<List<ApplicationUser>> GetEligibleUsersForAssignmentAsync(
-        Guid subjectId,
+        int subjectId,
         MembershipRole role,
         string? search)
     {
         // 1. Determine which system role is required
         var requiredSystemRole = role == MembershipRole.Student ? "Student" : "Lecturer";
-        
+
         // 2. Fetch users in system role
         var usersInRole = await _userManager.GetUsersInRoleAsync(requiredSystemRole);
 
@@ -331,16 +331,34 @@ public class SubjectService(
         if (!string.IsNullOrWhiteSpace(search))
         {
             var cleanSearch = search.Trim().ToLower();
-            query = query.Where(u => u.FullName.ToLower().Contains(cleanSearch) || 
+            query = query.Where(u => u.FullName.ToLower().Contains(cleanSearch) ||
                                      (u.Email != null && u.Email.ToLower().Contains(cleanSearch)));
         }
 
         // 4. Exclude users who are already members of this subject
         var currentMembers = await _unitOfWork.SubjectMemberships.GetAsync(
             filter: m => m.SubjectId == subjectId);
-        
+
         var assignedUserIds = currentMembers.Select(m => m.UserId).ToHashSet();
 
         return query.Where(u => !assignedUserIds.Contains(u.Id)).ToList();
+    }
+
+    public async Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cxlTkn = default)
+    {
+        return await _unitOfWork.Subjects.GetAsync(
+            filter: e => e.Memberships.Any(d => d.UserId == userId),
+            orderBy: e => e.OrderBy(e => e.Code),
+            cancellationToken: cxlTkn);
+    }
+
+    public async Task<bool> IsChiefAsync(int subjectId, Guid userId, CancellationToken cxlTkn = default)
+    {
+        return (await _unitOfWork.SubjectMemberships.GetAsync(
+            filter: e => e.SubjectId == subjectId
+                         && e.UserId == userId
+                         && e.Role == MembershipRole.Chief,
+            cancellationToken: cxlTkn))
+            .Any();
     }
 }

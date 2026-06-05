@@ -25,13 +25,13 @@ public class Chunk : NaturalEntity
     public string ChunkStrategy { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the embedding model used to vectorize this chunk.</summary>
-    public string EmbeddingModel { get; set; } = string.Empty;
+    public string? EmbeddingModel { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the number of tokens in this chunk (nullable).</summary>
     public int? TokenCount { get; set; }
 
     /// <summary>Gets or sets the vector store ID for retrieval (nullable).</summary>
-    public Vector Embedding { get; set; } = null!;
+    public Vector? Embedding { get; set; } = null!;
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent document.</summary>

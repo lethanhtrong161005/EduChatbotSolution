@@ -3,7 +3,7 @@
 public class SubjectMembership : NaturalEntity
 {
     public Guid UserId { get; set; }
-    public Guid SubjectId { get; set; }
+    public int SubjectId { get; set; }
 
     public MembershipRole Role { get; set; }
 

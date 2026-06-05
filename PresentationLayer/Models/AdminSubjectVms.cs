@@ -39,7 +39,7 @@ public class AdminCreateSubjectVm
 public class AdminUpdateSubjectVm
 {
     [Required]
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 
     [Required(ErrorMessage = "Mã môn học không được để trống.")]
     [StringLength(50, ErrorMessage = "Mã môn học không được vượt quá 50 ký tự.")]
@@ -58,7 +58,7 @@ public class AdminUpdateSubjectVm
 public class AdminCreateChapterVm
 {
     [Required]
-    public Guid SubjectId { get; set; }
+    public int SubjectId { get; set; }
 
     [Required(ErrorMessage = "Tên chương không được để trống.")]
     [StringLength(255, ErrorMessage = "Tên chương không được vượt quá 255 ký tự.")]
@@ -74,7 +74,7 @@ public class AdminCreateChapterVm
 public class AdminUpdateChapterVm
 {
     [Required]
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 
     [Required(ErrorMessage = "Tên chương không được để trống.")]
     [StringLength(255, ErrorMessage = "Tên chương không được vượt quá 255 ký tự.")]

@@ -40,4 +40,9 @@ public static class AppConstants
     public const string AccountDisabled = "Your account has been disabled. Please contact the administrator.";
 
     public const int UnlimitedQuota = -1;
+
+    public const string FileSubdirUploaded = "uploaded";
+    public const string FileSubdirProcessing = "processing";
+    public const string FileSubdirIndexed = "indexed";
+    public const string FileSubdirFailed = "failed";
 }

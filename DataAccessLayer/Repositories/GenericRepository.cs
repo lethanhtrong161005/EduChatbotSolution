@@ -99,4 +99,11 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
              ?? throw new EntityNotFoundException(id);
         return Delete(entityToDelete);
     }
+
+    public virtual async Task<bool> ExistsAsync(
+        Expression<Func<TEntity, bool>> filter,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbSet.AnyAsync(filter, cancellationToken);
+    }
 }

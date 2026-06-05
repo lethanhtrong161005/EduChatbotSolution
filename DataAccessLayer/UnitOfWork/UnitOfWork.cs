@@ -17,8 +17,11 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     GenericRepository<Payment>? _payments;
     GenericRepository<Subject>? _subjects;
     GenericRepository<SubjectMembership>? _subjectMemberships;
+    GenericRepository<SubjectAiConfiguration>? _subjectAiConfigurations;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
+    GenericRepository<DocumentComment>? _documentComments;
+    GenericRepository<ParsedSection>? _parsedSections;
     GenericRepository<Chunk>? _chunks;
     GenericRepository<ChatSession>? _chatSessions;
     GenericRepository<ChatMessage>? _chatMessages;
@@ -42,9 +45,15 @@ public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<SubjectMembership> SubjectMemberships => _subjectMemberships ??= new GenericRepository<SubjectMembership>(context);
     /// <inheritdoc/>
+    public GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations => _subjectAiConfigurations ??= new GenericRepository<SubjectAiConfiguration>(context);
+    /// <inheritdoc/>
     public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(context);
     /// <inheritdoc/>
     public GenericRepository<Document> Documents => _documents ??= new GenericRepository<Document>(context);
+    /// <inheritdoc/>
+    public GenericRepository<DocumentComment> DocumentComments => _documentComments ??= new GenericRepository<DocumentComment>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ParsedSection> ParsedSections => _parsedSections ??= new GenericRepository<ParsedSection>(context);
     /// <inheritdoc/>
     public GenericRepository<Chunk> Chunks => _chunks ??= new GenericRepository<Chunk>(context);
     /// <inheritdoc/>

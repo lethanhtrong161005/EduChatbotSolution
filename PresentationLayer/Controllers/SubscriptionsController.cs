@@ -10,13 +10,13 @@ using System.Security.Claims;
 namespace Presentation.Controllers;
 
 [Authorize]
-[Route("/plans/[action]")]
+[Route("plans")]
 public class SubscriptionsController(ISubscriptionService subService, IMapper mapper) : Controller
 {
     private readonly ISubscriptionService _subscriptionService = subService;
     private readonly IMapper _mapper = mapper;
 
-    [HttpGet("~/plans")]
+    [HttpGet("select")]
     public async Task<IActionResult> SelectPlan(CancellationToken cxlTkn)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))

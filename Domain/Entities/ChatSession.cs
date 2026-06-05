@@ -7,7 +7,7 @@ public class ChatSession : NaturalEntity
 {
     /// <summary>Gets or sets the foreign key to the owning <see cref="ApplicationUser"/>.</summary>
     public Guid UserId { get; set; }
-    public Guid SubjectId { get; set; }
+    public int SubjectId { get; set; }
 
     /// <summary>Gets or sets the optional conversation title.</summary>
     public string? Title { get; set; }

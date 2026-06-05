@@ -2,18 +2,12 @@ using Business.Services;
 using DataAccess.Repositories;
 using DataAccess.UnitOfWork;
 using Domain.Common;
-using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 
 namespace UnitTests;
 
@@ -22,12 +16,14 @@ public class SubjectServiceTests
 {
     private Mock<IUnitOfWork> _unitOfWorkMock = null!;
     private Mock<UserManager<ApplicationUser>> _userManagerMock = null!;
-    
+
     private Mock<GenericRepository<Subject>> _subjectRepoMock = null!;
     private Mock<GenericRepository<Chapter>> _chapterRepoMock = null!;
     private Mock<GenericRepository<SubjectMembership>> _membershipRepoMock = null!;
-    
+
     private SubjectService _sut = null!;
+
+    private readonly Random _random = Random.Shared;
 
     private Mock<GenericRepository<T>> CreateMockRepo<T>() where T : class
     {
@@ -41,7 +37,7 @@ public class SubjectServiceTests
     public void SetUp()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        
+
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object,
@@ -80,8 +76,8 @@ public class SubjectServiceTests
         // Arrange
         var subjects = new List<Subject>
         {
-            new() { Id = Guid.NewGuid(), SubjectCode = "CS101", SubjectName = "Introduction to CS" },
-            new() { Id = Guid.NewGuid(), SubjectCode = "SE101", SubjectName = "Software Engineering" }
+            new() { Id = 0, Code = "CS101", Name = "Introduction to CS" },
+            new() { Id = 1, Code = "SE101", Name = "Software Engineering" }
         };
         var paginatedList = new PaginatedList<Subject>(subjects, 2, 10, 1);
 
@@ -103,7 +99,7 @@ public class SubjectServiceTests
         {
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Count, Is.EqualTo(2));
-            Assert.That(result[0].SubjectCode, Is.EqualTo("CS101"));
+            Assert.That(result[0].Code, Is.EqualTo("CS101"));
         });
     }
 
@@ -128,8 +124,8 @@ public class SubjectServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.SubjectCode, Is.EqualTo("SE102"));
-            Assert.That(result.SubjectName, Is.EqualTo("Advanced SE"));
+            Assert.That(result.Code, Is.EqualTo("SE102"));
+            Assert.That(result.Name, Is.EqualTo("Advanced SE"));
         });
 
         _subjectRepoMock.Verify(r => r.InsertAsync(It.IsAny<Subject>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -152,7 +148,7 @@ public class SubjectServiceTests
     public void CreateSubjectAsync_DuplicateCode_ThrowsBadRequestException()
     {
         // Arrange
-        var duplicateSubject = new Subject { SubjectCode = "CS101", SubjectName = "Existing" };
+        var duplicateSubject = new Subject { Code = "CS101", Name = "Existing" };
         _subjectRepoMock.Setup(r => r.GetAsync(
             It.IsAny<string[]>(),
             It.IsAny<Expression<Func<Subject, bool>>>(),
@@ -172,8 +168,8 @@ public class SubjectServiceTests
     public async Task UpdateSubjectAsync_ValidInput_UpdatesAndSaves()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
-        var existingSubject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Old Name" };
+        var subjectId = _random.Next();
+        var existingSubject = new Subject { Id = subjectId, Code = "CS101", Name = "Old Name" };
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
         _subjectRepoMock.Setup(r => r.GetAsync(
@@ -192,8 +188,8 @@ public class SubjectServiceTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(result.SubjectCode, Is.EqualTo("CS101-Updated"));
-            Assert.That(result.SubjectName, Is.EqualTo("New Name"));
+            Assert.That(result.Code, Is.EqualTo("CS101-Updated"));
+            Assert.That(result.Name, Is.EqualTo("New Name"));
             Assert.That(result.Description, Is.EqualTo("New Desc"));
         });
 
@@ -204,7 +200,7 @@ public class SubjectServiceTests
     [Test]
     public void UpdateSubjectAsync_NonExistentSubject_ThrowsEntityNotFoundException()
     {
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync((Subject?)null);
 
         Assert.ThrowsAsync<EntityNotFoundException>(() => _sut.UpdateSubjectAsync(subjectId, "CS101", "Name", null));
@@ -214,8 +210,8 @@ public class SubjectServiceTests
     public async Task DeleteSubjectAsync_ExistingSubject_DeletesAndSaves()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
-        var existingSubject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Test" };
+        var subjectId = _random.Next();
+        var existingSubject = new Subject { Id = subjectId, Code = "CS101", Name = "Test" };
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
 
@@ -233,9 +229,9 @@ public class SubjectServiceTests
     public async Task CreateChapterAsync_ValidInput_CreatesAndSaves()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
-        
+        var subjectId = _random.Next();
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
+
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
 
         // Act
@@ -244,7 +240,7 @@ public class SubjectServiceTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(result.ChapterName, Is.EqualTo("Chapter 1"));
+            Assert.That(result.Name, Is.EqualTo("Chapter 1"));
             Assert.That(result.ChapterNumber, Is.EqualTo(1));
             Assert.That(result.SubjectId, Is.EqualTo(subjectId));
         });
@@ -256,7 +252,7 @@ public class SubjectServiceTests
     [Test]
     public void CreateChapterAsync_EmptyName_ThrowsBadRequestException()
     {
-        Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateChapterAsync(Guid.NewGuid(), "", 1));
+        Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateChapterAsync(_random.Next(), "", 1));
     }
 
     // ── MEMBERSHIP ASSIGNMENT TESTS ──────────────────────────────────
@@ -265,9 +261,9 @@ public class SubjectServiceTests
     public async Task AssignMember_StudentToStudentRole_Succeeds()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         var userId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Alice Student", "alice@student.com");
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
@@ -287,8 +283,8 @@ public class SubjectServiceTests
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Student);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m => 
-            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Student), 
+        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m =>
+            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Student),
             It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -297,9 +293,9 @@ public class SubjectServiceTests
     public void AssignMember_StudentToLecturerRole_ThrowsBadRequestException()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         var userId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Alice Student", "alice@student.com");
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
@@ -315,15 +311,15 @@ public class SubjectServiceTests
     public async Task AssignMember_LecturerToChiefRole_Succeeds()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         var userId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Prof", "bob@lecturer.com");
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Lecturer" });
-        
+
         // Setup: No existing Chief
         _membershipRepoMock.Setup(r => r.GetAsync(
             It.IsAny<string[]>(),
@@ -339,8 +335,8 @@ public class SubjectServiceTests
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m => 
-            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Chief), 
+        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m =>
+            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Chief),
             It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -349,18 +345,18 @@ public class SubjectServiceTests
     public void AssignMember_ChiefDuplicate_ThrowsBadRequestException()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         var userId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Prof", "bob@lecturer.com");
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Lecturer" });
-        
+
         // Setup: Return another membership when queried for Role == Chief
         var existingChief = new SubjectMembership { SubjectId = subjectId, UserId = Guid.NewGuid(), Role = MembershipRole.Chief };
-        
+
         _membershipRepoMock.SetupSequence(r => r.GetAsync(
             It.IsAny<string[]>(),
             It.IsAny<Expression<Func<SubjectMembership, bool>>>(),
@@ -381,9 +377,9 @@ public class SubjectServiceTests
     public void AssignMember_InactiveUser_ThrowsBadRequestException()
     {
         // Arrange
-        var subjectId = Guid.NewGuid();
+        var subjectId = _random.Next();
         var userId = Guid.NewGuid();
-        var subject = new Subject { Id = subjectId, SubjectCode = "CS101", SubjectName = "Intro" };
+        var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Inactive", "bob@lecturer.com", isActive: false);
 
         _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);

@@ -1,0 +1,150 @@
+﻿@model DocumentLibraryVm
+
+@{
+    ViewData["Title"] = "Knowledge Base";
+}
+
+<link rel="stylesheet" href="~/css/colors.css" />
+<link rel="stylesheet" href="~/css/document-library.css" />
+
+<div class="kb-page">
+
+    <div class="kb-header">
+
+        <div>
+            <h1>Knowledge Base</h1>
+            <p>
+                Manage learning materials used by EduChatAI.
+            </p>
+        </div>
+
+        <button id="showUploadBtn"
+                class="btn-upload">
+
+            <i class="fas fa-cloud-upload-alt"></i>
+            Upload Documents
+        </button>
+
+    </div>
+    <div class="filters-card">
+
+        <div class="filters-header">
+            Browse Documents
+        </div>
+
+        <div class="filters-grid">
+
+            <div class="filter-group">
+                <label for="subjectSelect">
+                    Subject
+                </label>
+
+                <select id="subjectSelect"
+                        class="form-select">
+
+                    <option value="">
+                        Choose a subject...
+                    </option>
+
+                    @foreach (var subject in Model.Subjects)
+                    {
+                        <option value="@subject.Id">
+                            @subject.Name
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="chapterSelect">
+                    Chapter
+                </label>
+
+                <select id="chapterSelect"
+                        class="form-select"
+                        disabled>
+
+                    <option value="">
+                        All chapters
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="searchInput">
+                    Search
+                </label>
+
+                <input id="searchInput"
+                       type="text"
+                       class="form-control"
+                       placeholder="Search by document name..." />
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="uploadPanelContainer">
+
+        <div id="uploadPanelOverlay"
+             class="upload-overlay d-none">
+
+            <div class="spinner-border"></div>
+
+        </div>
+
+        <div id="uploadPanel" class="upload-card d-none">
+
+            <div id="dropZone">
+
+                <i class="fas fa-cloud-upload-alt"></i>
+
+                <h4>
+                    Drag files here
+                </h4>
+
+                <p>
+                    PDF, DOCX, PPTX, XLSX, TXT
+                </p>
+
+                <input id="fileInput"
+                       type="file"
+                       multiple
+                       hidden
+                       accept=".pdf,.docx,.pptx,.txt,.html" />
+
+                <button id="browseBtn"
+                        class="btn-upload">
+
+                    Browse Files
+
+                </button>
+
+            </div>
+
+            <div id="uploadQueue">
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="table-card">
+
+        <div id="fileTableBody"
+             class="document-list">
+
+            <div class="empty-state">
+                Select a subject.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="~/js/document-library.js"></script>

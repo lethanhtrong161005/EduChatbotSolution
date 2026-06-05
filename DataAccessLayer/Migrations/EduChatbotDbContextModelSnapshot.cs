@@ -124,15 +124,12 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.Chapter", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    b.Property<string>("ChapterName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("chapter_name");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("ChapterNumber")
                         .HasColumnType("integer")
@@ -144,8 +141,13 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
                         .HasColumnName("subject_id");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -242,8 +244,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
                         .HasColumnName("subject_id");
 
                     b.Property<string>("Title")
@@ -303,12 +305,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("document_id");
 
                     b.Property<Vector>("Embedding")
-                        .IsRequired()
-                        .HasColumnType("vector(1536)")
+                        .HasColumnType("vector(1024)")
                         .HasColumnName("embedding");
 
                     b.Property<string>("EmbeddingModel")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("embedding_model");
 
@@ -400,8 +400,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("ChapterId")
-                        .HasColumnType("uuid")
+                    b.Property<int>("ChapterId")
+                        .HasColumnType("integer")
                         .HasColumnName("chapter_id");
 
                     b.Property<DateTime>("CreatedAt")
@@ -413,10 +413,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
-
-                    b.Property<string>("ExtractedText")
-                        .HasColumnType("text")
-                        .HasColumnName("extracted_text");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -432,9 +428,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("file_size");
 
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("FileType")
+                        .HasColumnType("integer")
                         .HasColumnName("file_type");
 
                     b.Property<string>("IndexingErrors")
@@ -458,10 +453,6 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("title");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer")
-                        .HasColumnName("type");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -626,6 +617,50 @@ namespace DataAccessLayer.Migrations
                         .HasDatabaseName("ix_orders_subscription_id");
 
                     b.ToTable("orders", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ParsedSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<int?>("PageNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_number");
+
+                    b.Property<string>("SectionTitle")
+                        .HasColumnType("text")
+                        .HasColumnName("section_title");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_parsed_sections");
+
+                    b.HasIndex("DocumentId")
+                        .HasDatabaseName("ix_parsed_sections_document_id");
+
+                    b.ToTable("parsed_sections", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Payment", b =>
@@ -805,10 +840,17 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.Subject", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -820,15 +862,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<string>("SubjectCode")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("subject_code");
-
-                    b.Property<string>("SubjectName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("subject_name");
+                        .HasColumnName("name");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -875,8 +912,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("retrieval_top_k");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
                         .HasColumnName("subject_id");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -915,8 +952,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("role");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
                         .HasColumnName("subject_id");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1398,6 +1435,18 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Subscription");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ParsedSection", b =>
+                {
+                    b.HasOne("Domain.Entities.Document", "Document")
+                        .WithMany("ParsedSections")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_parsed_sections_documents_document_id");
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Domain.Entities.Payment", b =>
                 {
                     b.HasOne("Domain.Entities.Order", "Order")
@@ -1586,6 +1635,8 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Chunks");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("ParsedSections");
                 });
 
             modelBuilder.Entity("Domain.Entities.Experiment", b =>
