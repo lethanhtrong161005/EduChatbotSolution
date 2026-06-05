@@ -1,4 +1,5 @@
 using AutoMapper;
+using Business.ExternalPayment;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -6,8 +7,8 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Presentation.Extensions;
 using Presentation.Models;
-using Presentation.Options;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -244,8 +245,7 @@ public class PaymentController(
 
     private async Task<Order> GetAndValidateOrderAsync(Guid orderId, CancellationToken cxlTkn)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+        var userId = User.GetUserId();
 
         var order = await _orderService.GetByIdAsync(orderId, cxlTkn)
             ?? throw new EntityNotFoundException("No order matching the provided ID was found.");
@@ -258,8 +258,7 @@ public class PaymentController(
 
     private async Task<Payment> GetAndValidatePaymentAsync(Guid paymentId, CancellationToken cxlTkn)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+        var userId = User.GetUserId();
 
         var payment = await _paymentService.GetByIdAsync(paymentId, cxlTkn)
             ?? throw new EntityNotFoundException("No transaction matching the provided ID was found.");
@@ -272,8 +271,7 @@ public class PaymentController(
 
     private async Task<Payment> GetAndValidatePaymentAsync(string txnCode, CancellationToken cxlTkn)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            throw new UserClaimException("Current user does not have a valid ID. Try signing in again.");
+        var userId = User.GetUserId();
 
         var payment = (await _paymentService.GetAsync(filter: e => e.ExternalTransactionCode == txnCode,
                                                       includeProperties: [nameof(Payment.Order)

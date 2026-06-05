@@ -1,32 +1,25 @@
-﻿@using System.Security.Claims
-@using Domain.Common
+﻿@using Domain.Common
 @using Domain.Entities
 @using Microsoft.AspNetCore.Identity
 @using Presentation.Common
 
 @inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
 
 @{
     var authenticated = SignInManager.IsSignedIn(User);
-
-    UserRole? userRole = null;
-    if (authenticated)
-    {
-        var roleName = User.FindFirstValue(ClaimTypes.Role);
-        if (Enum.TryParse<UserRole>(roleName, out var role))
-            userRole = role;
-    }
+    var isAdmin = User.IsInRole(UserRole.Admin.ToString());
+    var isLecturer = User.IsInRole(UserRole.Lecturer.ToString());
+    var isStudent = User.IsInRole(UserRole.Student.ToString());
 }
 
 <ul class="nav navbar-nav nav-pills flex-grow-1">
     <li class="nav-item"><a class="nav-link text-dark @NavBar.HomeNavClass(Context)" id="home" asp-controller="Home" asp-action="Index">Home</a></li>
     <li class="nav-item"><a class="nav-link text-dark @NavBar.ChatNavClass(Context)" id="chat" asp-controller="Chat" asp-action="Index">Chat</a></li>
-    @if (userRole is UserRole.Lecturer or UserRole.Admin)
+    @if (isLecturer || isAdmin)
     {
-        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-controller="Documents" asp-action="Index">Documents</a></li>
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-controller="Documents" asp-action="Library">Documents</a></li>
     }
-    else if (userRole is UserRole.Admin)
+    @if (isAdmin)
     {
         <li class="nav-item"><a class="nav-link text-dark @NavBar.AccountsNavClass(Context)" id="accounts" asp-controller="Accounts" asp-action="Index">Accounts</a></li>
         <li class="nav-item"><a class="nav-link text-dark @NavBar.RblNavClass(Context)" id="rbl" asp-controller="Rbl" asp-action="Index">Analyze</a></li>
@@ -35,10 +28,9 @@
 <ul class="navbar-nav">
     @if (authenticated)
     {
-        @if (userRole is UserRole.Student or UserRole.Lecturer)
+        @if (isStudent || isLecturer)
         {
-            <li class="nav-item"><a class="nav-link text-dark" id="accounts" asp-controller="Plans" asp-action="Index">Plans</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Profile" asp-action="Index">Profile</a></li>
+            <li class="nav-item"><a class="nav-link text-dark @NavBar.PlansNavClass(Context)" id="plans" asp-controller="Subscriptions" asp-action="SelectPlan">Plans</a></li>
         }
         <li class="nav-item">
             <form class="form-inline" method="post" asp-controller="Account" asp-action="Logout" asp-route-return-url="@Context.Request.Path">

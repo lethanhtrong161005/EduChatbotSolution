@@ -1,15 +1,24 @@
+using Business.Background;
+using Business.Chunking;
+using Business.Embedding;
+using Business.ExternalPayment;
+using Business.Parsing;
 using Business.Services;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using OllamaSharp;
 using Presentation.Extensions;
+using Presentation.Filters;
 using Presentation.Middleware;
-using Presentation.Options;
 using Presentation.Routing;
 using Presentation.Settings;
 using StackExchange.Redis;
@@ -44,12 +53,28 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IChapterService, ChapterService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+
+builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
+builder.Services.AddSingleton<IDocumentParser, SimpleParser>();
+builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
+builder.Services.AddSingleton<IOllamaApiClient, OllamaApiClient>(provider =>
+{
+    var opts = provider.GetRequiredService<IOptions<OllamaOptions>>().Value;
+    return new OllamaApiClient(opts.Endpoint, opts.EmbeddingModel);
+});
+builder.Services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
 
 // ── Helper Services ───────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
+builder.Services.AddTransient<AutomaticRetryAttribute>();
+
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
+builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
@@ -86,6 +111,25 @@ builder.Services.ConfigureApplicationCookie(opts =>
 
 builder.Services.AddAuthorization();
 
+// ── Background Serivces ──────────────────────────────────────────────
+builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+
+
+    config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
+
+    config.UsePostgreSqlStorage(
+        options =>
+        {
+            options.UseNpgsqlConnection(
+                builder.Configuration.GetConnectionString("DefaultConnection"));
+        });
+});
+
+builder.Services.AddHangfireServer();
+
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
 
@@ -115,6 +159,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     await app.MigrateDb<EduChatbotDbContext>();
+    await app.SeedDbAsync<EduChatbotDbContext>();
 }
 else
 {
@@ -134,6 +179,11 @@ app.UseCors("Default");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthFilter()],
+});
 
 app.MapControllerRoute(
     name: "default",

@@ -1,4 +1,4 @@
-﻿namespace Presentation.Options;
+﻿namespace Business.ExternalPayment;
 
 public class PaymentProviderOptions
 {

@@ -1,0 +1,105 @@
+﻿.chunk-preview-card {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+.chunk-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+    .chunk-row:last-child {
+        border-bottom: none;
+    }
+
+.chunk-text-panel,
+.vector-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.chunk-header,
+.vector-header {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+}
+
+.chunk-meta {
+    margin-left: 10px;
+    color: var(--color-text-secondary);
+    font-size: .9rem;
+}
+
+.chunk-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: .95rem;
+    color: var(--color-text-primary);
+}
+
+.vector-preview {
+    margin: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: var(--font-family-mono);
+    font-size: .85rem;
+    color: var(--color-secondary);
+}
+
+.vector-meta {
+    margin-top: 12px;
+    color: var(--color-text-secondary);
+    font-size: .85rem;
+}
+
+.chunk-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px;
+}
+
+.chunk-page-btn {
+    min-width: 42px;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+    .chunk-page-btn:hover {
+        background: var(--color-surface-hover);
+    }
+
+    .chunk-page-btn.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    .chunk-page-btn.disabled {
+        opacity: .5;
+        pointer-events: none;
+    }
+
+@media (max-width: 992px) {
+
+    .chunk-row {
+        grid-template-columns: 1fr;
+    }
+}

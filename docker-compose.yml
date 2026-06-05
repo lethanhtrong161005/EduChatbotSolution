@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: 12345678
       POSTGRES_DB: educhatbot_db
       PGDATA: /data/postgres
+    restart: unless-stopped
     volumes:
       - db:/data/postgres
     ports:
@@ -54,9 +55,22 @@ services:
     networks:
       - net
 
+  ollama:
+    image: ollama/ollama
+    container_name: educhatbot_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      - net
+    gpus: all
+
 networks:
   net:
     driver: bridge
 
 volumes:
   db:
+  ollama:

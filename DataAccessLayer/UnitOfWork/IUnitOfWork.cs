@@ -29,11 +29,19 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Subject"/> entities.</summary>
     GenericRepository<Subject> Subjects { get; }
 
+    GenericRepository<SubjectMembership> SubjectMemberships { get; }
+
+    GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations { get; }
+
     /// <summary>Gets the repository for <see cref="Chapter"/> entities.</summary>
     GenericRepository<Chapter> Chapters { get; }
 
     /// <summary>Gets the repository for <see cref="Document"/> entities.</summary>
     GenericRepository<Document> Documents { get; }
+
+    GenericRepository<DocumentComment> DocumentComments { get; }
+
+    GenericRepository<ParsedSection> ParsedSections { get; }
 
     /// <summary>Gets the repository for <see cref="Chunk"/> entities.</summary>
     GenericRepository<Chunk> Chunks { get; }

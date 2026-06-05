@@ -2,6 +2,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace DataAccess.Data;
 
@@ -45,6 +46,8 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
 
     public DbSet<DocumentComment> DocumentComments { get; set; }
 
+    public DbSet<ParsedSection> ParsedSections { get; set; }
+
     /// <summary>Gets or sets the document chunks set.</summary>
     public DbSet<Chunk> Chunks { get; set; }
 
@@ -72,6 +75,8 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(builder
+            => builder.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     /// <inheritdoc/>
@@ -134,6 +139,10 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
         modelBuilder
+            .Entity<ParsedSection>()
+            .Property(e => e.CreatedAt)
+            .HasDefaultValueSql("now()");
+        modelBuilder
             .Entity<Chunk>()
             .Property(e => e.CreatedAt)
             .HasDefaultValueSql("now()");
@@ -181,7 +190,7 @@ public class EduChatbotDbContext(DbContextOptions<EduChatbotDbContext> options) 
 
         modelBuilder.Entity<Chunk>()
             .Property(e => e.Embedding)
-            .HasColumnType("vector(1536)");
+            .HasColumnType("vector(1024)");
         modelBuilder.Entity<Chunk>()
             .HasIndex(x => x.Embedding)
             .HasMethod("hnsw")

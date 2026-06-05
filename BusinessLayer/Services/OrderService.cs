@@ -15,15 +15,15 @@ public class OrderService(IUnitOfWork unitOfWork) : IOrderService
 
     public async Task<Order?> GetByIdAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        var order = (await _unitOfWork.Orders.GetAsync(filter: e => e.Id == id,
+        return (await _unitOfWork.Orders.GetAsync(
+            filter: e => e.Id == id,
             includeProperties: [nameof(Order.Subscription)
                                 + "."
                                 + nameof(Order.Subscription.PlanOption)
                                 + "."
                                 + nameof(Order.Subscription.PlanOption.Plan)],
-            cancellationToken: cxlTkn));
-
-        return await _unitOfWork.Orders.GetByIdAsync(id, cxlTkn);
+            cancellationToken: cxlTkn))
+            .FirstOrDefault();
     }
 
     public async Task<Order?> CreateAsync(Order entity, CancellationToken cxlTkn = default)
