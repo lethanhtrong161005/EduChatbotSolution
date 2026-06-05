@@ -34,9 +34,8 @@ public interface IUserManagementService
     Task<IList<string>> GetAllRolesAsync();
 
     /// <summary>
-    /// Creates a new user account with the specified role, then initiates the email
-    /// verification flow. The password is stored temporarily in Redis until the user
-    /// verifies their email address.
+    /// Creates a new active, email-confirmed user account with the specified role,
+    /// then emails the initial login credentials to the user.
     /// </summary>
     /// <param name="dto">The user creation data including full name, email, password, and role.</param>
     /// <returns>A success/error tuple. <c>Error</c> is null on success.</returns>

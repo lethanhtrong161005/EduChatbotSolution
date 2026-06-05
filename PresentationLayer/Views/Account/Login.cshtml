@@ -131,9 +131,10 @@
                         </label>
                     </div>
 
-                    <!-- Forgot Password Link -->
                     <div class="forgot-password">
-                        <a href="#"><i class="fas fa-question-circle"></i> Forgot password?</a>
+                        <a asp-controller="Account" asp-action="ForgotPassword">
+                            <i class="fas fa-question-circle"></i> Forgot password?
+                        </a>
                     </div>
 
                     <!-- Login Button with Loading Animation -->
@@ -145,7 +146,7 @@
                     </button>
                 </form>
 
-                <!-- Social Divider -->
+                @* <!-- Social Divider -->
                 <div class="social-divider">
                     <span>Or sign in with</span>
                 </div>
@@ -162,12 +163,12 @@
                         </svg>
                         <span>Google</span>
                     </a>
-                </div>
+                </div> *@
 
                 <!-- Signup Link -->
-                <div class="signup-link">
+                @* <div class="signup-link">
                     Don't have an account? <a asp-controller="Account" asp-action="Register" asp-route-return-url="@ViewData["ReturnUrl"]">Register here</a>
-                </div>
+                </div> *@
             </div>
         </div>
     </div>

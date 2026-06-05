@@ -7,7 +7,7 @@ namespace Business.Services;
 
 /// <summary>
 /// Manages OTP lifecycle for all email-verification scenarios using Redis as the backing store.
-/// Supports three distinct flows: self-registration, admin-created accounts, and email-update.
+/// Supports three distinct flows: self-registration, email-update, and password-reset.
 /// Enforces a maximum of 5 send attempts per email per hour and 5 wrong-code entries per OTP.
 /// </summary>
 public class EmailVerificationService : IEmailVerificationService
@@ -71,97 +71,6 @@ public class EmailVerificationService : IEmailVerificationService
         }
     }
 
-    // ── ADMIN-CREATED ACCOUNT FLOW ────────────────────────────────
-
-    /// <summary>
-    /// Initiates the admin-created account verification flow. Stores admin pending data
-    /// (role + plain-text password for the welcome email) under a separate Redis key prefix,
-    /// then sends the admin-flavored verification email.
-    /// </summary>
-    /// <param name="email">The email address to verify.</param>
-    /// <param name="fullName">The user's full name.</param>
-    /// <param name="role">The role assigned by the admin.</param>
-    /// <param name="plainPassword">The plain-text password stored temporarily for the welcome email.</param>
-    /// <returns>Success/Error tuple.</returns>
-    public async Task<(bool Success, string? Error)> InitiateAdminVerificationAsync(
-        string email, string fullName, string role, string plainPassword)
-    {
-        var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
-        if (!allowed) return (false, error);
-
-        var code = GenerateCode();
-        var bcryptHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
-
-        // OTP key reuses the same namespace (same verify-code page)
-        var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
-        await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
-
-        // Admin pending key carries role + plain password
-        var adminPending = JsonSerializer.Serialize(
-            new AdminPendingRegistration(fullName, bcryptHash, role, plainPassword));
-        await _redis.StringSetAsync(
-            PendingAdminRegKey(email), adminPending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
-
-        try
-        {
-            await _emailService.SendAdminCreatedVerifyAsync(email, fullName, code);
-            return (true, null);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Failed to send verification email: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Retrieves admin-created pending registration data from Redis.
-    /// </summary>
-    /// <param name="email">The email whose pending admin registration to retrieve.</param>
-    public async Task<(string FullName, string BcryptHash, string Role, string PlainPassword)?> GetPendingAdminRegistrationAsync(string email)
-    {
-        var raw = await _redis.StringGetAsync(PendingAdminRegKey(email));
-        if (!raw.HasValue) return null;
-
-        var data = JsonSerializer.Deserialize<AdminPendingRegistration>(raw.ToString());
-        return data is null ? null : (data.FullName, data.BcryptHash, data.Role, data.PlainPassword);
-    }
-
-    /// <summary>
-    /// Initiates an email verification flow for a user already created in the database.
-    /// Stores OTP and pending registration marker in Redis, then sends verification email synchronously.
-    /// Email send errors are logged but do not prevent the OTP from being stored.
-    /// </summary>
-    /// <param name="email">The email address to verify.</param>
-    /// <param name="fullName">The user's full name.</param>
-    /// <returns>Success/Error tuple.</returns>
-    public async Task<(bool Success, string? Error)> InitiateEmailVerificationForExistingUserAsync(string email, string fullName)
-    {
-        var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
-        if (!allowed) return (false, error);
-
-        var code = GenerateCode();
-
-        // Store OTP
-        var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
-        await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
-
-        // Store marker indicating this is an admin-created account (no password in pending data, just fullname)
-        var adminPending = JsonSerializer.Serialize(new AdminPendingRegistration(fullName, "", "", ""));
-        await _redis.StringSetAsync(PendingAdminRegKey(email), adminPending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
-
-        try
-        {
-            await _emailService.SendAdminCreatedVerifyAsync(email, fullName, code);
-            _logger.LogInformation("Admin-created verification email sent to {Email}", email);
-            return (true, null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send admin-created verification email to {Email}", email);
-            return (false, $"Failed to send verification email: {ex.Message}");
-        }
-    }
-
     // ── EMAIL-UPDATE FLOW ─────────────────────────────────────────
 
     /// <summary>
@@ -210,6 +119,58 @@ public class EmailVerificationService : IEmailVerificationService
         if (!raw.HasValue) return null;
 
         var data = JsonSerializer.Deserialize<PendingEmailUpdate>(raw.ToString());
+        if (data is null) return null;
+        return Guid.TryParse(data.UserId, out var uid) ? (uid, data.FullName) : null;
+    }
+
+    // ── PASSWORD RESET FLOW ───────────────────────────────────────
+
+    /// <summary>
+    /// Initiates a password-reset verification flow. Stores the account ID and full name
+    /// in Redis under <c>pending_password_reset:{email}</c>, then sends a reset-code email.
+    /// </summary>
+    /// <param name="email">The account email address.</param>
+    /// <param name="fullName">The user's full name.</param>
+    /// <param name="userId">The ID of the account requesting password reset.</param>
+    /// <returns>Success/Error tuple.</returns>
+    public async Task<(bool Success, string? Error)> InitiatePasswordResetAsync(
+        string email, string fullName, Guid userId)
+    {
+        var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
+        if (!allowed) return (false, error);
+
+        var code = GenerateCode();
+
+        var otpValue = JsonSerializer.Serialize(new OtpEntry(code, 0));
+        await _redis.StringSetAsync(OtpKey(email), otpValue, TimeSpan.FromSeconds(OtpTtlSeconds));
+
+        var resetPending = JsonSerializer.Serialize(new PendingPasswordReset(userId.ToString(), fullName));
+        await _redis.StringSetAsync(
+            PendingPasswordResetKey(email), resetPending, TimeSpan.FromSeconds(PendingRegTtlSeconds));
+
+        try
+        {
+            await _emailService.SendPasswordResetCodeAsync(email, fullName, code);
+            _logger.LogInformation("Password-reset verification email sent to {Email}", email);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password-reset verification email to {Email}", email);
+            return (false, $"Failed to send password-reset code: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Retrieves pending password-reset data from Redis.
+    /// </summary>
+    /// <param name="email">The email whose pending password reset to retrieve.</param>
+    public async Task<(Guid UserId, string FullName)?> GetPendingPasswordResetAsync(string email)
+    {
+        var raw = await _redis.StringGetAsync(PendingPasswordResetKey(email));
+        if (!raw.HasValue) return null;
+
+        var data = JsonSerializer.Deserialize<PendingPasswordReset>(raw.ToString());
         if (data is null) return null;
         return Guid.TryParse(data.UserId, out var uid) ? (uid, data.FullName) : null;
     }
@@ -263,12 +224,12 @@ public class EmailVerificationService : IEmailVerificationService
     /// <returns>Success/Error/RemainingSeconds tuple.</returns>
     public async Task<(bool Success, string? Error, int RemainingSeconds)> ResendCodeAsync(string email)
     {
-        // 1. Determine pending context (self-reg vs admin-created vs email-update)
+        // 1. Determine pending context (self-reg vs email-update vs password-reset)
         var pendingRaw = await _redis.StringGetAsync(PendingRegKey(email));
-        var adminPendingRaw = await _redis.StringGetAsync(PendingAdminRegKey(email));
         var emailUpdateRaw = await _redis.StringGetAsync(PendingEmailUpdateKey(email));
+        var passwordResetRaw = await _redis.StringGetAsync(PendingPasswordResetKey(email));
 
-        if (!pendingRaw.HasValue && !adminPendingRaw.HasValue && !emailUpdateRaw.HasValue)
+        if (!pendingRaw.HasValue && !emailUpdateRaw.HasValue && !passwordResetRaw.HasValue)
             return (false, "Session has expired. Please restart the process.", 0);
 
         var (allowed, error) = await CheckAndIncrementSendCountAsync(email);
@@ -287,17 +248,17 @@ public class EmailVerificationService : IEmailVerificationService
                 name = p?.FullName ?? name;
                 await _emailService.SendVerificationCodeAsync(email, name, code);
             }
-            else if (adminPendingRaw.HasValue)
-            {
-                var p = JsonSerializer.Deserialize<AdminPendingRegistration>(adminPendingRaw.ToString());
-                name = p?.FullName ?? name;
-                await _emailService.SendAdminCreatedVerifyAsync(email, name, code);
-            }
-            else
+            else if (emailUpdateRaw.HasValue)
             {
                 var p = JsonSerializer.Deserialize<PendingEmailUpdate>(emailUpdateRaw.ToString());
                 name = p?.FullName ?? name;
                 await _emailService.SendEmailUpdateVerifyAsync(email, name, code);
+            }
+            else
+            {
+                var p = JsonSerializer.Deserialize<PendingPasswordReset>(passwordResetRaw.ToString());
+                name = p?.FullName ?? name;
+                await _emailService.SendPasswordResetCodeAsync(email, name, code);
             }
             return (true, null, OtpTtlSeconds);
         }
@@ -327,8 +288,7 @@ public class EmailVerificationService : IEmailVerificationService
     {
         await Task.WhenAll(
             _redis.KeyDeleteAsync(OtpKey(email)),
-            _redis.KeyDeleteAsync(PendingRegKey(email)),
-            _redis.KeyDeleteAsync(PendingAdminRegKey(email)));
+            _redis.KeyDeleteAsync(PendingRegKey(email)));
     }
 
     /// <summary>Removes email-update OTP and pending email-update keys.</summary>
@@ -338,6 +298,15 @@ public class EmailVerificationService : IEmailVerificationService
         await Task.WhenAll(
             _redis.KeyDeleteAsync(OtpKey(newEmail)),
             _redis.KeyDeleteAsync(PendingEmailUpdateKey(newEmail)));
+    }
+
+    /// <summary>Removes password-reset OTP and pending reset keys.</summary>
+    /// <param name="email">The email whose password-reset Redis keys should be removed.</param>
+    public async Task CleanupPasswordResetAsync(string email)
+    {
+        await Task.WhenAll(
+            _redis.KeyDeleteAsync(OtpKey(email)),
+            _redis.KeyDeleteAsync(PendingPasswordResetKey(email)));
     }
 
     // ── PRIVATE HELPERS ───────────────────────────────────────────
@@ -371,13 +340,13 @@ public class EmailVerificationService : IEmailVerificationService
     private static string OtpKey(string email) => $"otp:{email.ToLowerInvariant()}";
     private static string SendCountKey(string email) => $"otp:send_count:{email.ToLowerInvariant()}";
     private static string PendingRegKey(string email) => $"pending_reg:{email.ToLowerInvariant()}";
-    private static string PendingAdminRegKey(string email) => $"pending_admin_reg:{email.ToLowerInvariant()}";
     private static string PendingEmailUpdateKey(string email) => $"pending_email_update:{email.ToLowerInvariant()}";
+    private static string PendingPasswordResetKey(string email) => $"pending_password_reset:{email.ToLowerInvariant()}";
 
     // ── Private record types ──────────────────────────────────────
 
     private record OtpEntry(string Code, int VerifyAttempts);
     private record PendingRegistration(string FullName, string BcryptHash);
-    private record AdminPendingRegistration(string FullName, string BcryptHash, string Role, string PlainPassword);
     private record PendingEmailUpdate(string UserId, string FullName);
+    private record PendingPasswordReset(string UserId, string FullName);
 }

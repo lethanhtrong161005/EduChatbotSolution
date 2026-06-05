@@ -1,376 +1,359 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
 @{
-    ViewData["Title"] = "Dashboard - EduChatAI";
-    // Layout = null;
+    ViewData["Title"] = "Dashboard";
 
     var userName = User.FindFirstValue(ClaimTypes.Name) ?? "User";
     var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
     var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
-    var initial = userName.Length > 0 ? userName[0].ToString().ToUpper() : "U";
+    var initial = userName.Length > 0 ? userName[0].ToString().ToUpperInvariant() : "U";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"]</title>
+<style>
+    .dashboard-page {
+        max-width: 1120px;
+        margin: 0 auto;
+    }
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Global Color Scheme -->
-    <link rel="stylesheet" href="~/css/colors.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    .dashboard-hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--spacing-8);
+        padding: var(--spacing-10);
+        margin-bottom: var(--spacing-8);
+        background: var(--gradient-primary);
+        border-radius: var(--radius-xl);
+        color: var(--color-text-light);
+        box-shadow: var(--shadow-lg);
+    }
 
-    <style>
-        body {
-            background: #f0f4f8;
-            font-family: var(--font-family-base);
-            min-height: 100vh;
+    .dashboard-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        right: -70px;
+        bottom: -95px;
+        border-radius: var(--radius-full);
+        background: rgba(255, 255, 255, 0.16);
+    }
+
+    .dashboard-hero-content {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .dashboard-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        padding: var(--spacing-2) var(--spacing-3);
+        margin-bottom: var(--spacing-4);
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: var(--radius-full);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .dashboard-hero h1 {
+        margin: 0 0 var(--spacing-3);
+        font-size: var(--font-size-4xl);
+        font-weight: var(--font-weight-bold);
+        line-height: 1.15;
+    }
+
+    .dashboard-hero p {
+        max-width: 680px;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: var(--font-size-lg);
+    }
+
+    .dashboard-avatar {
+        position: relative;
+        z-index: 1;
+        width: 96px;
+        height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.32);
+        border-radius: var(--radius-2xl);
+        color: var(--color-text-light);
+        font-size: var(--font-size-4xl);
+        font-weight: var(--font-weight-bold);
+        box-shadow: var(--shadow-md);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--spacing-5);
+        margin-bottom: var(--spacing-8);
+    }
+
+    .dashboard-card {
+        background: var(--color-bg-light);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(46, 204, 113, 0.32);
+        box-shadow: var(--shadow-md);
+    }
+
+    .metric-card {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-4);
+        min-height: 116px;
+        padding: var(--spacing-6);
+    }
+
+    .metric-icon {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        border-radius: var(--radius-lg);
+        font-size: var(--font-size-xl);
+    }
+
+    .metric-icon.primary {
+        background: rgba(46, 204, 113, 0.12);
+        color: var(--color-primary-dark);
+    }
+
+    .metric-icon.secondary {
+        background: rgba(52, 152, 219, 0.12);
+        color: var(--color-secondary-dark);
+    }
+
+    .metric-icon.neutral {
+        background: var(--color-neutral-100);
+        color: var(--color-neutral-700);
+    }
+
+    .metric-value {
+        color: var(--color-text-primary);
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        line-height: 1;
+    }
+
+    .metric-label {
+        margin-top: var(--spacing-2);
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .profile-card {
+        padding: var(--spacing-8);
+    }
+
+    .profile-title {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-3);
+        margin: 0 0 var(--spacing-6);
+        color: var(--color-text-primary);
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+    }
+
+    .profile-title i {
+        color: var(--color-primary);
+    }
+
+    .profile-list {
+        display: grid;
+        gap: var(--spacing-1);
+        margin: 0;
+    }
+
+    .profile-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: var(--spacing-4);
+        align-items: center;
+        padding: var(--spacing-4) 0;
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .profile-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .profile-icon {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        background: var(--color-neutral-100);
+        color: var(--color-neutral-600);
+    }
+
+    .profile-label {
+        margin-bottom: var(--spacing-1);
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        text-transform: uppercase;
+        letter-spacing: 0;
+    }
+
+    .profile-value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--color-text-primary);
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        padding: var(--spacing-2) var(--spacing-3);
+        background: rgba(46, 204, 113, 0.12);
+        border: 1px solid rgba(46, 204, 113, 0.24);
+        border-radius: var(--radius-full);
+        color: var(--color-primary-dark);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    @@media (max-width: 900px) {
+        .dashboard-hero {
+            grid-template-columns: 1fr;
+            padding: var(--spacing-8);
         }
 
-        /* ── Navbar ── */
-        .dashboard-navbar {
-            background: white;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
-            padding: 0.875rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .dashboard-avatar {
+            display: none;
         }
 
-        .navbar-brand-logo {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            text-decoration: none;
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .dashboard-hero {
+            padding: var(--spacing-6);
+            border-radius: var(--radius-lg);
         }
 
-        .brand-icon {
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.1rem;
+        .dashboard-hero h1 {
+            font-size: var(--font-size-3xl);
         }
 
-        .brand-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #111827;
+        .dashboard-hero p {
+            font-size: var(--font-size-base);
         }
 
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 1rem;
-        }
-
-        .user-info-text {
-            line-height: 1.2;
-        }
-
-        .user-info-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #111827;
-        }
-
-        .user-info-role {
-            font-size: 0.75rem;
-            color: #6b7280;
-        }
-
-        .btn-logout {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: none;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 0.45rem 1rem;
-            color: #374151;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .btn-logout:hover {
-            border-color: #ef4444;
-            color: #ef4444;
-            background: rgba(239,68,68,.05);
-        }
-
-        /* ── Main content ── */
-        .dashboard-main {
-            max-width: 960px;
-            margin: 2.5rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .welcome-banner {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            border-radius: 16px;
-            padding: 2rem 2.5rem;
-            color: white;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .welcome-banner h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.375rem;
-        }
-
-        .welcome-banner p {
-            font-size: 1rem;
-            opacity: .9;
-            margin: 0;
-        }
-
-        .welcome-icon {
-            font-size: 4rem;
-            opacity: .3;
-        }
-
-        /* ── Stat cards ── */
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 14px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 6px rgba(0,0,0,.06);
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            transition: transform .2s, box-shadow .2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0,0,0,.1);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            flex-shrink: 0;
-        }
-
-        .stat-icon.green { background: rgba(46,204,113,.12); color: #2ecc71; }
-        .stat-icon.blue  { background: rgba(52,152,219,.12); color: #3498db; }
-        .stat-icon.purple{ background: rgba(155,89,182,.12); color: #9b59b6; }
-
-        .stat-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #111827;
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
-        }
-
-        /* ── Profile card ── */
+        .metric-card,
         .profile-card {
-            background: white;
-            border-radius: 14px;
-            padding: 2rem;
-            box-shadow: 0 1px 6px rgba(0,0,0,.06);
+            padding: var(--spacing-5);
         }
+    }
+</style>
 
-        .profile-card h5 {
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-
-        .profile-field {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f3f4f6;
-            gap: 1rem;
-        }
-
-        .profile-field:last-child { border-bottom: none; }
-
-        .profile-field-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            flex-shrink: 0;
-        }
-
-        .profile-field-label {
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-
-        .profile-field-value {
-            font-size: 0.925rem;
-            font-weight: 500;
-            color: #111827;
-        }
-
-        .badge-role {
-            background: rgba(46,204,113,.12);
-            color: #27ae60;
-            border-radius: 20px;
-            padding: 0.25rem 0.875rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-    </style>
-</head>
-<body>
-    <!-- ── Navbar ── -->
-    @* <nav class="dashboard-navbar">
-        <a class="navbar-brand-logo" href="/home/index">
-            <div class="brand-icon">
-                <i class="fas fa-robot"></i>
+<section class="dashboard-page" aria-labelledby="dashboardTitle">
+    <div class="dashboard-hero">
+        <div class="dashboard-hero-content">
+            <div class="dashboard-eyebrow">
+                <i class="fas fa-shield-alt"></i>
+                <span>@userRole</span>
             </div>
-            <span class="brand-name">EduChatAI</span>
-        </a>
-
-        <div class="navbar-user">
-            <div class="user-avatar">@initial</div>
-            <div class="user-info-text d-none d-sm-block">
-                <div class="user-info-name">@userName</div>
-                <div class="user-info-role">@userRole</div>
-            </div>
-
-            <!-- Logout Form -->
-            <form method="post" asp-controller="Account" asp-action="Logout" id="logoutForm">
-                <button type="submit" class="btn-logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="d-none d-sm-inline">Logout</span>
-                </button>
-            </form>
+            <h1 id="dashboardTitle">Welcome back, @userName</h1>
+            <p>@userEmail</p>
         </div>
-    </nav> *@
+        <div class="dashboard-avatar" aria-hidden="true">@initial</div>
+    </div>
 
-    <!-- ── Main Content ── -->
-    <main class="dashboard-main">
-        <!-- Welcome Banner -->
-        <div class="welcome-banner">
+    <div class="dashboard-grid" aria-label="Dashboard metrics">
+        <article class="dashboard-card metric-card">
+            <div class="metric-icon primary">
+                <i class="fas fa-comments"></i>
+            </div>
             <div>
-                <h1>Welcome back, @userName! 👋</h1>
-                <p>Logged in as <strong>@userRole</strong> · @userEmail</p>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Conversations</div>
             </div>
-            <div class="welcome-icon d-none d-md-block">
-                <i class="fas fa-graduation-cap"></i>
-            </div>
-        </div>
+        </article>
 
-        <!-- Stat Cards -->
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-icon green">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <div>
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Conversations</div>
-                </div>
+        <article class="dashboard-card metric-card">
+            <div class="metric-icon secondary">
+                <i class="fas fa-file-alt"></i>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon blue">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div>
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Documents</div>
-                </div>
+            <div>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Documents</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon purple">
-                    <i class="fas fa-question-circle"></i>
-                </div>
-                <div>
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Questions Asked</div>
-                </div>
-            </div>
-        </div>
+        </article>
 
-        <!-- Profile Card -->
-        <div class="profile-card">
-            <h5><i class="fas fa-user-circle text-success"></i> Your Profile</h5>
+        <article class="dashboard-card metric-card">
+            <div class="metric-icon neutral">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <div>
+                <div class="metric-value">0</div>
+                <div class="metric-label">Questions Asked</div>
+            </div>
+        </article>
+    </div>
 
-            <div class="profile-field">
-                <div class="profile-field-icon"><i class="fas fa-user"></i></div>
+    <article class="dashboard-card profile-card">
+        <h2 class="profile-title">
+            <i class="fas fa-user-circle"></i>
+            Your Profile
+        </h2>
+
+        <div class="profile-list">
+            <div class="profile-row">
+                <div class="profile-icon"><i class="fas fa-user"></i></div>
                 <div>
-                    <div class="profile-field-label">Full Name</div>
-                    <div class="profile-field-value">@userName</div>
+                    <div class="profile-label">Full Name</div>
+                    <div class="profile-value">@userName</div>
                 </div>
             </div>
 
-            <div class="profile-field">
-                <div class="profile-field-icon"><i class="fas fa-envelope"></i></div>
+            <div class="profile-row">
+                <div class="profile-icon"><i class="fas fa-envelope"></i></div>
                 <div>
-                    <div class="profile-field-label">Email</div>
-                    <div class="profile-field-value">@userEmail</div>
+                    <div class="profile-label">Email</div>
+                    <div class="profile-value">@userEmail</div>
                 </div>
             </div>
 
-            <div class="profile-field">
-                <div class="profile-field-icon"><i class="fas fa-shield-alt"></i></div>
+            <div class="profile-row">
+                <div class="profile-icon"><i class="fas fa-shield-alt"></i></div>
                 <div>
-                    <div class="profile-field-label">Role</div>
-                    <div><span class="badge-role">@userRole</span></div>
+                    <div class="profile-label">Role</div>
+                    <div class="profile-value">
+                        <span class="role-badge">
+                            <i class="fas fa-check-circle"></i>
+                            @userRole
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    </article>
+</section>

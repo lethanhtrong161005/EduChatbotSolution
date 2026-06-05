@@ -101,11 +101,18 @@
     background: var(--color-neutral-200, #e5e7eb);
 }
 
-.btn-add-user {
+.um-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-add-user,
+.btn-import-user {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, var(--color-primary, #2ecc71), var(--color-primary-dark, #27ae60));
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -118,9 +125,23 @@
     white-space: nowrap;
 }
 
+.btn-add-user {
+    background: linear-gradient(135deg, var(--color-primary, #2ecc71), var(--color-primary-dark, #27ae60));
+}
+
 .btn-add-user:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(46, 204, 113, 0.4);
+}
+
+.btn-import-user {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-import-user:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
 }
 
 /* ── Stats Bar ────────────────────────────────────────────────── */
@@ -783,7 +804,13 @@
         flex-direction: column;
     }
 
-    .btn-add-user {
+    .um-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-add-user,
+    .btn-import-user {
         justify-content: center;
     }
 }

@@ -110,9 +110,8 @@ public class UserManagementService(
     // ── CREATE ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a new user in the database with the given role and initiates email verification.
-    /// User is saved immediately with EmailConfirmed = false; account activation happens after
-    /// the user verifies their email via OTP.
+    /// Creates a new active user in the database with the given role, marks the email as confirmed,
+    /// then sends the login credentials to the user's email address.
     /// </summary>
     /// <param name="dto">Creation data: full name, email, password, and role.</param>
     /// <returns>Success/error tuple. <c>Error</c> is null on success.</returns>
@@ -143,7 +142,7 @@ public class UserManagementService(
         if (!await _roleManager.RoleExistsAsync(dto.Role))
             return (false, $"Role '{dto.Role}' does not exist.");
 
-        // 3. Create user in database immediately with EmailConfirmed = false
+        // 3. Create active user in database immediately; admin-created accounts are trusted.
         var user = new ApplicationUser
         {
             UserName = dto.Email,
@@ -151,7 +150,7 @@ public class UserManagementService(
             Email = dto.Email,
             NormalizedEmail = dto.Email.ToUpperInvariant(),
             FullName = dto.FullName,
-            EmailConfirmed = false,
+            EmailConfirmed = true,
             IsActive = true,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
         };
@@ -174,13 +173,15 @@ public class UserManagementService(
             new Claim(ClaimTypes.Role, dto.Role),
         ]);
 
-        // 6. Initiate email verification
-        var (emailSuccess, emailError) = await _emailVerificationService.InitiateEmailVerificationForExistingUserAsync(dto.Email, dto.FullName);
-        if (!emailSuccess)
+        // 6. Send credentials email. Roll back the active account if delivery fails.
+        try
         {
-            // Email send failed — delete the user we just created
+            await _emailService.SendAdminCreatedCredentialsAsync(dto.Email, dto.FullName, dto.Password);
+        }
+        catch (Exception ex)
+        {
             await _userManager.DeleteAsync(user);
-            return (false, emailError ?? "Failed to send verification email.");
+            return (false, $"Failed to send account credentials email: {ex.Message}");
         }
 
         return (true, null);

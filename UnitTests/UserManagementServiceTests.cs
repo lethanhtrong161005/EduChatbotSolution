@@ -73,7 +73,7 @@ public class UserManagementServiceTests
 
     /// <summary>
     /// Happy case: CreateUserAsync — new unique email, valid role →
-    /// delegates to InitiateAdminVerificationAsync and returns success.
+    /// creates an active email-confirmed account, sends credentials, and returns success.
     /// </summary>
     [Test]
     public async Task CreateUser_HappyCase_ReturnsSuccess()
@@ -93,8 +93,10 @@ public class UserManagementServiceTests
             .Setup(m => m.RoleExistsAsync("Student"))
             .ReturnsAsync(true);
 
+        ApplicationUser? createdUser = null;
         _userManagerMock
             .Setup(m => m.CreateAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => createdUser = u)
             .ReturnsAsync(IdentityResult.Success);
 
         _userManagerMock
@@ -105,9 +107,9 @@ public class UserManagementServiceTests
             .Setup(m => m.AddClaimsAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<System.Security.Claims.Claim>>()))
             .ReturnsAsync(IdentityResult.Success);
 
-        _emailVerificationServiceMock
-            .Setup(m => m.InitiateEmailVerificationForExistingUserAsync("bob@example.com", "Bob Jones"))
-            .ReturnsAsync((true, (string?)null));
+        _emailServiceMock
+            .Setup(m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", "P@ssword1"))
+            .Returns(Task.CompletedTask);
 
         // Act
         var (success, error) = await _sut.CreateUserAsync(dto);
@@ -117,11 +119,15 @@ public class UserManagementServiceTests
         {
             Assert.That(success, Is.True);
             Assert.That(error, Is.Null);
+            Assert.That(createdUser, Is.Not.Null);
+            Assert.That(createdUser!.EmailConfirmed, Is.True);
+            Assert.That(createdUser.IsActive, Is.True);
         });
 
-        _emailVerificationServiceMock.Verify(
-            m => m.InitiateEmailVerificationForExistingUserAsync("bob@example.com", "Bob Jones"),
+        _emailServiceMock.Verify(
+            m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", "P@ssword1"),
             Times.Once);
+        _emailVerificationServiceMock.VerifyNoOtherCalls();
     }
 
     /// <summary>
