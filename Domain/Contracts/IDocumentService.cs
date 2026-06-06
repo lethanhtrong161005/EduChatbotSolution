@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿
+using Domain.Entities;
 
 namespace Domain.Contracts;
 
@@ -17,5 +18,9 @@ public interface IDocumentService
 
     Task<IEnumerable<Document>> GetBySubjectAsync(int subjectid, CancellationToken cancellationToken = default);
     Task<IEnumerable<Document>> GetByChapterAsync(int chapterId, CancellationToken cancellationToken = default);
+
+    Task<Document?> GetDocumentWithCommentsAsync(Guid documentId);
+    Task<DocumentComment> AddCommentAsync(Guid documentId, Guid userId, string content);
+
     Task<IEnumerable<Chunk>> GetChunksAsync(Guid documentId, int pageSize = 10, int pageIndex = 1, CancellationToken cxlTkn = default);
 }

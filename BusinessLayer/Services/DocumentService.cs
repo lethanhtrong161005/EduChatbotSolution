@@ -115,4 +115,39 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
                                                  noTracking: true,
                                                  cancellationToken: cxlTkn);
     }
+
+    public async Task<IEnumerable<Document>> GetDocumentsByChapterAsync(int chapterId)
+    {
+
+        return await _unitOfWork.Documents.GetAsync(
+            filter: d => d.ChapterId == chapterId
+        );
+    }
+
+    public async Task<Document?> GetDocumentWithCommentsAsync(Guid documentId)
+    {
+
+        var result = await _unitOfWork.Documents.GetAsync(
+            filter: d => d.Id == documentId,
+            includeProperties: new string[] { "Comments", "Comments.User" }
+        );
+
+        return result.FirstOrDefault();
+    }
+
+    public async Task<DocumentComment> AddCommentAsync(Guid documentId, Guid userId, string content)
+    {
+        var comment = new DocumentComment
+        {
+            DocumentId = documentId,
+            UserId = userId,
+            Content = content
+        };
+
+        await _unitOfWork.DocumentComments.InsertAsync(comment);
+
+        await _unitOfWork.SaveAsync();
+
+        return comment;
+    }
 }

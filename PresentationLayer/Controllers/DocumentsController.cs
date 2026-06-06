@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Extensions;
 using Presentation.Models;
+using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
@@ -100,9 +101,33 @@ public class DocumentsController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(Guid id, CancellationToken cxlTkn)
+    public async Task<IActionResult> Details(Guid id)
     {
-        return PartialView("_ChunkPreview");
+        var document = await _documentService.GetDocumentWithCommentsAsync(id);
+        if (document == null)
+        {
+            return NotFound();
+        }
+
+        return View(document);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddComment(Guid documentId, string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return RedirectToAction(nameof(Details), new { id = documentId });
+        }
+
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(userIdString, out Guid userId))
+        {
+            await _documentService.AddCommentAsync(documentId, userId, content);
+        }
+
+        return RedirectToAction(nameof(Details), new { id = documentId });
     }
 
     [HttpPost]
@@ -226,6 +251,11 @@ public class DocumentsController(
 
     private const int PageSize = 10;
 
+    [HttpGet]
+    public async Task<IActionResult> ChunkTable(Guid id, CancellationToken cxlTkn)
+    {
+        return PartialView("_ChunkPreview");
+    }
 
     [HttpGet]
     public async Task<IActionResult> Chunks(Guid documentId, int pageIndex, CancellationToken cxlTkn)

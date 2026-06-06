@@ -7,26 +7,36 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["PresentationLayer/PresentationLayer.csproj", "PresentationLayer/"]
-COPY ["BusinessLayer/BusinessLayer.csproj", "BusinessLayer/"]
-COPY ["DataAccessLayer/DataAccessLayer.csproj", "DataAccessLayer/"]
-RUN dotnet restore "./PresentationLayer/PresentationLayer.csproj"
+
+
+COPY ["PresentationLayer/Presentation.csproj", "PresentationLayer/"]
+COPY ["BusinessLayer/Business.csproj", "BusinessLayer/"]
+COPY ["DataAccessLayer/DataAccess.csproj", "DataAccessLayer/"]
+COPY ["Domain/Domain.csproj", "Domain/"]
+
+
+RUN dotnet restore "./PresentationLayer/Presentation.csproj"
+
 COPY . .
 WORKDIR "/src/PresentationLayer"
-RUN dotnet build "./PresentationLayer.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+
+RUN dotnet build "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./PresentationLayer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+RUN dotnet publish "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "PresentationLayer.dll"]
+
+
+ENTRYPOINT ["dotnet", "Presentation.dll"]
