@@ -14,6 +14,8 @@ using Presentation.Routing;
 using Presentation.Settings;
 using StackExchange.Redis;
 using System.Reflection;
+using BusinessLayer.Services; 
+using Domain.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +47,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+
 
 // ── Helper Services ───────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();

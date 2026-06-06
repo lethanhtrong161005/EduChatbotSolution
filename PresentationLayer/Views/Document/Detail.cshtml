@@ -1,0 +1,59 @@
+@using Domain.Entities
+@model Document
+
+
+@{
+    ViewData["Title"] = "Chi tiết tài liệu";
+}
+
+<div class="container mt-4">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">@Model.Title</h4> 
+        </div>
+        <div class="card-body">
+            <iframe src="/uploads/documents/@Model.FilePath" width="100%" height="600px" style="border: none;"></iframe>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Thảo luận</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.Comments != null && Model.Comments.Any())
+                {
+                    foreach (var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+                    {
+                        <div class="d-flex mb-3 border-bottom pb-2">
+                            <div class="me-3">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">@comment.User.UserName</h6>
+                                <small class="text-muted">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                <p class="mt-1 mb-0">@comment.Content</p>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted fst-italic">Chưa có bình luận nào.</p>
+                }
+            </div>
+
+            <form asp-controller="Document" asp-action="AddComment" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="documentId" value="@Model.Id" />
+                <div class="mb-3">
+                    <textarea name="content" class="form-control" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Gửi bình luận</button>
+            </form>
+        </div>
+    </div>
+</div>
