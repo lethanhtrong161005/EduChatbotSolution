@@ -4,11 +4,13 @@ public class ParsedSection : NaturalEntity
 {
     public Guid DocumentId { get; set; }
 
+    public int SectionIndex { get; set; }
+
     public int? PageNumber { get; set; }
 
     public string? SectionTitle { get; set; }
 
-    public string Text { get; set; } = "";
+    public string Text { get; set; } = string.Empty;
 
     public virtual Document Document { get; set; } = null!;
 }

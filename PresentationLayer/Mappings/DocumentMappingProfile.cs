@@ -18,6 +18,8 @@ public class DocumentMappingProfile : Profile
             .ForMember(dest => dest.UploadedBy, opts => opts.MapFrom(src => src.Uploader.FullName));
 
         CreateMap<Chunk, ChunkPreviewVm>()
-            .ForMember(dest => dest.VectorPreview, opts => opts.MapFrom(src => src.Embedding != null ? src.Embedding.ToArray().Take(16).ToArray() : Array.Empty<float>()));
+            .ForMember(dest => dest.VectorPreview, opts => opts.MapFrom(src => src.Embedding != null
+                                                                        ? src.Embedding.ToArray().Take(15).ToArray()
+                                                                        : Array.Empty<float>()));
     }
 }

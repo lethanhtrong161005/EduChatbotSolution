@@ -255,6 +255,9 @@
                     fileId = deleteBtn.dataset.fileId;
                     if (!fileId) return;
 
+                    const conf = confirm("Are you sure you wish to delete this file?");
+                    if (!conf) return;
+
                     var response = await fetch(`/documents/delete/${file.id}`, {
                         method: "DELETE"
                     });

@@ -36,10 +36,8 @@ function renderChunks(chunks) {
 
     for (const chunk of chunks) {
 
-        const vectorPreview =
-            chunk.vectorPreview
-                .map(x => x.toFixed(4))
-                .join(", ");
+        const vectorText =
+            buildVectorPreview(chunk.vectorPreview);
 
         chunkList.insertAdjacentHTML(
             "beforeend",
@@ -48,22 +46,40 @@ function renderChunks(chunks) {
 
                 <div class="chunk-text-panel">
 
-                    <div class="chunk-header">
+                    <div class="chunk-meta">
 
-                        Chunk #${chunk.chunkIndex}
-
-                        <span class="chunk-meta">
-
-                            ${chunk.pageNumber
-                ? `Page ${chunk.pageNumber}`
-                : chunk.sectionTitle ?? ""}
-
+                        <span class="chunk-index">
+                            Chunk #${chunk.chunkIndex}
                         </span>
+
+                        ${chunk.pageNumber
+                        ? `
+                            <span class="page-number">
+                                Page ${chunk.pageNumber}
+                            </span>
+                            `
+                        : ""}
+
+                        ${chunk.sectionTitle
+                        ? `
+                            <span class="section-title">
+                                ${escapeHtml(chunk.sectionTitle)}
+                            </span>
+                            `
+                        : ""}
+
+                        ${chunk.tokenCount
+                        ? `
+                            <span class="token-count">
+                                ${chunk.tokenCount} tokens
+                            </span>
+                            `
+                        : ""}
 
                     </div>
 
                     <pre class="chunk-text">
-                        ${escapeHtml(chunk.chunkText)}
+${escapeHtml(chunk.chunkText)}
                     </pre>
 
                 </div>
@@ -75,7 +91,7 @@ function renderChunks(chunks) {
                     </div>
 
                     <pre class="vector-preview">
-                        [${vectorPreview}]
+${vectorText}
                     </pre>
 
                     <div class="vector-meta">
@@ -83,7 +99,6 @@ function renderChunks(chunks) {
                         ${chunk.embeddingModel}
                         ·
                         ${chunk.tokenCount ?? "???"}
-
                         tokens
 
                     </div>
@@ -93,6 +108,31 @@ function renderChunks(chunks) {
             </div>
             `);
     }
+}
+
+function buildVectorPreview(vector) {
+
+    const rows = [];
+
+    for (let i = 0; i < vector.length; i += 4) {
+
+        rows.push(
+            vector
+                .slice(i, i + 4)
+                .map(e => e.toFixed(3).padStart(7))
+                .join(", "));
+    }
+
+    if (rows.length > 0) {
+
+        rows[rows.length - 1] += ", ...";
+    }
+
+    return (
+        "(\n" +
+        rows.join("\n") +
+        "\n)"
+    );
 }
 
 function renderPagination(

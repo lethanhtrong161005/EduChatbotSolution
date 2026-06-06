@@ -55,10 +55,12 @@ public class SimpleParser : IDocumentParser
 
         var parsedDoc = new ParsedDocument();
 
+        int sectionIndex = 0;
         foreach (var page in pdf.GetPages())
         {
             parsedDoc.Sections.Add(new ParsedSection
             {
+                SectionIndex = sectionIndex++,
                 PageNumber = page.Number,
                 SectionTitle = null,
                 Text = page.Text,
@@ -78,6 +80,7 @@ public class SimpleParser : IDocumentParser
         if (body == null)
             return parsedDoc;
 
+        int sectionIndex = 0;
         var headingPath = new Dictionary<int, string>();
         var sectionText = new StringBuilder();
         bool hasBodyText = false;
@@ -148,6 +151,7 @@ public class SimpleParser : IDocumentParser
 
             parsedDoc.Sections.Add(new ParsedSection
             {
+                SectionIndex = sectionIndex++,
                 PageNumber = null,
                 SectionTitle = sectionTitle,
                 Text = sectionText.ToString(),

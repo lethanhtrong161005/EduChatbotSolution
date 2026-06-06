@@ -1,6 +1,7 @@
 ﻿using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Exceptions;
 
 namespace Business.Background;
 
@@ -20,7 +21,7 @@ public class DocumentIndexer(
     public async Task ParseAsync(Guid documentId)
     {
         var doc = await _unitOfWork.Documents.GetByIdAsync(documentId)
-                  ?? throw new Exception("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find the queued document.");
 
         if (doc.Status >= DocumentStatus.Parsed
             || await _unitOfWork.ParsedSections.ExistsAsync(e => e.DocumentId == doc.Id))
@@ -58,7 +59,7 @@ public class DocumentIndexer(
         var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
                                                         includeProperties: [nameof(Document.ParsedSections)]))
                                               .FirstOrDefault()
-                  ?? throw new Exception("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find the queued document.");
 
         if (doc.Status >= DocumentStatus.Chunked
             || await _unitOfWork.Chunks.ExistsAsync(e => e.DocumentId == doc.Id))
@@ -70,7 +71,7 @@ public class DocumentIndexer(
             doc.Status = DocumentStatus.Chunking;
             await _unitOfWork.SaveAsync();
 
-            foreach (var chunkDto in _chunker.Chunk(doc.ParsedSections))
+            foreach (var chunkDto in _chunker.Chunk(doc.ParsedSections.OrderBy(e => e.SectionIndex)))
             {
                 _unitOfWork.Chunks.Insert(new Chunk
                 {
@@ -100,9 +101,10 @@ public class DocumentIndexer(
         var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
                                                         includeProperties: [nameof(Document.Chunks)]))
                                               .FirstOrDefault()
-                  ?? throw new Exception("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find the queued document.");
 
-        if (doc.Status >= DocumentStatus.Indexed)
+        if (doc.Status >= DocumentStatus.Indexed
+            && doc.Chunks.All(c => c.Embedding != null))
             return;
 
         try
@@ -119,6 +121,12 @@ public class DocumentIndexer(
             foreach (var batch in pendingChunks.Chunk(BatchSize))
             {
                 var result = await _embedder.EmbedAsync(batch.Select(e => e.ChunkText));
+
+                if (result.Vectors.Count != batch.Length)
+                {
+                    throw new InvalidOperationException(
+                        $"Expected {batch.Length} embeddings, got {result.Vectors.Count}.");
+                }
 
                 for (int i = 0; i < batch.Length; i++)
                 {

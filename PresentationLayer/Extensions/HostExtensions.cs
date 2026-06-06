@@ -2,15 +2,9 @@ using DataAccess.UnitOfWork;
 using Domain.Common;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.AspNetCore.Identity;
-using Domain.Entities;
-using Domain.Common;
-using Domain.Contracts;
 using Npgsql;
-using Org.BouncyCastle.Tls;
 
 namespace Presentation.Extensions;
 
@@ -130,7 +124,6 @@ public static class HostExtensions
             }
         }
 
-    SUBSCRIPTION:
         if ((await unitOfWork.Plans.GetAsync()).Any())
         {
             logger.LogInformation("Plans already exist. Skipping subscription seed.");
