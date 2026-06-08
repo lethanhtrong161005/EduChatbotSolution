@@ -1,9 +1,12 @@
 ﻿namespace Domain.DTOs;
 
-public class ChunkDto
+public record ChunkDto
 {
-    public int ChunkIndex { get; set; }
-    public string ChunkText { get; set; } = string.Empty;
+    public required int ChunkIndex { get; set; }
+
+    public required string ChunkText { get; set; } = string.Empty;
+
     public int? PageNumber { get; set; }
+
     public string? SectionTitle { get; set; }
 }

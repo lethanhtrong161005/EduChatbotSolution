@@ -7,5 +7,5 @@ public interface IDocumentParser
 {
     string ParserName { get; }
 
-    Task<ParsedDocument> ParseAsync(string path, DocumentType type);
+    Task<ParsedDocument> ParseAsync(string path, DocumentType type, CancellationToken cancellationToken = default);
 }

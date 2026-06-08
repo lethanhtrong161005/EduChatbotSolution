@@ -78,6 +78,7 @@ public enum DocumentType
 
 public enum DocumentStatus
 {
+    Failed = -1,
     Uploaded,
     Parsing,
     Parsed,
@@ -85,5 +86,4 @@ public enum DocumentStatus
     Chunked,
     Embedding,
     Indexed,
-    Failed,
 }

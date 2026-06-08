@@ -8,28 +8,18 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<IEnumerable<Document>> GetAsync(CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Document>> GetAsync(string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.Documents.GetAsync(
-            includeProperties:
-            [
-                nameof(Document.Chapter),
-                nameof(Document.Uploader),
-                nameof(Document.Comments)
-            ],
+            includeProperties: inclProps ?? [],
             cancellationToken: cxlTkn);
     }
 
-    public async Task<Document?> GetByIdAsync(Guid id, CancellationToken cxlTkn = default)
+    public async Task<Document?> GetByIdAsync(Guid id, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         return (await _unitOfWork.Documents.GetAsync(
             filter: e => e.Id == id,
-            includeProperties:
-            [
-                nameof(Document.Chapter),
-                nameof(Document.Uploader),
-                nameof(Document.Comments)
-            ],
+            includeProperties: inclProps ?? [],
             cancellationToken: cxlTkn))
             .FirstOrDefault();
     }
@@ -116,25 +106,6 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
                                                  cancellationToken: cxlTkn);
     }
 
-    public async Task<IEnumerable<Document>> GetDocumentsByChapterAsync(int chapterId)
-    {
-
-        return await _unitOfWork.Documents.GetAsync(
-            filter: d => d.ChapterId == chapterId
-        );
-    }
-
-    public async Task<Document?> GetDocumentWithCommentsAsync(Guid documentId)
-    {
-
-        var result = await _unitOfWork.Documents.GetAsync(
-            filter: d => d.Id == documentId,
-            includeProperties: new string[] { "Comments", "Comments.User" }
-        );
-
-        return result.FirstOrDefault();
-    }
-
     public async Task<DocumentComment> AddCommentAsync(Guid documentId, Guid userId, string content)
     {
         var comment = new DocumentComment
@@ -145,9 +116,7 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
         };
 
         await _unitOfWork.DocumentComments.InsertAsync(comment);
-
         await _unitOfWork.SaveAsync();
-
         return comment;
     }
 }

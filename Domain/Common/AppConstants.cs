@@ -41,6 +41,7 @@ public static class AppConstants
 
     public const int UnlimitedQuota = -1;
 
+    public const string AppDir = "EduChatAI";
     public const string FileSubdirUploaded = "uploaded";
     public const string FileSubdirProcessing = "processing";
     public const string FileSubdirIndexed = "indexed";

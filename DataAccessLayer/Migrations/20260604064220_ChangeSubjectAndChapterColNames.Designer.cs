@@ -12,7 +12,7 @@ using Pgvector;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatbotDbContext))]
+    [DbContext(typeof(EduChatAIDbContext))]
     [Migration("20260604064220_ChangeSubjectAndChapterColNames")]
     partial class ChangeSubjectAndChapterColNames
     {

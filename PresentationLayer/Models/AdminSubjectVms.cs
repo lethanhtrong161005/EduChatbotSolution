@@ -1,6 +1,5 @@
 using Domain.Common;
 using Domain.Entities;
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Presentation.Models;

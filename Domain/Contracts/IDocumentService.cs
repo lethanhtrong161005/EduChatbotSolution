@@ -5,8 +5,8 @@ namespace Domain.Contracts;
 
 public interface IDocumentService
 {
-    Task<IEnumerable<Document>> GetAsync(CancellationToken cancellationToken = default);
-    Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Document>> GetAsync(string[] includeProperties = null!, CancellationToken cancellationToken = default);
+    Task<Document?> GetByIdAsync(Guid id, string[] includeProperties = null!, CancellationToken cancellationToken = default);
 
     Task<Document?> CreateAsync(Document entity, CancellationToken cancellationToken = default);
     Task<Document?> UpdateAsync(Document entity, CancellationToken cancellationToken = default);
@@ -19,7 +19,6 @@ public interface IDocumentService
     Task<IEnumerable<Document>> GetBySubjectAsync(int subjectid, CancellationToken cancellationToken = default);
     Task<IEnumerable<Document>> GetByChapterAsync(int chapterId, CancellationToken cancellationToken = default);
 
-    Task<Document?> GetDocumentWithCommentsAsync(Guid documentId);
     Task<DocumentComment> AddCommentAsync(Guid documentId, Guid userId, string content);
 
     Task<IEnumerable<Chunk>> GetChunksAsync(Guid documentId, int pageSize = 10, int pageIndex = 1, CancellationToken cxlTkn = default);

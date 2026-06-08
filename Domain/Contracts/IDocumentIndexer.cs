@@ -2,7 +2,7 @@
 
 public interface IDocumentIndexer
 {
-    Task ParseAsync(Guid documentId);
-    Task ChunkAsync(Guid documentId);
-    Task EmbedAsync(Guid documentId);
+    Task ParseAsync(Guid documentId, CancellationToken cancellationToken = default);
+    Task ChunkAsync(Guid documentId, CancellationToken cancellationToken = default);
+    Task EmbedAsync(Guid documentId, CancellationToken cancellationToken = default);
 }

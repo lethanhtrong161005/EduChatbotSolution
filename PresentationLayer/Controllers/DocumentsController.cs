@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Business.Background;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -7,6 +8,7 @@ using Hangfire;
 using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using Presentation.Extensions;
 using Presentation.Models;
 using System.Security.Claims;
@@ -76,23 +78,67 @@ public class DocumentsController(
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> Download(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, cxlTkn);
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
             return NotFound();
 
-        return File(fileStream: System.IO.File.OpenRead(doc.FilePath), doc.ContentType);
+        return File(
+            fileStream: System.IO.File.OpenRead(doc.FilePath),
+            contentType: doc.ContentType,
+            fileDownloadName: doc.OriginalFileName);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Display(Guid id, CancellationToken cxlTkn)
+    {
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+
+        if (doc == null)
+            return NotFound();
+
+        if (doc.FileType == DocumentType.DOCX)
+        {
+            var baseUrl = Request.Host;
+            var downloadPath = Url.Action(nameof(Download));
+            var idParam = $"/{doc.Id}";
+            var embedUrl = baseUrl + downloadPath + idParam;
+            var office365EmbedUrl = $"https://view.officeapps.live.com/op/embed.aspx?src={embedUrl}";
+            return Redirect(office365EmbedUrl);
+        }
+
+        if (doc.FileType == DocumentType.PDF)
+        {
+            var contentDisposition = ContentDispositionHeaderValue.Parse($"inline; filename={doc.OriginalFileName}");
+            Response.Headers.ContentDisposition = contentDisposition.ToString();
+            return File(
+                fileStream: System.IO.File.OpenRead(doc.FilePath),
+                contentType: doc.ContentType);
+        }
+
+        return File(
+            fileStream: System.IO.File.OpenRead(doc.FilePath),
+            contentType: doc.ContentType,
+            fileDownloadName: doc.OriginalFileName);
     }
 
     [HttpDelete]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, cxlTkn);
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
             return NotFound();
+
+        HangfireHelper.CancelJobs(doc.Id,
+        [
+            nameof(DocumentIndexer.ParseAsync),
+            nameof(DocumentIndexer.ChunkAsync),
+            nameof(DocumentIndexer.EmbedAsync)
+        ]);
 
         await _documentService.DeleteAsync(doc.Id, cxlTkn);
         System.IO.File.Delete(doc.FilePath);
@@ -101,15 +147,22 @@ public class DocumentsController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(Guid id)
+    public async Task<IActionResult> Details(Guid id, CancellationToken cxlTkn)
     {
-        var document = await _documentService.GetDocumentWithCommentsAsync(id);
-        if (document == null)
-        {
+        var doc = await _documentService.GetByIdAsync(
+            id,
+            includeProperties:
+            [
+                nameof(Document.Chapter),
+                nameof(Document.Uploader),
+                nameof(Document.Chunks),
+                nameof(Document.Comments),
+            ], cxlTkn);
+        if (doc == null)
             return NotFound();
-        }
 
-        return View(document);
+        var vm = _mapper.Map<DocumentDetailsVm>(doc);
+        return View(vm);
     }
 
     [HttpPost]
@@ -160,7 +213,7 @@ public class DocumentsController(
             if (!AllowedExtensions.Contains(extension))
                 return BadRequest($"{file.FileName} is not supported");
 
-            var tempDir = Path.Combine(Path.GetTempPath(), "EduChatAI", AppConstants.FileSubdirUploaded);
+            var tempDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirUploaded);
             Directory.CreateDirectory(tempDir);
 
             var fullPath = Path.Combine(tempDir, storageName);
@@ -227,7 +280,7 @@ public class DocumentsController(
         }
 
         var result = _mapper.Map<List<DocumentFileVm>>(newDocs);
-        return Ok(result);
+        return Json(result);
     }
 
     private static readonly HashSet<string> AllowedExtensions =

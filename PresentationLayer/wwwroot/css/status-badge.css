@@ -1,0 +1,72 @@
+﻿.document-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+    transition: all .2s ease;
+}
+
+.status-uploaded {
+    background: rgba(107,114,128,.15);
+    color: var(--color-neutral-600);
+}
+
+.status-parsing {
+    background: rgba(52,152,219,.15);
+    color: var(--color-info);
+}
+
+.status-parsed {
+    background: rgba(46,204,113,.15);
+    color: var(--color-success);
+}
+
+.status-chunking {
+    background: rgba(241,196,15,.15);
+    color: #d4ac0d;
+}
+
+.status-chunked {
+    background: rgba(243,156,18,.15);
+    color: var(--color-warning);
+}
+
+.status-embedding {
+    background: rgba(155,89,182,.15);
+    color: #8e44ad;
+}
+
+.status-indexed {
+    background: rgba(46,204,113,.15);
+    color: var(--color-success);
+}
+
+.status-failed {
+    background: rgba(231,76,60,.15);
+    color: var(--color-error);
+}
+
+.status-parsing,
+.status-chunking,
+.status-embedding {
+    animation: statusPulse 1.5s infinite;
+}
+
+@keyframes statusPulse {
+
+    0% {
+        opacity: .6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: .6;
+    }
+}

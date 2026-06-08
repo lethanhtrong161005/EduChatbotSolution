@@ -1,12 +1,93 @@
-@using Domain.Entities
-@model Document
+@model DocumentDetailsVm
 
 @{
-    ViewData["Title"] = "Chi tiết tài liệu";
+    ViewData["Title"] = "Document Details";
 }
 
 <link rel="stylesheet" href="~/css/colors.css" />
-<link rel="stylesheet" href="~/css/chunk-preview.css" />
+<link rel="stylesheet" href="~/css/status-badge.css" />
+<link rel="stylesheet" href="~/css/document-details.css" />
+
+<div class="document-overview-card">
+
+    <div class="document-overview-header">
+
+        <div class="document-file-icon">
+            <i class="fas fa-file-pdf"></i>
+        </div>
+
+        <div class="document-header-content">
+
+            <div class="document-title-row">
+
+                <h2 class="document-title">
+                    @Model.Title
+                </h2>
+
+                <span id="documentStatusBadge"
+                      data-status="@Model.Status">
+                </span>
+
+            </div>
+
+            <div class="document-subtitle">
+
+                <span>
+                    Uploaded by
+                    <strong>@Model.UploadedBy</strong>
+                </span>
+
+                <span>
+                    @Model.UploadedAt.ToString("dd-MM-yyyy HH:mm")
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="document-stats-grid">
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Parser
+            </div>
+
+            <div class="stat-value" id="docParserUsed">
+                @(Model.ParserUsed ?? "Pending")
+            </div>
+
+        </div>
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Chunks
+            </div>
+
+            <div class="stat-value" id="docChunkCount">
+                @(Model.ChunkCount?.ToString() ?? "Pending")
+            </div>
+
+        </div>
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Embedding Model
+            </div>
+
+            <div class="stat-value" id="docEmbeddingModel">
+                @(Model.EmbeddingModel ?? "Pending")
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
 <div class="container mt-4">
     <div class="card mb-4 shadow-sm">
@@ -14,8 +95,22 @@
             <h4 class="mb-0">@Model.Title</h4>
         </div>
         <div class="card-body">
-            <iframe src="/documents/download/@(Model.Id)" width="100%" height="600px" style="border: none;"></iframe>
+            <iframe src="/documents/display/@(Model.Id)"
+                    style="border: none;"></iframe>
         </div>
+    </div>
+
+    <div id="chunkShowcase"
+         class="chunk-preview-card"
+         data-doc-id="@Model.Id">
+
+        <div id="chunkList">
+        </div>
+
+        <div id="chunkPagination"
+             class="chunk-pagination">
+        </div>
+
     </div>
 
     <div class="card shadow-sm">
@@ -48,19 +143,6 @@
                 }
             </div>
 
-            <div class="chunk-preview-card"
-                 id="chunk-showcase"
-                 data-doc-id="@Model.Id">
-
-                <div id="chunkList">
-                </div>
-
-                <div id="chunkPagination"
-                     class="chunk-pagination">
-                </div>
-
-            </div>
-
             <form asp-controller="Document" asp-action="AddComment" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="documentId" value="@Model.Id" />
@@ -73,5 +155,14 @@
     </div>
 </div>
 
+<script>
+
+    const razor_docId = "@Model.Id";
+    const razor_docStatus = "@Model.Status";
+
+</script>
+
+<script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+<script src="~/js/status-badge.js"></script>
 <script src="~/js/document-details.js"></script>
-<script src="~/js/chunk-preview.js"></script>
+<script src="~/js/document-details-signalr.js"></script>

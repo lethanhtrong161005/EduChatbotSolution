@@ -14,42 +14,38 @@ public class SimpleParser : IDocumentParser
 {
     public string ParserName => "SimpleParser";
 
-    public async Task<ParsedDocument> ParseAsync(string path, Ent.DocumentType type)
+    public async Task<ParsedDocument> ParseAsync(string path, Ent.DocumentType type, CancellationToken cxlTkn = default)
     {
         return type switch
         {
             Ent.DocumentType.TXT =>
-                await ParseTxtAsync(path),
+                await ParseTxtAsync(path, cxlTkn),
 
             Ent.DocumentType.PDF =>
-                await ParsePdfAsync(path),
+                await ParsePdfAsync(path, cxlTkn),
 
             Ent.DocumentType.DOCX =>
-                await ParseDocxAsync(path),
+                await ParseDocxAsync(path, cxlTkn),
 
             Ent.DocumentType.PPTX =>
-                await ParsePptxAsync(path),
+                await ParsePptxAsync(path, cxlTkn),
 
             _ => throw new NotSupportedException()
         };
     }
 
-    private async Task<ParsedDocument> ParseTxtAsync(string path)
+    private async Task<ParsedDocument> ParseTxtAsync(string path, CancellationToken cxlTkn = default)
     {
         var section = new ParsedSection
         {
             PageNumber = null,
             SectionTitle = null,
-            Text = await File.ReadAllTextAsync(path),
+            Text = await File.ReadAllTextAsync(path, cxlTkn),
         };
-        return new ParsedDocument
-        {
-            Sections = [section],
-        };
+        return new ParsedDocument { Sections = [section] };
     }
 
-
-    private async Task<ParsedDocument> ParsePdfAsync(string path)
+    private async Task<ParsedDocument> ParsePdfAsync(string path, CancellationToken cxlTkn = default)
     {
         using var pdf = PdfDocument.Open(path);
 
@@ -58,6 +54,8 @@ public class SimpleParser : IDocumentParser
         int sectionIndex = 0;
         foreach (var page in pdf.GetPages())
         {
+            cxlTkn.ThrowIfCancellationRequested();
+
             parsedDoc.Sections.Add(new ParsedSection
             {
                 SectionIndex = sectionIndex++,
@@ -70,7 +68,7 @@ public class SimpleParser : IDocumentParser
         return parsedDoc;
     }
 
-    private async Task<ParsedDocument> ParseDocxAsync(string path)
+    private async Task<ParsedDocument> ParseDocxAsync(string path, CancellationToken cxlTkn = default)
     {
         using var wordDoc = WordprocessingDocument.Open(path, false);
 
@@ -87,9 +85,11 @@ public class SimpleParser : IDocumentParser
 
         foreach (var para in body.Elements<Paragraph>())
         {
+            cxlTkn.ThrowIfCancellationRequested();
+
             // Check if heading
             // NO: Read text.
-            // YES: Flush section (if not only headings). Update heading path. Read text.
+            // YES: Flush section, if any body text. Update heading path. Read (heading) text.
 
             var text = para.InnerText;
             var headingLvl = GetHeadingLevel(para);
@@ -121,6 +121,8 @@ public class SimpleParser : IDocumentParser
             }
         }
 
+        // Flush at end-of-file.
+        // The check is meant to prevent flushing an empty section from a empty document.
         if (sectionText.Length > 0)
         {
             FlushCurrentSection();
@@ -164,7 +166,7 @@ public class SimpleParser : IDocumentParser
         return parsedDoc;
     }
 
-    private async Task<ParsedDocument> ParsePptxAsync(string path)
+    private async Task<ParsedDocument> ParsePptxAsync(string path, CancellationToken cxlTkn = default)
     {
         return null!;
     }

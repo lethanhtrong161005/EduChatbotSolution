@@ -37,7 +37,7 @@ public class PaymentController(
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
 
-    private const string DefaultAppUser = "EduChatbotAI_User";
+    private const string DefaultAppUser = "EduChatAI_User";
 
     [HttpGet]
     public async Task<IActionResult> SelectMethod(Guid id, CancellationToken cxlTkn)
@@ -92,7 +92,7 @@ public class PaymentController(
             var appTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var amount = (long)orderTotal;
             var item = "[]";
-            var description = $"EduChatbotAI - Thanh toán cho đơn hàng #{appTransId}";
+            var description = $"EduChatAI - Thanh toán cho đơn hàng #{appTransId}";
             var redirectUrl = _paymentProviderOpts.ZaloPay.RedirectUrlBase + "?transaction-id=" + appTransId;
             var embedData = $"{{\"redirecturl\": \"{redirectUrl}\"}}";
             var bankCode = "";

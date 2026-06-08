@@ -1,11 +1,11 @@
 services:
   db:
     image: pgvector/pgvector:0.8.2-pg18-trixie
-    container_name: postgres
+    container_name: educhatai_postgres
     environment:
       POSTGRES_USER: edu_admin
       POSTGRES_PASSWORD: 12345678
-      POSTGRES_DB: educhatbot_db
+      POSTGRES_DB: educhatai_db
       PGDATA: /data/postgres
     restart: unless-stopped
     volumes:
@@ -17,7 +17,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: educhatbot_redis
+    container_name: educhatai_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -26,7 +26,7 @@ services:
 
   redis-ui:
     image: redis/redisinsight:latest
-    container_name: educhatbot_redis_ui
+    container_name: educhatai_redis_ui
     restart: unless-stopped
     ports:
       - "5540:5540"
@@ -36,8 +36,8 @@ services:
       - redis
 
   web:
-    image: ${DOCKER_REGISTRY-}educhatbot-mvc
-    container_name: educhatbot_mvc
+    image: ${DOCKER_REGISTRY-}educhatai-mvc
+    container_name: educhatai_mvc
     build:
       context: .
       dockerfile: PresentationLayer/Dockerfile
@@ -46,7 +46,7 @@ services:
       - "8081:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=educhatbot_db;Username=edu_admin;Password=12345678;Include Error Detail=true
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=educhatai_db;Username=edu_admin;Password=12345678;Include Error Detail=true
       - OpenAI__ApiKey=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       - Redis__ConnectionString=redis:6379
     depends_on:
@@ -57,7 +57,7 @@ services:
 
   ollama:
     image: ollama/ollama
-    container_name: educhatbot_ollama
+    container_name: educhatai_ollama
     restart: unless-stopped
     ports:
       - "11434:11434"

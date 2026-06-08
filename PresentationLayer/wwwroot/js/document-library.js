@@ -195,22 +195,32 @@
 
         <div class="document-info">
 
-            <a href="/documents/download/${file.id}"
-               class="document-name">
+         <div class="document-title-row">
 
-                ${file.title + file.extension}
+                <a href="/documents/download/${file.id}"
+                class="document-name">
 
-            </a>
+                    ${file.title + file.extension}
+
+                </a>
+
+                <span
+                    id="status-badge-${file.id}"
+                    class="document-status-badge status-${file.status.toLowerCase()}">
+
+                    <i class="fas ${StatusSettings[file.status].iconClass}"></i>
+
+                    ${file.status}
+
+                </span>
+
+            </div>
 
             <div class="document-meta">
 
-                <span>
-                    ${file.uploadedBy}
-                </span>
+                <span>${file.uploadedBy}</span>
 
-                <span>
-                    ${formatDateTime(file.uploadedAt)}
-                </span>
+                <span>${formatDateTime(file.uploadedAt)}</span>
 
             </div>
 
@@ -247,7 +257,7 @@
 </div>
     `);
 
-            let deleteBtn = fileTableBody.querySelector(`#delete-file-${file.id}`);
+            const deleteBtn = fileTableBody.querySelector(`#delete-file-${file.id}`);
             deleteBtn.addEventListener(
                 "click",
                 async function () {
@@ -277,10 +287,10 @@
     function formatDateTime(dateString) {
 
         return new Intl.DateTimeFormat(
-            "en-US",
+            "en-GB",
             {
                 year: "numeric",
-                month: "short",
+                month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit"
@@ -494,12 +504,12 @@ Are you sure you wish to upload them?
 
                         updateStatus(
                             file.uploadId,
-                            "Complete");
+                            "Upload Complete");
                     }
                     else {
                         updateStatus(
                             file.uploadId,
-                            "Failed");
+                            "Upload Failed");
                     }
 
                     activeUploads--;
@@ -513,7 +523,7 @@ Are you sure you wish to upload them?
                 () => {
                     updateStatus(
                         file.uploadId,
-                        "Failed");
+                        "Upload Failed");
 
                     activeUploads--;
                     outstandingUploads--;

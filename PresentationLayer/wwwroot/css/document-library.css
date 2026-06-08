@@ -401,6 +401,13 @@ option {
     min-width: 0;
 }
 
+.document-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .document-name {
     display: block;
     font-weight: 600;

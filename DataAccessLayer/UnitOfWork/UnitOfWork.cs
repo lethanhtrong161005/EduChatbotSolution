@@ -8,7 +8,7 @@ namespace DataAccess.UnitOfWork;
 /// Implements the Unit of Work pattern, providing lazy-loaded repositories
 /// for all aggregate roots and coordinating saves via a shared DbContext.
 /// </summary>
-public class UnitOfWork(EduChatbotDbContext context) : IUnitOfWork
+public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
 {
     GenericRepository<Plan>? _plans;
     GenericRepository<PlanOption>? _planOptions;

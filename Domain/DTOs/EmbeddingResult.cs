@@ -1,6 +1,6 @@
 ﻿namespace Domain.DTOs;
 
-public sealed class EmbeddingResult
+public record EmbeddingResult
 {
     public required string Model { get; init; }
 

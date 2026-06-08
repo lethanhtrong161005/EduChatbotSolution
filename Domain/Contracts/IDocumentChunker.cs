@@ -7,5 +7,5 @@ public interface IDocumentChunker
 {
     string ChunkStrategy { get; }
 
-    IEnumerable<ChunkDto> Chunk(params IEnumerable<ParsedSection> sections);
+    IEnumerable<ChunkDto> Chunk(ParsedSection section);
 }

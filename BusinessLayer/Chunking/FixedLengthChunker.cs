@@ -14,36 +14,32 @@ public class FixedLengthChunker(
 
     public string ChunkStrategy => "FixedLength";
 
-    public IEnumerable<ChunkDto> Chunk(params IEnumerable<ParsedSection> sections)
+    public IEnumerable<ChunkDto> Chunk(ParsedSection section)
     {
         var chunkIndex = 0;
+        var text = section.Text;
 
-        foreach (var section in sections)
+        if (string.IsNullOrWhiteSpace(text))
+            yield break;
+
+        var start = 0;
+
+        while (start < text.Length)
         {
-            var text = section.Text;
+            var length = Math.Min(_chunkSize, text.Length - start);
 
-            if (string.IsNullOrWhiteSpace(text))
-                yield break;
-
-            var start = 0;
-
-            while (start < text.Length)
+            yield return new ChunkDto
             {
-                var length = Math.Min(_chunkSize, text.Length - start);
+                ChunkIndex = chunkIndex++,
+                ChunkText = text.Substring(start, length),
+                PageNumber = section.PageNumber,
+                SectionTitle = section.SectionTitle,
+            };
 
-                yield return new ChunkDto
-                {
-                    ChunkIndex = chunkIndex++,
-                    ChunkText = text.Substring(start, length),
-                    PageNumber = section.PageNumber,
-                    SectionTitle = section.SectionTitle,
-                };
+            if (start + length >= text.Length)
+                break;
 
-                if (start + length >= text.Length)
-                    break;
-
-                start += _chunkSize - _overlap;
-            }
+            start += _chunkSize - _overlap;
         }
     }
 }

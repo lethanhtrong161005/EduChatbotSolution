@@ -19,6 +19,7 @@ using OllamaSharp;
 using Presentation.Extensions;
 using Presentation.Filters;
 using Presentation.Middleware;
+using Presentation.RealtimeNotif;
 using Presentation.Routing;
 using Presentation.Settings;
 using StackExchange.Redis;
@@ -27,16 +28,15 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
+builder.Services.AddDbContext<EduChatAIDbContext>(opts =>
 {
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
                   ?? throw new KeyNotFoundException("Could not find connection string.");
-    opts.UseNpgsql(connStr, opts =>
-    {
-        opts.UseVector();
-    })
+    opts.UseNpgsql(connStr, opts => opts.UseVector())
         .UseSnakeCaseNamingConvention();
 });
+
+builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 // ── Redis ──────────────────────────────────────────────────────
 var redisConn = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
@@ -44,8 +44,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(redisConn));
 
 // ── Application Services ──────────────────────────────────────
-builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -68,10 +66,10 @@ builder.Services.AddSingleton<IOllamaApiClient, OllamaApiClient>(provider =>
 builder.Services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
 
 // ── Helper Services ───────────────────────────────────────────
+builder.Services.AddTransient<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
-
-builder.Services.AddTransient<AutomaticRetryAttribute>();
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
 builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
@@ -83,7 +81,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
     opts.User.RequireUniqueEmail = true;
     opts.SignIn.RequireConfirmedEmail = true;
 })
-    .AddEntityFrameworkStores<EduChatbotDbContext>()
+    .AddEntityFrameworkStores<EduChatAIDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication()
@@ -111,12 +109,16 @@ builder.Services.ConfigureApplicationCookie(opts =>
 
 builder.Services.AddAuthorization();
 
+// ── Real-time Web ──────────────────────────────────────────────
+builder.Services.AddSignalR();
+
 // ── Background Serivces ──────────────────────────────────────────────
+builder.Services.AddTransient<AutomaticRetryAttribute>();
+
 builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
 {
     config.UseSimpleAssemblyNameTypeSerializer();
     config.UseRecommendedSerializerSettings();
-
 
     config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
 
@@ -158,15 +160,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    await app.MigrateDb<EduChatbotDbContext>();
-    await app.SeedDbAsync<EduChatbotDbContext>();
+    await app.MigrateDb<EduChatAIDbContext>();
+    await app.SeedDbAsync<EduChatAIDbContext>();
 }
 else
 {
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
@@ -188,5 +190,7 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
+
+app.MapHub<DocumentHub>("/documents/status");
 
 app.Run();

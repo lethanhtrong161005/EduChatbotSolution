@@ -9,7 +9,7 @@ namespace Domain.Contracts;
 public interface ISubjectService
 {
     // ── Subjects CRUD ─────────────────────────────────────────
-    
+
     /// <summary>
     /// Returns a paginated list of subjects, optionally filtered by subject code or name.
     /// </summary>

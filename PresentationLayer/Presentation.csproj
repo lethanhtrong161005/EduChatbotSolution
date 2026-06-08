@@ -32,7 +32,7 @@
     <UserSecretsId>c99ba25d-054d-4d4e-a025-c1790579695f</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
-	<ContainerImageTag>educhatbot-mvc</ContainerImageTag>
+	<ContainerImageTag>educhatai-mvc</ContainerImageTag>
   </PropertyGroup>
 
 </Project>

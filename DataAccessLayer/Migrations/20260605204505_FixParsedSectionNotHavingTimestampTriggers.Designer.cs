@@ -12,7 +12,7 @@ using Pgvector;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatbotDbContext))]
+    [DbContext(typeof(EduChatAIDbContext))]
     [Migration("20260605204505_FixParsedSectionNotHavingTimestampTriggers")]
     partial class FixParsedSectionNotHavingTimestampTriggers
     {
