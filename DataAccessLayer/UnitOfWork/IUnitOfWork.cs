@@ -64,4 +64,5 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Persists all pending changes to the database.</summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     Task SaveAsync(CancellationToken cancellationToken = default);
+    GenericRepository<DocumentComment> DocumentComments { get; }
 }

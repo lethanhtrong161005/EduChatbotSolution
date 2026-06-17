@@ -13,24 +13,28 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy chính xác các file .csproj
+
 COPY ["PresentationLayer/Presentation.csproj", "PresentationLayer/"]
 COPY ["BusinessLayer/Business.csproj", "BusinessLayer/"]
 COPY ["DataAccessLayer/DataAccess.csproj", "DataAccessLayer/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
 
 # Đổi PresentationLayer.csproj thành Presentation.csproj
+
 RUN dotnet restore "./PresentationLayer/Presentation.csproj"
 
 COPY . .
 WORKDIR "/src/PresentationLayer"
 
 # Đổi PresentationLayer.csproj thành Presentation.csproj
+
 RUN dotnet build "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 # Đổi PresentationLayer.csproj thành Presentation.csproj
+
 RUN dotnet publish "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
@@ -39,4 +43,5 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Đổi PresentationLayer.dll thành Presentation.dll
+
 ENTRYPOINT ["dotnet", "Presentation.dll"]
