@@ -1,0 +1,168 @@
+@model DocumentDetailsVm
+
+@{
+    ViewData["Title"] = "Document Details";
+}
+
+<link rel="stylesheet" href="~/css/colors.css" />
+<link rel="stylesheet" href="~/css/status-badge.css" />
+<link rel="stylesheet" href="~/css/document-details.css" />
+
+<div class="document-overview-card">
+
+    <div class="document-overview-header">
+
+        <div class="document-file-icon">
+            <i class="fas fa-file-pdf"></i>
+        </div>
+
+        <div class="document-header-content">
+
+            <div class="document-title-row">
+
+                <h2 class="document-title">
+                    @Model.Title
+                </h2>
+
+                <span id="documentStatusBadge"
+                      data-status="@Model.Status">
+                </span>
+
+            </div>
+
+            <div class="document-subtitle">
+
+                <span>
+                    Uploaded by
+                    <strong>@Model.UploadedBy</strong>
+                </span>
+
+                <span>
+                    @Model.UploadedAt.ToString("dd-MM-yyyy HH:mm")
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="document-stats-grid">
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Parser
+            </div>
+
+            <div class="stat-value" id="docParserUsed">
+                @(Model.ParserUsed ?? "Pending")
+            </div>
+
+        </div>
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Chunks
+            </div>
+
+            <div class="stat-value" id="docChunkCount">
+                @(Model.ChunkCount?.ToString() ?? "Pending")
+            </div>
+
+        </div>
+
+        <div class="document-stat">
+
+            <div class="stat-label">
+                Embedding Model
+            </div>
+
+            <div class="stat-value" id="docEmbeddingModel">
+                @(Model.EmbeddingModel ?? "Pending")
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="container mt-4">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">@Model.Title</h4>
+        </div>
+        <div class="card-body">
+            <iframe src="/documents/display/@(Model.Id)"
+                    style="border: none;"></iframe>
+        </div>
+    </div>
+
+    <div id="chunkShowcase"
+         class="chunk-preview-card"
+         data-doc-id="@Model.Id">
+
+        <div id="chunkList">
+        </div>
+
+        <div id="chunkPagination"
+             class="chunk-pagination">
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Thảo luận</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.Comments != null && Model.Comments.Any())
+                {
+                    foreach (var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+                    {
+                        <div class="d-flex mb-3 border-bottom pb-2">
+                            <div class="me-3">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">@comment.User.UserName</h6>
+                                <small class="text-muted">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                <p class="mt-1 mb-0">@comment.Content</p>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted fst-italic">Chưa có bình luận nào.</p>
+                }
+            </div>
+
+            <form asp-controller="Document" asp-action="AddComment" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="documentId" value="@Model.Id" />
+                <div class="mb-3">
+                    <textarea name="content" class="form-control" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Gửi bình luận</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    const razor_docId = "@Model.Id";
+    const razor_docStatus = "@Model.Status";
+
+</script>
+
+<script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+<script src="~/js/status-badge.js"></script>
+<script src="~/js/document-details.js"></script>
+<script src="~/js/document-details-signalr.js"></script>

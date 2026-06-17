@@ -1,35 +1,42 @@
+using Business.Background;
+using Business.Chunking;
+using Business.Embedding;
+using Business.ExternalPayment;
+using Business.Parsing;
 using Business.Services;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using OllamaSharp;
 using Presentation.Extensions;
+using Presentation.Filters;
 using Presentation.Middleware;
-using Presentation.Options;
+using Presentation.RealtimeNotif;
 using Presentation.Routing;
 using Presentation.Settings;
 using StackExchange.Redis;
 using System.Reflection;
-using BusinessLayer.Services; 
-using Domain.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-builder.Services.AddDbContext<EduChatbotDbContext>(opts =>
+builder.Services.AddDbContext<EduChatAIDbContext>(opts =>
 {
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
                   ?? throw new KeyNotFoundException("Could not find connection string.");
-    opts.UseNpgsql(connStr, opts =>
-    {
-        opts.UseVector();
-    })
+    opts.UseNpgsql(connStr, opts => opts.UseVector())
         .UseSnakeCaseNamingConvention();
 });
+
+builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 // ── Redis ──────────────────────────────────────────────────────
 var redisConn = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
@@ -37,8 +44,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(redisConn));
 
 // ── Application Services ──────────────────────────────────────
-builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -47,14 +52,27 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
+builder.Services.AddSingleton<IDocumentParser, SimpleParser>();
+builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
+builder.Services.AddSingleton<IOllamaApiClient, OllamaApiClient>(provider =>
+{
+    var opts = provider.GetRequiredService<IOptions<OllamaOptions>>().Value;
+    return new OllamaApiClient(opts.Endpoint, opts.EmbeddingModel);
+});
+builder.Services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
 
 // ── Helper Services ───────────────────────────────────────────
+builder.Services.AddTransient<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
+builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
@@ -63,7 +81,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
     opts.User.RequireUniqueEmail = true;
     opts.SignIn.RequireConfirmedEmail = true;
 })
-    .AddEntityFrameworkStores<EduChatbotDbContext>()
+    .AddEntityFrameworkStores<EduChatAIDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication()
@@ -90,6 +108,29 @@ builder.Services.ConfigureApplicationCookie(opts =>
 });
 
 builder.Services.AddAuthorization();
+
+// ── Real-time Web ──────────────────────────────────────────────
+builder.Services.AddSignalR();
+
+// ── Background Serivces ──────────────────────────────────────────────
+builder.Services.AddTransient<AutomaticRetryAttribute>();
+
+builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+
+    config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
+
+    config.UsePostgreSqlStorage(
+        options =>
+        {
+            options.UseNpgsqlConnection(
+                builder.Configuration.GetConnectionString("DefaultConnection"));
+        });
+});
+
+builder.Services.AddHangfireServer();
 
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
@@ -119,14 +160,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    await app.MigrateDb<EduChatbotDbContext>();
+    await app.MigrateDb<EduChatAIDbContext>();
+    await app.SeedDbAsync<EduChatAIDbContext>();
 }
 else
 {
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
@@ -140,8 +182,15 @@ app.UseCors("Default");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthFilter()],
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
+
+app.MapHub<DocumentHub>("/documents/status");
 
 app.Run();

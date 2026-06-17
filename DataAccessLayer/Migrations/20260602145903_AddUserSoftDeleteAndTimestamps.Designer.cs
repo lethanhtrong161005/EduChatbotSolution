@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatbotDbContext))]
+    [DbContext(typeof(EduChatAIDbContext))]
     [Migration("20260602145903_AddUserSoftDeleteAndTimestamps")]
     partial class AddUserSoftDeleteAndTimestamps
     {

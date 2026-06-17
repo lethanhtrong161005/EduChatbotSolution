@@ -71,29 +71,29 @@
                 {
                     <tr data-subject-id="@sub.Id">
                         <td>
-                            <span class="subject-code-badge">@sub.SubjectCode</span>
+                            <span class="subject-code-badge">@sub.Code</span>
                         </td>
                         <td>
-                            <strong style="color: #111827;">@sub.SubjectName</strong>
+                            <strong style="color: #111827;">@sub.Name</strong>
                         </td>
                         <td>
                             <span style="color: #6b7280; font-size: 13px;">@(string.IsNullOrWhiteSpace(sub.Description) ? "—" : sub.Description)</span>
                         </td>
                         <td class="col-actions">
                             <button class="action-btn btn-edit" title="Edit subject"
-                                    onclick="openEditSubjectModal('@sub.Id','@sub.SubjectCode','@sub.SubjectName','@sub.Description')">
+                                    onclick="openEditSubjectModal('@sub.Id','@sub.Code','@sub.Name','@sub.Description')">
                                 <i class="fas fa-pen"></i>
                             </button>
                             <button class="action-btn btn-chapters" title="Manage chapters"
-                                    onclick="openChapterModal('@sub.Id','@sub.SubjectName')">
+                                    onclick="openChapterModal('@sub.Id','@sub.Name')">
                                 <i class="fas fa-list-ol"></i>
                             </button>
                             <button class="action-btn btn-members" title="Manage members"
-                                    onclick="openMemberModal('@sub.Id','@sub.SubjectName')">
+                                    onclick="openMemberModal('@sub.Id','@sub.Name')">
                                 <i class="fas fa-user-grad"></i>
                             </button>
                             <button class="action-btn btn-delete" title="Delete subject"
-                                    onclick="confirmDeleteSubject('@sub.Id','@sub.SubjectName')">
+                                    onclick="confirmDeleteSubject('@sub.Id','@sub.Name')">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>

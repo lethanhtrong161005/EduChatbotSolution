@@ -315,7 +315,7 @@ public class AccountController(
 
             existingUser.EmailConfirmed = true;
             existingUser.UpdatedAt = DateTimeOffset.UtcNow;
-            
+
             var updateResult = await _userManager.UpdateAsync(existingUser);
             if (!updateResult.Succeeded)
             {
@@ -323,7 +323,7 @@ public class AccountController(
                 ViewData["ReturnUrl"] = returnUrl;
                 return View(model);
             }
-            
+
             await _emailVerificationService.CleanupAsync(model.Email);
             TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
             return RedirectToAction(nameof(Login), new { ReturnUrl = returnUrl });

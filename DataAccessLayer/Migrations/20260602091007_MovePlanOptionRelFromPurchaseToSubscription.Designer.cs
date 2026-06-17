@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatbotDbContext))]
+    [DbContext(typeof(EduChatAIDbContext))]
     [Migration("20260602091007_MovePlanOptionRelFromPurchaseToSubscription")]
     partial class MovePlanOptionRelFromPurchaseToSubscription
     {
