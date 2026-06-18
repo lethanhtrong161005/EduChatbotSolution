@@ -63,7 +63,7 @@ public class SubjectService(
     /// <inheritdoc/>
     public async Task<Subject?> GetSubjectByIdAsync(int id)
     {
-        return await _unitOfWork.Subjects.GetByIdAsync(id);
+        return await _unitOfWork.Subjects.FindByIdAsync(id);
     }
 
     /// <inheritdoc/>
@@ -104,7 +104,7 @@ public class SubjectService(
         if (string.IsNullOrWhiteSpace(subjectName))
             throw new BadRequestException("Subject name cannot be empty.");
 
-        var subject = await _unitOfWork.Subjects.GetByIdAsync(id)
+        var subject = await _unitOfWork.Subjects.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
 
         // Check uniqueness of subjectCode (excluding current subject)
@@ -129,7 +129,7 @@ public class SubjectService(
     /// <inheritdoc/>
     public async Task DeleteSubjectAsync(int id)
     {
-        var subject = await _unitOfWork.Subjects.GetByIdAsync(id)
+        var subject = await _unitOfWork.Subjects.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
 
         _unitOfWork.Subjects.Delete(subject);
@@ -151,7 +151,7 @@ public class SubjectService(
     /// <inheritdoc/>
     public async Task<Chapter?> GetChapterByIdAsync(int id)
     {
-        return await _unitOfWork.Chapters.GetByIdAsync(id);
+        return await _unitOfWork.Chapters.FindByIdAsync(id);
     }
 
     /// <inheritdoc/>
@@ -160,7 +160,7 @@ public class SubjectService(
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
 
-        _ = await _unitOfWork.Subjects.GetByIdAsync(subjectId)
+        _ = await _unitOfWork.Subjects.FindByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
 
         var chapter = new Chapter
@@ -183,7 +183,7 @@ public class SubjectService(
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
 
-        var chapter = await _unitOfWork.Chapters.GetByIdAsync(id)
+        var chapter = await _unitOfWork.Chapters.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
 
         chapter.Name = chapterName.Trim();
@@ -199,7 +199,7 @@ public class SubjectService(
     /// <inheritdoc/>
     public async Task DeleteChapterAsync(int id)
     {
-        var chapter = await _unitOfWork.Chapters.GetByIdAsync(id)
+        var chapter = await _unitOfWork.Chapters.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
 
         _unitOfWork.Chapters.Delete(chapter);
@@ -222,7 +222,7 @@ public class SubjectService(
     /// <inheritdoc/>
     public async Task AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
     {
-        var subject = await _unitOfWork.Subjects.GetByIdAsync(subjectId)
+        var subject = await _unitOfWork.Subjects.FindByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
 
         var user = await _userManager.FindByIdAsync(userId.ToString())

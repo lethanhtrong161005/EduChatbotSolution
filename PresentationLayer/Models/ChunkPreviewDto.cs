@@ -1,15 +1,15 @@
 ﻿namespace Presentation.Models;
 
-public class ChunkPreviewPageVm
+public class ChunkPreviewPageDto
 {
-    public List<ChunkPreviewVm> Chunks { get; set; } = [];
+    public List<ChunkPreviewDto> Chunks { get; set; } = [];
 
     public int PageIndex { get; set; }
 
     public int TotalPages { get; set; }
 }
 
-public sealed class ChunkPreviewVm
+public class ChunkPreviewDto
 {
     public Guid Id { get; set; }
 

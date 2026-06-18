@@ -4,5 +4,5 @@ namespace Domain.DTOs;
 
 public record ParsedDocument
 {
-    public List<ParsedSection> Sections { get; set; } = [];
+    public required ICollection<ParsedSection> Sections { get; init; }
 }

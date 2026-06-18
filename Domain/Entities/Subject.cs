@@ -16,8 +16,10 @@ public class Subject : CategoryLikeEntity
     public string? Description { get; set; }
 
     // ── Navigation ──────────────────────────────────────────
+    public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
+
     /// <summary>Gets or sets the chapters belonging to this subject.</summary>
     public virtual ICollection<Chapter> Chapters { get; set; } = [];
+
     public virtual ICollection<SubjectMembership> Memberships { get; set; } = [];
-    public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
 }

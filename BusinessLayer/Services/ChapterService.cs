@@ -17,7 +17,7 @@ public class ChapterService(IUnitOfWork unitOfWork) : IChapterService
 
     public async Task<Chapter?> GetByIdAsync(int id, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.Chapters.GetByIdAsync(id, cxlTkn);
+        return await _unitOfWork.Chapters.FindByIdAsync(id, cxlTkn);
     }
 
     public async Task<Chapter?> CreateAsync(Chapter entity, CancellationToken cxlTkn = default)

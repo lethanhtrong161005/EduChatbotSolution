@@ -1,4 +1,5 @@
 using Business.Background;
+using Business.Chat;
 using Business.Chunking;
 using Business.Embedding;
 using Business.ExternalPayment;
@@ -10,6 +11,7 @@ using Domain.Contracts;
 using Domain.Entities;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
@@ -19,20 +21,28 @@ using OllamaSharp;
 using Presentation.Extensions;
 using Presentation.Filters;
 using Presentation.Middleware;
-using Presentation.RealtimeNotif;
 using Presentation.Routing;
 using Presentation.Settings;
+using Presentation.SignalR;
 using StackExchange.Redis;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-builder.Services.AddDbContext<EduChatAIDbContext>(opts =>
+var connStrName = "DefaultConnection";
+var connStr = builder.Configuration.GetConnectionString(connStrName)
+                  ?? throw new KeyNotFoundException("Connection string not configured.");
+
+builder.Services.AddDbContext<EduChatAiDbContext>(opts =>
 {
-    var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
-                  ?? throw new KeyNotFoundException("Could not find connection string.");
     opts.UseNpgsql(connStr, opts => opts.UseVector())
+        .UseSnakeCaseNamingConvention();
+});
+
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+{
+    opts.UseNpgsql(connStr)
         .UseSnakeCaseNamingConvention();
 });
 
@@ -54,6 +64,7 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
 builder.Services.AddSingleton<IDocumentParser, SimpleParser>();
@@ -72,7 +83,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
-builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection("Ollama"));
+builder.Services.Configure<OllamaOptions>(builder.Configuration.GetRequiredSection("Ollama"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
@@ -81,18 +92,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
     opts.User.RequireUniqueEmail = true;
     opts.SignIn.RequireConfirmedEmail = true;
 })
-    .AddEntityFrameworkStores<EduChatAIDbContext>()
+    .AddEntityFrameworkStores<EduChatAiDbContext>()
     .AddDefaultTokenProviders();
-
-builder.Services.AddAuthentication()
-    .AddGoogle(opts =>
-    {
-        opts.ClientId = builder.Configuration["Authentication:Google:ClientId"]
-            ?? throw new KeyNotFoundException("Google ClientId is not configured.");
-        opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
-            ?? throw new KeyNotFoundException("Google ClientSecret is not configured.");
-        opts.CallbackPath = AuthenticationSettings.GoogleCallbackPath;
-    });
 
 builder.Services.ConfigureApplicationCookie(opts =>
 {
@@ -106,6 +107,19 @@ builder.Services.ConfigureApplicationCookie(opts =>
     opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     opts.Cookie.SameSite = SameSiteMode.Lax;
 });
+
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<DataProtectionDbContext>();
+
+builder.Services.AddAuthentication()
+    .AddGoogle(opts =>
+    {
+        opts.ClientId = builder.Configuration["Authentication:Google:ClientId"]
+            ?? throw new KeyNotFoundException("Google ClientId is not configured.");
+        opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+            ?? throw new KeyNotFoundException("Google ClientSecret is not configured.");
+        opts.CallbackPath = AuthenticationSettings.GoogleCallbackPath;
+    });
 
 builder.Services.AddAuthorization();
 
@@ -125,8 +139,7 @@ builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration co
     config.UsePostgreSqlStorage(
         options =>
         {
-            options.UseNpgsqlConnection(
-                builder.Configuration.GetConnectionString("DefaultConnection"));
+            options.UseNpgsqlConnection(connStr);
         });
 });
 
@@ -139,13 +152,13 @@ builder.Services.AddRouting(opts => opts.ConstraintMap["slugify"] = typeof(Slugi
 
 builder.Services.AddCors(opts =>
 {
-    opts.AddPolicy("Default", policy =>
+    opts.AddPolicy("Dev", policy =>
     {
         policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials()
-              .WithExposedHeaders("Set-Cookie");
+              .WithExposedHeaders("Set-Cookie", "Content-Encoding");
     });
 });
 
@@ -160,24 +173,29 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    await app.MigrateDb<EduChatAIDbContext>();
-    await app.SeedDbAsync<EduChatAIDbContext>();
+
+    await app.MigrateDbAsync<EduChatAiDbContext>();
+    await app.SeedDbAsync<EduChatAiDbContext>();
+
+    await app.MigrateDbAsync<DataProtectionDbContext>();
 }
 else
 {
     app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
+
 app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
 
 app.UseRewriter(new RewriteOptions()
     .Add(new KebabCaseQueryParameterRule()));
+
 app.UseRouting();
 
-app.UseCors("Default");
+app.UseCors("Dev");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -192,5 +210,6 @@ app.MapControllerRoute(
     pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
 
 app.MapHub<DocumentHub>("/documents/status");
+app.MapHub<ChatHub>("/chat/answer");
 
 app.Run();

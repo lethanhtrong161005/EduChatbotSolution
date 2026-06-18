@@ -102,7 +102,7 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
         return await _unitOfWork.Chunks.GetAsync(filter: c => c.DocumentId == documentId,
                                                  orderBy: q => q.OrderBy(c => c.ChunkIndex),
                                                  paginationSettings: (pageSize, pageIndex),
-                                                 noTracking: true,
+                                                 asNoTracking: true,
                                                  cancellationToken: cxlTkn);
     }
 

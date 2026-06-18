@@ -171,7 +171,7 @@ public class SubjectServiceTests
         var subjectId = _random.Next();
         var existingSubject = new Subject { Id = subjectId, Code = "CS101", Name = "Old Name" };
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
         _subjectRepoMock.Setup(r => r.GetAsync(
             It.IsAny<string[]>(),
             It.IsAny<Expression<Func<Subject, bool>>>(),
@@ -201,7 +201,7 @@ public class SubjectServiceTests
     public void UpdateSubjectAsync_NonExistentSubject_ThrowsEntityNotFoundException()
     {
         var subjectId = _random.Next();
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync((Subject?)null);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync((Subject?)null);
 
         Assert.ThrowsAsync<EntityNotFoundException>(() => _sut.UpdateSubjectAsync(subjectId, "CS101", "Name", null));
     }
@@ -213,7 +213,7 @@ public class SubjectServiceTests
         var subjectId = _random.Next();
         var existingSubject = new Subject { Id = subjectId, Code = "CS101", Name = "Test" };
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(existingSubject);
 
         // Act
         await _sut.DeleteSubjectAsync(subjectId);
@@ -232,7 +232,7 @@ public class SubjectServiceTests
         var subjectId = _random.Next();
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
 
         // Act
         var result = await _sut.CreateChapterAsync(subjectId, "Chapter 1", 1);
@@ -266,7 +266,7 @@ public class SubjectServiceTests
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Alice Student", "alice@student.com");
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Student" });
         _membershipRepoMock.Setup(r => r.GetAsync(
@@ -298,7 +298,7 @@ public class SubjectServiceTests
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Alice Student", "alice@student.com");
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Student" }); // User ONLY has Student role
 
@@ -316,7 +316,7 @@ public class SubjectServiceTests
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Prof", "bob@lecturer.com");
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Lecturer" });
 
@@ -350,7 +350,7 @@ public class SubjectServiceTests
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Prof", "bob@lecturer.com");
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Lecturer" });
 
@@ -382,7 +382,7 @@ public class SubjectServiceTests
         var subject = new Subject { Id = subjectId, Code = "CS101", Name = "Intro" };
         var user = MakeUser("Bob Inactive", "bob@lecturer.com", isActive: false);
 
-        _subjectRepoMock.Setup(r => r.GetByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
+        _subjectRepoMock.Setup(r => r.FindByIdAsync(subjectId, It.IsAny<CancellationToken>())).ReturnsAsync(subject);
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
 
         // Act & Assert

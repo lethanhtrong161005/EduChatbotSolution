@@ -8,7 +8,7 @@ namespace DataAccess.UnitOfWork;
 /// Implements the Unit of Work pattern, providing lazy-loaded repositories
 /// for all aggregate roots and coordinating saves via a shared DbContext.
 /// </summary>
-public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
+public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
 {
     GenericRepository<Plan>? _plans;
     GenericRepository<PlanOption>? _planOptions;
@@ -25,11 +25,12 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     GenericRepository<Chunk>? _chunks;
     GenericRepository<ChatSession>? _chatSessions;
     GenericRepository<ChatMessage>? _chatMessages;
+    GenericRepository<ChatMessageGenerationSettings>? _chatMessageGenerationSettings;
+    GenericRepository<ChatMessageGenerationMetrics>? _chatMessageGenerationMetrics;
     GenericRepository<Citation>? _citations;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
     GenericRepository<TestResponse>? _testResponses;
-    GenericRepository<DocumentComment>? _documentComments;
 
     /// <inheritdoc/>
     public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(context);
@@ -62,6 +63,10 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(context);
     /// <inheritdoc/>
+    public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics => _chatMessageGenerationMetrics ??= new GenericRepository<ChatMessageGenerationMetrics>(context);
+    /// <inheritdoc/>
     public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(context);
     /// <inheritdoc/>
     public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(context);
@@ -69,8 +74,6 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(context);
     /// <inheritdoc/>
     public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(context);
-    /// <inheritdoc/>
-    public GenericRepository<DocumentComment> DocumentComments => _documentComments ??= new GenericRepository<DocumentComment>(context);
 
     /// <inheritdoc/>
     public async Task SaveAsync(CancellationToken cancellationToken = default)

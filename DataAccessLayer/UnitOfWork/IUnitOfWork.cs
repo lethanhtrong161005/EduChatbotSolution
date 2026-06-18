@@ -48,11 +48,15 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     GenericRepository<Chunk> Chunks { get; }
 
     // ── Conversations ────────────────────────────────────────
-    /// <summary>Gets the repository for <see cref="Conversation"/> entities.</summary>
+    /// <summary>Gets the repository for <see cref="ChatSession"/> entities.</summary>
     GenericRepository<ChatSession> ChatSessions { get; }
 
     /// <summary>Gets the repository for <see cref="ChatMessage"/> entities.</summary>
     GenericRepository<ChatMessage> ChatMessages { get; }
+
+    GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings { get; }
+
+    GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; }
 
     /// <summary>Gets the repository for <see cref="Citation"/> entities.</summary>
     GenericRepository<Citation> Citations { get; }
@@ -70,5 +74,4 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Persists all pending changes to the database.</summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     Task SaveAsync(CancellationToken cancellationToken = default);
-    GenericRepository<DocumentComment> DocumentComments { get; }
 }

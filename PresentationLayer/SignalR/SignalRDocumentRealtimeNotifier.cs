@@ -2,7 +2,7 @@
 using Domain.DTOs;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Presentation.RealtimeNotif;
+namespace Presentation.SignalR;
 
 public class SignalRDocumentRealtimeNotifier(
     IHubContext<DocumentHub, IDocumentClient> documentHub)
@@ -12,8 +12,8 @@ public class SignalRDocumentRealtimeNotifier(
 
     public async Task UpdateStatus(DocumentStatusUpdate docStatusUpd)
     {
-        var libGrp = HubGroups.DocumentLibrary;
-        var detailsGrp = HubGroups.DocumentDetails(docStatusUpd.Id);
-        await _docHub.Clients.Groups([libGrp, detailsGrp]).UpdateStatus(docStatusUpd);
+        var libGroup = HubGroups.DocumentLibrary;
+        var detailsGroup = HubGroups.DocumentDetails(docStatusUpd.Id);
+        await _docHub.Clients.Groups([libGroup, detailsGroup]).UpdateStatus(docStatusUpd);
     }
 }

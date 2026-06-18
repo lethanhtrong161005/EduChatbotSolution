@@ -28,7 +28,7 @@ public class DocumentIndexer(
 
     public async Task ParseAsync(Guid documentId, CancellationToken cxlTkn = default)
     {
-        var doc = await _unitOfWork.Documents.GetByIdAsync(documentId, cxlTkn)
+        var doc = await _unitOfWork.Documents.FindByIdAsync(documentId, cxlTkn)
                   ?? throw new EntityNotFoundException("Could not find the queued document.");
 
         if (doc.Status >= DocumentStatus.Parsed
@@ -89,17 +89,17 @@ public class DocumentIndexer(
 
                 sectionCount++;
 
-                foreach (var chunkDto in _chunker.Chunk(section))
+                foreach (var chunkRes in _chunker.Chunk(section))
                 {
                     chunkCount++;
 
                     _unitOfWork.Chunks.Insert(new Chunk
                     {
                         DocumentId = doc.Id,
-                        ChunkIndex = chunkDto.ChunkIndex,
-                        ChunkText = chunkDto.ChunkText,
-                        PageNumber = chunkDto.PageNumber,
-                        SectionTitle = chunkDto.SectionTitle,
+                        ChunkIndex = chunkRes.ChunkIndex,
+                        ChunkText = chunkRes.ChunkText,
+                        PageNumber = chunkRes.PageNumber,
+                        SectionTitle = chunkRes.SectionTitle,
                         ChunkStrategy = _chunker.ChunkStrategy,
                     });
                 }
@@ -110,6 +110,7 @@ public class DocumentIndexer(
                     Status = DocumentStatus.Chunking,
                     Progress = 100d * sectionCount / totalSectionCount,
                     ChunkCount = chunkCount,
+                    UpdatedAt = DateTime.UtcNow,
                 });
             }
 

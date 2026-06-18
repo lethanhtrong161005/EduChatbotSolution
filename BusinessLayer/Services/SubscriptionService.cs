@@ -30,7 +30,7 @@ public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 
     public async Task<Plan?> GetPlanAsync(int id, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.Plans.GetByIdAsync(id, cxlTkn);
+        return await _unitOfWork.Plans.FindByIdAsync(id, cxlTkn);
     }
 
     public async Task<PlanOption?> GetPlanOptionAsync(int id, CancellationToken cxlTkn = default)
@@ -43,7 +43,7 @@ public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 
     public async Task<Subscription?> GetSubscriptionAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.Subscriptions.GetByIdAsync(id, cxlTkn);
+        return await _unitOfWork.Subscriptions.FindByIdAsync(id, cxlTkn);
     }
 
     public async Task<Subscription?> GetSubscriptionOfUserAsync(Guid userId, CancellationToken cxlTkn = default)
@@ -186,7 +186,7 @@ public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 
     public async Task<Subscription?> ActivateSubscriptionAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(id, cxlTkn);
+        var subscription = await _unitOfWork.Subscriptions.FindByIdAsync(id, cxlTkn);
         if (subscription == null)
             return null;
 
@@ -198,7 +198,7 @@ public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 
     public async Task<Subscription?> CancelSubscriptionAsync(Guid id, CancellationToken cxlTkn = default)
     {
-        var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(id, cxlTkn);
+        var subscription = await _unitOfWork.Subscriptions.FindByIdAsync(id, cxlTkn);
         if (subscription == null)
             return null;
 

@@ -14,7 +14,7 @@ public class FixedLengthChunker(
 
     public string ChunkStrategy => "FixedLength";
 
-    public IEnumerable<ChunkDto> Chunk(ParsedSection section)
+    public IEnumerable<ChunkingResult> Chunk(ParsedSection section)
     {
         var chunkIndex = 0;
         var text = section.Text;
@@ -28,7 +28,7 @@ public class FixedLengthChunker(
         {
             var length = Math.Min(_chunkSize, text.Length - start);
 
-            yield return new ChunkDto
+            yield return new ChunkingResult
             {
                 ChunkIndex = chunkIndex++,
                 ChunkText = text.Substring(start, length),

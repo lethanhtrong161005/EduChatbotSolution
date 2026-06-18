@@ -49,7 +49,7 @@ public class SimpleParser : IDocumentParser
     {
         using var pdf = PdfDocument.Open(path);
 
-        var parsedDoc = new ParsedDocument();
+        var parsedDoc = new ParsedDocument { Sections = [] };
 
         int sectionIndex = 0;
         foreach (var page in pdf.GetPages())
@@ -72,7 +72,7 @@ public class SimpleParser : IDocumentParser
     {
         using var wordDoc = WordprocessingDocument.Open(path, false);
 
-        var parsedDoc = new ParsedDocument();
+        var parsedDoc = new ParsedDocument { Sections = [] };
 
         var body = wordDoc.MainDocumentPart?.Document?.Body;
         if (body == null)

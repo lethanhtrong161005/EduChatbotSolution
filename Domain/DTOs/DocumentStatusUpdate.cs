@@ -4,17 +4,17 @@ namespace Domain.DTOs;
 
 public record DocumentStatusUpdate
 {
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
-    public required DocumentStatus Status { get; set; }
+    public required DocumentStatus Status { get; init; }
 
-    public double? Progress { get; set; }
+    public double? Progress { get; init; }
 
-    public string? ParserUsed { get; set; }
+    public string? ParserUsed { get; init; }
 
-    public int? ChunkCount { get; set; }
+    public int? ChunkCount { get; init; }
 
-    public string? EmbeddingModel { get; set; }
+    public string? EmbeddingModel { get; init; }
 
-    public DateTime UpdatedAt { get; set; }
+    public required DateTime UpdatedAt { get; init; }
 }

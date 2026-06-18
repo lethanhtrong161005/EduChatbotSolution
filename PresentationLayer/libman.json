@@ -22,6 +22,11 @@
       "provider": "unpkg",
       "library": "@microsoft/signalr@latest",
       "destination": "wwwroot/microsoft/signalr/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "marked@18.0.5",
+      "destination": "wwwroot/lib/marked/"
     }
   ]
 }
