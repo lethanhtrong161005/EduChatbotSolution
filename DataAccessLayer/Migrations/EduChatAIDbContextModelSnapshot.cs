@@ -290,6 +290,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
 
+                    b.Property<double>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
                     b.Property<string>("SystemPrompt")
                         .IsRequired()
                         .HasColumnType("text")
@@ -670,6 +674,72 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("experiments", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.GlobalAiConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChunkingStrategy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("chunking_strategy");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("EmbeddingModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("embedding_model");
+
+                    b.Property<string>("LlmModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("llm_model");
+
+                    b.Property<int>("MaxContextChunks")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_context_chunks");
+
+                    b.Property<int>("MaxHistoryMessages")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_history_messages");
+
+                    b.Property<double>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
+                    b.Property<string>("SystemPrompt")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("system_prompt");
+
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temperature");
+
+                    b.Property<int>("TopK")
+                        .HasColumnType("integer")
+                        .HasColumnName("top_k");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_global_ai_configurations");
+
+                    b.ToTable("global_ai_configurations", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -981,7 +1051,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("ChunkingStrategy")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
@@ -992,33 +1061,34 @@ namespace DataAccessLayer.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("EmbeddingModel")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("embedding_model");
 
                     b.Property<string>("LlmModel")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("llm_model");
 
-                    b.Property<int>("MaxContextChunks")
+                    b.Property<int?>("MaxContextChunks")
                         .HasColumnType("integer")
                         .HasColumnName("max_context_chunks");
 
-                    b.Property<int>("MaxHistoryMessages")
+                    b.Property<int?>("MaxHistoryMessages")
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
 
+                    b.Property<double?>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
                     b.Property<string>("SystemPrompt")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("system_prompt");
 
-                    b.Property<double>("Temperature")
+                    b.Property<double?>("Temperature")
                         .HasColumnType("double precision")
                         .HasColumnName("temperature");
 
-                    b.Property<int>("TopK")
+                    b.Property<int?>("TopK")
                         .HasColumnType("integer")
                         .HasColumnName("top_k");
 

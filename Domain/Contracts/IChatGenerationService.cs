@@ -1,4 +1,4 @@
-﻿using Domain.DTOs;
+﻿using Domain.Contracts.DTOs;
 
 namespace Domain.Contracts;
 

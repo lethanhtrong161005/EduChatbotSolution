@@ -1,0 +1,30 @@
+﻿namespace Presentation.Constants;
+
+public static class AuthenticationConstants
+{
+    public const string LoginPath = @"/login";
+
+    public const string LogoutPath = @"/logout";
+
+    public const string RegistrationPath = @"/register";
+
+    public const string AccessDeniedPath = @"/access-denied";
+
+    public const string ReturnUrlParamName = @"return-url";
+
+    public const string FallbackReturnUrl = @"/home";
+
+    public const string GoogleLoginPath = @"/login/google";
+
+    public const string GoogleCallbackPath = @"/login/oauth2/code/google";
+
+    public const string GoogleCallbackAction = @"/login/google/callback";
+
+    public const string VerifyEmailPath = @"/verify-email";
+
+    public const string ResendCodePath = @"/verify-email/resend";
+
+    public const string ForgotPasswordPath = @"/forgot-password";
+
+    public const string ResetPasswordPath = @"/reset-password";
+}

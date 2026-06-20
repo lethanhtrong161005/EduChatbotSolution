@@ -13,8 +13,6 @@ public class ChatSession : NaturalEntity
     /// <summary>Gets or sets the optional conversation title.</summary>
     public string? Title { get; set; }
 
-    // UpdatedAt is inherited from BaseEntity
-
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the user who owns this conversation.</summary>
     public virtual ApplicationUser User { get; set; } = null!;

@@ -1,4 +1,4 @@
-﻿using Domain.DTOs;
+﻿using Domain.Contracts.DTOs;
 using Domain.Entities;
 
 namespace Domain.Contracts;
@@ -39,8 +39,12 @@ public interface IChatPersistenceService
         string content,
         CancellationToken cancellationToken = default);
 
-    Task<CreatedChatMessage> CreateAssistantMessageAsync(
+    Task<CreatedChatMessage> CreateStreamingAssistantMessageAsync(
         Guid sessionId,
+        CancellationToken cancellationToken = default);
+
+    Task<CreatedChatMessage> CompleteAssistantMessageAsync(
+        Guid messageId,
         string content,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
         IReadOnlyList<ChunkRetrieval> chunkRetrievalsInContext,
@@ -48,4 +52,5 @@ public interface IChatPersistenceService
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,
         CancellationToken cancellationToken = default);
+
 }

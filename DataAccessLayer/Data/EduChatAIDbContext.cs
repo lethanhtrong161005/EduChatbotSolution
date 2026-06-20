@@ -38,6 +38,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
     public DbSet<SubjectAiConfiguration> SubjectAiConfigurations { get; set; }
 
+    public DbSet<GlobalAiConfiguration> GlobalAiConfigurations { get; set; }
+
     /// <summary>Gets or sets the chapters set.</summary>
     public DbSet<Chapter> Chapters { get; set; }
 
@@ -107,6 +109,7 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<Subject>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<SubjectMembership>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<SubjectAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<GlobalAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Chapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Document>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<DocumentComment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");

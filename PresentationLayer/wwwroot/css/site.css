@@ -5,6 +5,7 @@
 @import "./colors.css";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
 
 /* ============================================================
    Tailwind Theme
@@ -26,6 +27,7 @@
     /* Background */
     --color-background: var(--color-bg-light);
     --color-background-muted: var(--color-bg-neutral);
+    --color-background-disabled: #808080;
     /* Text */
     --color-foreground: var(--color-text-primary);
     --color-muted: var(--color-text-secondary);
@@ -133,4 +135,301 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder,
 .form-floating > .form-control:focus::placeholder {
     text-align: start;
+}
+
+/* ============================================================
+   Chat UI
+   ============================================================ */
+
+html,
+body {
+    height: 100%;
+}
+
+#chat-app {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ============================================================
+   Scrollbars
+   ============================================================ */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border-neutral);
+    border-radius: 999px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-secondary);
+    }
+
+/* Firefox */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-neutral) var(--color-surface);
+}
+
+/* ============================================================
+   Message Rendering
+   ============================================================ */
+
+.assistant-message,
+.user-message {
+    animation: chat-message-enter .18s ease-out;
+}
+
+@keyframes chat-message-enter {
+
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-inline-citation {
+    color: var(--color-primary);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+    .message-inline-citation:hover {
+        text-decoration: underline;
+    }
+
+/* ============================================================
+   Sources Panel
+   ============================================================ */
+
+#sources-panel {
+    transition: width .20s ease, opacity .20s ease;
+}
+
+.source-card {
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+    .source-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.05);
+    }
+
+.source-card-flash {
+    animation: source-flash 1.25s ease;
+}
+
+@keyframes source-flash {
+
+    0% {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px color-mix( in srgb, var(--color-primary) 30%, transparent);
+    }
+
+    100% {
+        border-color: var(--color-border-light);
+        box-shadow: none;
+    }
+}
+
+.citation-details {
+    overflow: hidden;
+}
+
+/* ============================================================
+   Profile Dropdown
+   ============================================================ */
+
+.profile-dropdown {
+    animation: profile-dropdown-enter .12s ease-out;
+}
+
+@keyframes profile-dropdown-enter {
+
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================================
+   Message Utilities
+   ============================================================ */
+
+.message-copy-btn,
+.message-sources-btn,
+.message-regenerate-btn,
+.response-prev-btn,
+.response-next-btn {
+    transition: background-color .15s ease, color .15s ease;
+}
+
+    .message-copy-btn:hover,
+    .message-sources-btn:hover,
+    .message-regenerate-btn:hover,
+    .response-prev-btn:hover,
+    .response-next-btn:hover {
+        color: var(--color-text-primary);
+    }
+
+/* ============================================================
+   Chat Input
+   ============================================================ */
+
+.chat-input-shell {
+    position: relative;
+}
+
+.chat-input-drawer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .18s ease;
+}
+
+.chat-input-drawer-open {
+    max-height: 16rem;
+}
+
+.chat-input-expanded {
+    resize: none;
+}
+
+    .chat-input-expanded::-webkit-scrollbar {
+        width: 6px;
+    }
+
+/* ============================================================
+   Attachments
+   ============================================================ */
+
+.attachment-pill {
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+    .attachment-pill:hover {
+        background: var(--color-surface-hover);
+    }
+
+/* ============================================================
+   Modal
+   ============================================================ */
+
+.modal-backdrop {
+    animation: modal-backdrop-enter .15s ease-out;
+}
+
+@keyframes modal-backdrop-enter {
+
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-panel {
+    animation: modal-panel-enter .15s ease-out;
+}
+
+@keyframes modal-panel-enter {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================================
+   Session List
+   ============================================================ */
+
+.chat-session-item {
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.chat-session-item-active {
+    background: color-mix( in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-text-primary);
+}
+
+    .chat-session-item-active:hover {
+        background: color-mix( in srgb, var(--color-primary) 16%, transparent);
+    }
+
+/* ============================================================
+   New Chat Landing
+   ============================================================ */
+
+.chat-empty-state {
+    animation: chat-empty-enter .25s ease-out;
+}
+
+@keyframes chat-empty-enter {
+
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+
+@media (max-width: 1024px) {
+
+    #chat-app {
+        position: relative;
+    }
+
+    #sources-panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 40;
+        background: var(--color-surface);
+    }
+}
+
+@media (max-width: 768px) {
+
+    #sessions-sidebar {
+        width: 260px;
+    }
+
+    .chat-message-max {
+        max-width: 100%;
+    }
 }

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Business.Background;
+using Business.Services.AI.Indexing;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -9,8 +9,11 @@ using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using Presentation.Constants;
+using Presentation.DTOs;
 using Presentation.Extensions;
-using Presentation.Models;
+using Presentation.Utils;
+using Presentation.ViewModels;
 using System.Security.Claims;
 
 namespace Presentation.Controllers;
@@ -266,15 +269,18 @@ public class DocumentsController(
         {
             var parseJobId =
                 BackgroundJob.Enqueue<IDocumentIndexer>(
+                    HangfireConstants.LowPriorityQueue,
                     e => e.ParseAsync(doc.Id));
 
             var chunkJobId =
                 BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                     parseJobId,
+                    HangfireConstants.LowPriorityQueue,
                     e => e.ChunkAsync(doc.Id));
 
             BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                 chunkJobId,
+                HangfireConstants.LowPriorityQueue,
                 e => e.EmbedAsync(doc.Id));
         }
 
@@ -306,7 +312,7 @@ public class DocumentsController(
     [HttpGet]
     public async Task<IActionResult> Chunks(Guid documentId, int pageIndex, CancellationToken cxlTkn)
     {
-        var chunks = (PaginatedList<Chunk>)await _documentService.GetChunksAsync(documentId, PageSize, pageIndex, cxlTkn);
+        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(documentId, PageSize, pageIndex, cxlTkn);
 
         var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
         var pageDto = new ChunkPreviewPageDto

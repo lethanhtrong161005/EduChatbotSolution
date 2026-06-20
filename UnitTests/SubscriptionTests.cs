@@ -1,4 +1,4 @@
-﻿using Business.Utils;
+﻿using Business.Services.SubscriptionPlan;
 using Domain.Entities;
 
 namespace UnitTests;

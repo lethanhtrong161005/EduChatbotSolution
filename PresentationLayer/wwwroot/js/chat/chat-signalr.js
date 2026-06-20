@@ -10,34 +10,43 @@
             .build();
 
         connection.on("ReceiveToken",
-            (sessionId, token) => {
+            (assistantMessageClientId, token) => {
 
                 $(document).trigger(
                     "chat:token",
-                    [sessionId, token]);
+                    [assistantMessageClientId, token]);
             });
 
         connection.on("GenerationCompleted",
-            (sessionId, assistantMessageId) => {
+            (assistantMessageClientId, chatMessageDto) => {
 
                 $(document).trigger(
                     "chat:completed",
-                    [sessionId, assistantMessageId]);
+                    [assistantMessageClientId, chatMessageDto]);
             });
 
         connection.on("GenerationFailed",
-            (sessionId, error) => {
+            (assistantMessageClientId, error) => {
 
                 $(document).trigger(
                     "chat:failed",
-                    [sessionId, error]);
+                    [assistantMessageClientId, error]);
             });
 
         await connection.start();
     }
 
+    async function switchSession(oldSessionId, newSessionId) {
+
+        if (oldSessionId)
+            await connection.invoke("LeaveSession", oldSessionId);
+
+        await connection.invoke("JoinSession", newSessionId);
+    }
+
     return {
-        start
+        start,
+        switchSession,
     };
 
 })();

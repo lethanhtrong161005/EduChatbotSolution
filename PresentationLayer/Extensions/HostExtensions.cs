@@ -1,6 +1,5 @@
 using DataAccess.UnitOfWork;
 using Domain.Common;
-using Domain.DTOs;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -158,7 +157,7 @@ public static class HostExtensions
             }
         }
 
-        if ((await unitOfWork.Plans.GetAsync()).Any())
+        if (await unitOfWork.Plans.ExistsAsync())
         {
             logger.LogInformation("Plans already exist. Skipping subscription seed.");
             goto DOCUMENT;
@@ -331,7 +330,7 @@ public static class HostExtensions
     DOCUMENT:
         var uploader = lecturerUser;
 
-        if ((await unitOfWork.Subjects.GetAsync()).Any())
+        if (await unitOfWork.Subjects.ExistsAsync())
         {
             logger.LogInformation("Subjects already exist. Skipping subject-chapter-document seed.");
             goto CHAT;
@@ -621,7 +620,7 @@ public static class HostExtensions
          * ========================================================= */
 
     CHAT:
-        if (!(await unitOfWork.Chunks.GetAsync()).Any())
+        if (!await unitOfWork.Chunks.ExistsAsync())
         {
             var docs = (await unitOfWork.Documents.GetAsync())
                 .Take(6)
@@ -666,7 +665,7 @@ public static class HostExtensions
             await unitOfWork.SaveAsync();
         }
 
-        if (!(await unitOfWork.ChatSessions.GetAsync()).Any())
+        if (!await unitOfWork.ChatSessions.ExistsAsync())
         {
             var user = uploader;
 
@@ -679,7 +678,7 @@ public static class HostExtensions
             if (subjects.Count != 3)
             {
                 logger.LogWarning("Default subjects not found. Skipping chunk & chat seed.");
-                goto NEXT;
+                goto AI_CONFIG;
             }
 
             var architectureSubject = subjects.First(e => e.Code == "SE401").Id;
@@ -909,8 +908,16 @@ public static class HostExtensions
                             : "")
                 });
             }
+        }
 
-        NEXT:;
+    AI_CONFIG:
+        if (!await unitOfWork.GlobalAiConfigurations.ExistsAsync())
+        {
+            logger.LogInformation("No global AI configuration found. Initializing with default values.");
+
+            unitOfWork.GlobalAiConfigurations.Insert(new GlobalAiConfiguration());
+
+            await unitOfWork.SaveAsync();
         }
     }
 }

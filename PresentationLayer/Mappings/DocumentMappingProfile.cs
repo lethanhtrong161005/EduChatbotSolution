@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Domain.Entities;
-using Presentation.Models;
+using Presentation.DTOs;
+using Presentation.ViewModels;
 
 namespace Presentation.Mappings;
 

@@ -4,6 +4,8 @@ public class ChatMessageGenerationSettings : NaturalEntity
 {
     public int TopK { get; set; }
 
+    public double SimilarityThreshold { get; set; }
+
     public string LlmModel { get; set; } = string.Empty;
 
     public double Temperature { get; set; }

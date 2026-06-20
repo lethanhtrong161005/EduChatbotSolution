@@ -1,4 +1,5 @@
-﻿using Hangfire.Dashboard;
+﻿using Domain.Common;
+using Hangfire.Dashboard;
 
 namespace Presentation.Filters;
 
@@ -8,7 +9,6 @@ public class HangfireAuthFilter : IDashboardAuthorizationFilter
     {
         var httpContext = context.GetHttpContext();
 
-        // Allow all authenticated users to see the Dashboard (potentially dangerous).
-        return httpContext.User.Identity?.IsAuthenticated ?? false;
+        return httpContext.User.IsInRole(nameof(UserRole.Admin));
     }
 }

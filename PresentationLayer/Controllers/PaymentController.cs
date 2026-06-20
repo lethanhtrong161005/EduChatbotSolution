@@ -1,5 +1,5 @@
 using AutoMapper;
-using Business.ExternalPayment;
+using Business.Services.ExternalPayment;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Presentation.Extensions;
-using Presentation.Models;
+using Presentation.ViewModels;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;

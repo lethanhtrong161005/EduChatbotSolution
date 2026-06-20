@@ -1,10 +1,13 @@
-using Business.Background;
-using Business.Chat;
-using Business.Chunking;
-using Business.Embedding;
-using Business.ExternalPayment;
-using Business.Parsing;
-using Business.Services;
+using Business.Services.Account;
+using Business.Services.AI;
+using Business.Services.AI.Chat;
+using Business.Services.AI.Indexing;
+using Business.Services.AI.Indexing.Chunking;
+using Business.Services.AI.Indexing.Embedding;
+using Business.Services.AI.Indexing.Parsing;
+using Business.Services.Documents;
+using Business.Services.ExternalPayment;
+using Business.Services.SubscriptionPlan;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
@@ -16,21 +19,22 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.AI;
 using OllamaSharp;
+using Presentation.Constants;
 using Presentation.Extensions;
 using Presentation.Filters;
 using Presentation.Middleware;
+using Presentation.RealtimeWeb;
 using Presentation.Routing;
 using Presentation.Settings;
-using Presentation.SignalR;
 using StackExchange.Redis;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = "DefaultConnection";
+var connStrName = "Docker";
 var connStr = builder.Configuration.GetConnectionString(connStrName)
                   ?? throw new KeyNotFoundException("Connection string not configured.");
 
@@ -55,35 +59,71 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
 
 // ── Application Services ──────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
+
+builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
 
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
-builder.Services.AddSingleton<IDocumentParser, SimpleParser>();
+builder.Services.AddScoped<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
+builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
-builder.Services.AddSingleton<IOllamaApiClient, OllamaApiClient>(provider =>
+builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
+builder.Services.AddSingleton<IEmbeddingGeneratorFactory, EmbeddingGeneratorFactory>();
+
+builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
+builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
+builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
+builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
+
+// ── AI Model Providers ──────────────────────────────────────
+var ollamaOpts = builder.Configuration.GetRequiredSection("Ollama").Get<OllamaOptions>()
+                 ?? throw new KeyNotFoundException("Ollama is not configured.");
+
+builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, OllamaApiClient>(
+    ollamaOpts.EmbeddingModel,
+    (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
+
+builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
+    ollamaOpts.ChatModel,
+    (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
+
+// ── Background Services ──────────────────────────────────────────────
+builder.Services.AddTransient<AutomaticRetryAttribute>();
+
+builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
 {
-    var opts = provider.GetRequiredService<IOptions<OllamaOptions>>().Value;
-    return new OllamaApiClient(opts.Endpoint, opts.EmbeddingModel);
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+
+    config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
+
+    config.UsePostgreSqlStorage(
+        options =>
+        {
+            options.UseNpgsqlConnection(connStr);
+        });
 });
-builder.Services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
+
+builder.Services.AddHangfireServer(opts =>
+{
+    opts.Queues = [.. HangfireConstants.Queues];
+});
 
 // ── Helper Services ───────────────────────────────────────────
-builder.Services.AddTransient<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
-
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
-builder.Services.Configure<OllamaOptions>(builder.Configuration.GetRequiredSection("Ollama"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
@@ -97,10 +137,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
 
 builder.Services.ConfigureApplicationCookie(opts =>
 {
-    opts.LoginPath = AuthenticationSettings.LoginPath;
-    opts.LogoutPath = AuthenticationSettings.LogoutPath;
-    opts.AccessDeniedPath = AuthenticationSettings.AccessDeniedPath;
-    opts.ReturnUrlParameter = AuthenticationSettings.ReturnUrlParamName;
+    opts.LoginPath = AuthenticationConstants.LoginPath;
+    opts.LogoutPath = AuthenticationConstants.LogoutPath;
+    opts.AccessDeniedPath = AuthenticationConstants.AccessDeniedPath;
+    opts.ReturnUrlParameter = AuthenticationConstants.ReturnUrlParamName;
     opts.ExpireTimeSpan = TimeSpan.FromHours(8);
     opts.SlidingExpiration = true;
     opts.Cookie.HttpOnly = true;
@@ -118,32 +158,13 @@ builder.Services.AddAuthentication()
             ?? throw new KeyNotFoundException("Google ClientId is not configured.");
         opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
             ?? throw new KeyNotFoundException("Google ClientSecret is not configured.");
-        opts.CallbackPath = AuthenticationSettings.GoogleCallbackPath;
+        opts.CallbackPath = AuthenticationConstants.GoogleCallbackPath;
     });
 
 builder.Services.AddAuthorization();
 
 // ── Real-time Web ──────────────────────────────────────────────
 builder.Services.AddSignalR();
-
-// ── Background Serivces ──────────────────────────────────────────────
-builder.Services.AddTransient<AutomaticRetryAttribute>();
-
-builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
-{
-    config.UseSimpleAssemblyNameTypeSerializer();
-    config.UseRecommendedSerializerSettings();
-
-    config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
-
-    config.UsePostgreSqlStorage(
-        options =>
-        {
-            options.UseNpgsqlConnection(connStr);
-        });
-});
-
-builder.Services.AddHangfireServer();
 
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
@@ -210,6 +231,6 @@ app.MapControllerRoute(
     pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
 
 app.MapHub<DocumentHub>("/documents/status");
-app.MapHub<ChatHub>("/chat/answer");
+app.MapHub<AiChatHub>("/chat/answer");
 
 app.Run();

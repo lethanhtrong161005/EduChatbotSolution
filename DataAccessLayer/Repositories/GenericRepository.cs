@@ -148,16 +148,20 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
     }
 
     public virtual async Task<bool> ExistsAsync(
-        Expression<Func<TEntity, bool>> filter,
+        Expression<Func<TEntity, bool>>? filter = null,
         CancellationToken cancellationToken = default)
     {
-        return await dbSet.AnyAsync(filter, cancellationToken);
+        return filter != null
+            ? await dbSet.AnyAsync(filter, cancellationToken)
+            : await dbSet.AnyAsync(cancellationToken);
     }
 
     public virtual async Task<int> CountAsync(
-        Expression<Func<TEntity, bool>> filter,
+        Expression<Func<TEntity, bool>>? filter = null,
         CancellationToken cancellationToken = default)
     {
-        return await dbSet.CountAsync(filter, cancellationToken);
+        return filter != null
+            ? await dbSet.CountAsync(filter, cancellationToken)
+            : await dbSet.CountAsync(cancellationToken);
     }
 }
