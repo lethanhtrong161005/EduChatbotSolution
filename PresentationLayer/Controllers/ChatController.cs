@@ -22,41 +22,6 @@ public class ChatController(
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IMapper _mapper = mapper;
 
-    [HttpGet("")]
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Index(Guid? id, CancellationToken cxlTkn)
-    {
-        Guid userId;
-        try
-        {
-            userId = User.GetUserId();
-        }
-        catch (UserClaimException)
-        {
-            return Unauthorized();
-        }
-
-        var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-
-        if (id.HasValue)
-        {
-            var session = await _chatPersistenceService.GetSessionByIdAsync(id.Value, cxlTkn);
-
-            if (session == null || session.UserId != userId)
-            {
-                return NotFound();
-            }
-        }
-
-        var vm = new ChatPageVm
-        {
-            ActiveSessionId = id,
-            Subjects = _mapper.Map<List<SubjectSelectionVm>>(subjects),
-        };
-
-        return View(vm);
-    }
-
     [HttpGet("sessions")]
     public async Task<IActionResult> GetSessionHeaders(CancellationToken cxlTkn)
     {

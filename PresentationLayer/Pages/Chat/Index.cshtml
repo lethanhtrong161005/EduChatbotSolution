@@ -1,0 +1,387 @@
+@page "{id:guid?}"
+@model Presentation.Pages.Chat.IndexModel
+@{
+    ViewData["Title"] = "AI Assistant";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - EduChatAI</title>
+
+    <script type="importmap"></script>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="~/font-awesome/css/all.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
+</head>
+
+<body>
+    <div id="chat-app"
+         class="h-screen overflow-hidden bg-background">
+
+        <div class="flex h-full">
+
+            <!-- ===================================================== -->
+            <!-- SIDEBAR -->
+            <!-- ===================================================== -->
+
+            <aside class="w-80 shrink-0 border-r border-border bg-sidebar flex flex-col">
+
+                <!-- Logo -->
+
+                <div class="h-16 px-4 border-b border-border flex items-center">
+
+                    <a href="/"
+                       class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition">
+
+                        <div class="text-2xl">
+                            ??
+                        </div>
+
+                        <div>
+
+                            <div class="font-semibold">
+                                EduChatAI
+                            </div>
+
+                            <div class="text-xs text-muted">
+                                Learning Assistant
+                            </div>
+
+                        </div>
+
+                    </a>
+
+                </div>
+
+                <!-- Utility Buttons -->
+
+                <div class="p-4 border-b border-border space-y-2">
+
+                    <button id="btn-new-chat"
+                            class="w-full rounded-xl bg-brand px-4 py-3 text-white font-medium cursor-pointer hover:bg-brand-dark transition">
+
+                        New Chat
+
+                    </button>
+
+                    <button id="btn-search-chat"
+                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
+
+                        Search Chats
+
+                    </button>
+
+                    <button id="btn-file-library"
+                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
+
+                        File Library
+
+                    </button>
+
+                </div>
+
+                <!-- Subjects -->
+
+                <div class="border-b border-border">
+
+                    <button id="btn-toggle-subjects"
+                            class="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
+
+                        <span class="font-medium">
+
+                            Subjects
+
+                        </span>
+
+                        <span id="subjects-chevron">
+
+                            ?
+
+                        </span>
+
+                    </button>
+
+                    <div id="subjects-list"
+                         class="px-2 pb-2">
+
+                        @foreach (var subject in Model.ViewModel.Subjects)
+                        {
+                            <button class="subject-option w-full text-left rounded-xl px-3 py-3 cursor-pointer hover:bg-sidebar-hover transition"
+                                    data-subject-id="@subject.Id">
+
+                                <div class="font-medium subject-code">
+                                    @subject.Code
+                                </div>
+
+                                <div class="text-xs text-muted subject-name">
+                                    @subject.Name
+                                </div>
+
+                            </button>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Session List -->
+
+                <div class="flex-1 overflow-y-auto chat-scrollbar">
+
+                    <div class="px-4 py-3 text-sm font-semibold text-muted">
+
+                        Your Sessions
+
+                    </div>
+
+                    <div id="session-list">
+
+                        <!-- JS renderSidebarSessionList() -->
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+            <!-- ===================================================== -->
+            <!-- CHAT COLUMN -->
+            <!-- ===================================================== -->
+
+            <main class="flex-1 min-w-0 flex flex-col relative">
+
+                <!-- Profile -->
+
+                <div class="absolute top-4 right-4 z-40">
+
+                    <div class="relative">
+
+                        <button id="btn-profile-menu"
+                                class="h-10 w-10 rounded-full border border-border bg-card flex items-center justify-center cursor-pointer hover:bg-surface-hover transition">
+
+                            <i class="fa-solid fa-user"></i>
+
+                        </button>
+
+                        <div id="profile-dropdown"
+                             class="hidden absolute right-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+
+                            <a href="/profile"
+                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
+
+                                Profile
+
+                            </a>
+
+                            <a href="/subjects"
+                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
+
+                                My Subjects
+
+                            </a>
+
+                            <a href="/subscription"
+                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
+
+                                My Subscription
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Main Chat -->
+
+                <div id="chat-main"
+                     class="flex-1 min-h-0">
+
+                    <!-- Rendered by JS -->
+
+                </div>
+
+            </main>
+
+            <!-- ===================================================== -->
+            <!-- SOURCES PANEL -->
+            <!-- ===================================================== -->
+
+            <aside id="sources-panel"
+                   class="hidden w-[420px] shrink-0 border-l border-border bg-card flex-col">
+
+                <!-- Header -->
+
+                <div class="h-16 border-b border-border px-4 flex items-center justify-between">
+
+                    <div class="font-semibold">
+
+                        Sources
+
+                    </div>
+
+                    <button id="btn-close-sources"
+                            class="h-8 w-8 rounded-lg cursor-pointer hover:bg-surface-hover transition">
+
+                        <i class="fa-solid fa-angles-right"></i>
+
+                    </button>
+
+                </div>
+
+                <!-- Content -->
+
+                <div id="sources-content"
+                     class="flex-1 overflow-y-auto chat-scrollbar p-4 space-y-4">
+
+                    <!-- JS -->
+
+                </div>
+
+            </aside>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- FILE ATTACHMENT MENU -->
+    <!-- ========================================================= -->
+
+    <div id="attachment-menu"
+         class="hidden fixed z-50 rounded-xl border border-border bg-card shadow-lg overflow-hidden min-w-[220px]">
+
+        <button id="btn-upload-file"
+                class="block w-full text-left px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
+
+            Upload File
+
+        </button>
+
+        <button id="btn-file-library"
+                class="block w-full text-left px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
+
+            Add From Library
+
+        </button>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- FILE LIBRARY MODAL -->
+    <!-- ========================================================= -->
+
+    <div id="file-library-modal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-6">
+
+        <!-- Backdrop -->
+
+        <div class="absolute inset-0 bg-black/50"
+             id="file-library-backdrop">
+        </div>
+
+        <!-- Dialog -->
+
+        <div class="relative w-full max-w-4xl h-[700px] bg-card rounded-2xl border border-border shadow-xl flex flex-col">
+
+            <!-- Header -->
+
+            <div class="h-16 border-b border-border px-6 flex items-center justify-between">
+
+                <div class="font-semibold text-lg">
+
+                    File Library
+
+                </div>
+
+                <button id="btn-file-library-close"
+                        class="h-9 w-9 rounded-lg cursor-pointer cursor-pointer hover:bg-surface-hover transition">
+
+                    ?
+
+                </button>
+
+            </div>
+
+            <!-- Search -->
+
+            <div class="p-4 border-b border-border">
+
+                <input id="file-library-search"
+                       type="text"
+                       placeholder="Search files..."
+                       class="w-full rounded-xl border border-border bg-input px-4 py-3 outline-none" />
+
+            </div>
+
+            <!-- List -->
+
+            <div id="file-library-file-list"
+                 class="flex-1 overflow-y-auto chat-scrollbar">
+
+                <!-- Loaded later -->
+
+                <div class="p-6 text-muted">
+
+                    No files loaded.
+
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+
+            <div class="border-t border-border p-4 flex justify-end gap-3">
+
+                <button id="btn-file-library-cancel"
+                        class="rounded-xl border border-border px-4 py-2 cursor-pointer cursor-pointer hover:bg-surface-hover transition">
+
+                    Cancel
+
+                </button>
+
+                <button id="btn-file-library-add-selected"
+                        class="rounded-xl bg-brand text-white px-4 py-2 cursor-pointer hover:bg-brand-dark transition">
+
+                    Add Selected
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        window.chatPage = {
+        activeSessionId: '@Model.ViewModel.ActiveSessionId',
+        };
+    </script>
+
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+
+    <script src="~/font-awesome/js/all.min.js" asp-append-version="true"></script>
+
+    <script src="~/microsoft/signalr/dist/browser/signalr.min.js" asp-append-version="true"></script>
+
+    <script src="~/lib/marked/lib/marked.umd.js" asp-append-version="true"></script>
+
+    <script src="~/js/chat/chat-templates.js"></script>
+    <script src="~/js/chat/chat-signalr.js"></script>
+    <script src="~/js/chat/chat.js"></script>
+
+</body>
+
+</html>

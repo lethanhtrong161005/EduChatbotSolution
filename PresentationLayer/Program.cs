@@ -34,7 +34,7 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = "Docker";
+var connStrName = builder.Environment.IsDevelopment() ? "Local" : "Docker";
 var connStr = builder.Configuration.GetConnectionString(connStrName)
                   ?? throw new KeyNotFoundException("Connection string not configured.");
 
@@ -100,7 +100,7 @@ builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
 // ── Background Services ──────────────────────────────────────────────
 builder.Services.AddTransient<AutomaticRetryAttribute>();
 
-builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
+builder.Services.AddHangfire((provider, config) =>
 {
     config.UseSimpleAssemblyNameTypeSerializer();
     config.UseRecommendedSerializerSettings();
@@ -169,8 +169,6 @@ builder.Services.AddSignalR();
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
 
-builder.Services.AddRouting(opts => opts.ConstraintMap["slugify"] = typeof(SlugifyParameterTransformer));
-
 builder.Services.AddCors(opts =>
 {
     opts.AddPolicy("Dev", policy =>
@@ -183,17 +181,21 @@ builder.Services.AddCors(opts =>
     });
 });
 
-builder.Services.AddControllersWithViews(opts =>
+builder.Services.AddControllers();
+
+builder.Services.AddRazorPages(options =>
 {
-    opts.Conventions.Add(new RouteTokenTransformerConvention(
-                            new SlugifyParameterTransformer()));
+    options.Conventions.Add(
+        new PageRouteTransformerConvention(
+            new SlugifyParameterTransformer()));
+    options.Conventions.AddPageRoute("/Home/Index", string.Empty);
 });
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/error");
 
     await app.MigrateDbAsync<EduChatAiDbContext>();
     await app.SeedDbAsync<EduChatAiDbContext>();
@@ -226,9 +228,8 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = [new HangfireAuthFilter()],
 });
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
+app.MapControllers();
+app.MapRazorPages();
 
 app.MapHub<DocumentHub>("/documents/status");
 app.MapHub<AiChatHub>("/chat/answer");

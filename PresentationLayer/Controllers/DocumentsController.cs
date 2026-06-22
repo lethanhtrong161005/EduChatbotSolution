@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Business.Services.AI.Indexing;
 using Domain.Common;
 using Domain.Contracts;
@@ -13,65 +13,101 @@ using Presentation.Constants;
 using Presentation.DTOs;
 using Presentation.Extensions;
 using Presentation.Utils;
-using Presentation.ViewModels;
-using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
+/// <summary>
+/// Exposes document JSON, upload, download, and display endpoints.
+/// Razor Pages handle document library and detail screens.
+/// </summary>
 [Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Route("documents")]
 public class DocumentsController(
     ISubjectService subjectService,
     IChapterService chapterService,
     IDocumentService documentService,
-    IMapper mapper
-    ) : Controller
+    IMapper mapper) : Controller
 {
+    private const int PageSize = 10;
+
+    private static readonly HashSet<string> AllowedExtensions =
+    [
+        ".pdf",
+        ".docx",
+        ".pptx",
+        ".txt",
+        ".html",
+    ];
+
+    private static readonly HashSet<string> AllowedMimeTypes =
+    [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "text/plain",
+        "text/html",
+    ];
+
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
     private readonly IDocumentService _documentService = documentService;
     private readonly IMapper _mapper = mapper;
 
-    [HttpGet]
-    public async Task<IActionResult> Library(CancellationToken cxlTkn)
-    {
-        var userId = User.GetUserId();
-
-        var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-
-        var vm = new DocumentLibraryVm
-        {
-            Subjects = _mapper.Map<List<SubjectLookupVm>>(accessibleSubjects),
-        };
-
-        return View(vm);
-    }
-
-    [HttpGet]
+    /// <summary>
+    /// Checks whether the current user can upload documents to the subject.
+    /// </summary>
+    /// <param name="subjectId">The subject identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>A JSON result containing the upload permission.</returns>
+    [HttpGet("can-upload")]
     public async Task<IActionResult> CanUpload(int subjectId, CancellationToken cxlTkn)
     {
         if (subjectId <= 0)
+        {
             return BadRequest(new { Error = "Subject ID is missing or invalid." });
+        }
 
         Guid userId;
-        try { userId = User.GetUserId(); }
-        catch { return BadRequest(new { Error = "Could not determine user ID." }); }
+        try
+        {
+            userId = User.GetUserId();
+        }
+        catch
+        {
+            return BadRequest(new { Error = "Could not determine user ID." });
+        }
 
         var canUpload = await _subjectService.IsChiefAsync(subjectId, userId, cxlTkn);
         return Json(new { canUpload });
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Returns chapters for a selected subject.
+    /// </summary>
+    /// <param name="subjectId">The subject identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>A JSON list of chapter lookup items.</returns>
+    [HttpGet("get-chapters")]
     public async Task<IActionResult> GetChapters(int subjectId, CancellationToken cxlTkn)
     {
         var chapters = await _chapterService.GetBySubjectAsync(subjectId, cxlTkn);
         return Json(_mapper.Map<List<ChapterLookupDto>>(chapters));
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Returns document files for a selected subject or chapter.
+    /// </summary>
+    /// <param name="subjectId">Optional subject identifier.</param>
+    /// <param name="chapterId">Optional chapter identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>A JSON list of document file items.</returns>
+    [HttpGet("get-files")]
     public async Task<IActionResult> GetFiles(int? subjectId, int? chapterId, CancellationToken cxlTkn)
     {
         if (subjectId == null && chapterId == null)
+        {
             return BadRequest(new { Error = "Either subject or chapter ID must be provided." });
+        }
 
         var docs = chapterId.HasValue
             ? await _documentService.GetByChapterAsync(chapterId.Value, cxlTkn)
@@ -80,13 +116,21 @@ public class DocumentsController(
         return Json(_mapper.Map<List<DocumentFileDto>>(docs));
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Downloads the original document file.
+    /// </summary>
+    /// <param name="id">The document identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>The document file or a not-found result.</returns>
+    [HttpGet("download/{id:guid}")]
     public async Task<IActionResult> Download(Guid id, CancellationToken cxlTkn)
     {
         var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
+        {
             return NotFound();
+        }
 
         return File(
             fileStream: System.IO.File.OpenRead(doc.FilePath),
@@ -94,20 +138,26 @@ public class DocumentsController(
             fileDownloadName: doc.OriginalFileName);
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Displays a document inline when supported by the browser or Office viewer.
+    /// </summary>
+    /// <param name="id">The document identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>An inline file, download file, redirect, or not-found result.</returns>
+    [HttpGet("display/{id:guid}")]
     public async Task<IActionResult> Display(Guid id, CancellationToken cxlTkn)
     {
         var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
+        {
             return NotFound();
+        }
 
         if (doc.FileType == DocumentType.DOCX)
         {
-            var baseUrl = Request.Host;
-            var downloadPath = Url.Action(nameof(Download));
-            var idParam = $"/{doc.Id}";
-            var embedUrl = baseUrl + downloadPath + idParam;
+            var embedUrl = Url.Action(nameof(Download), "Documents", new { id = doc.Id }, Request.Scheme)
+                           ?? string.Empty;
             var office365EmbedUrl = $"https://view.officeapps.live.com/op/embed.aspx?src={embedUrl}";
             return Redirect(office365EmbedUrl);
         }
@@ -127,13 +177,21 @@ public class DocumentsController(
             fileDownloadName: doc.OriginalFileName);
     }
 
-    [HttpDelete]
+    /// <summary>
+    /// Deletes a document, cancels indexing jobs, and removes the stored file.
+    /// </summary>
+    /// <param name="id">The document identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>An OK result or not-found result.</returns>
+    [HttpDelete("delete/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cxlTkn)
     {
         var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
+        {
             return NotFound();
+        }
 
         HangfireHelper.CancelJobs(doc.Id,
         [
@@ -148,62 +206,35 @@ public class DocumentsController(
         return Ok();
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Details(Guid id, CancellationToken cxlTkn)
-    {
-        var doc = await _documentService.GetByIdAsync(
-            id,
-            includeProperties:
-            [
-                nameof(Document.Chapter),
-                nameof(Document.Uploader),
-                nameof(Document.Chunks),
-                nameof(Document.Comments),
-            ], cxlTkn);
-        if (doc == null)
-            return NotFound();
-
-        var vm = _mapper.Map<DocumentDetailsVm>(doc);
-        return View(vm);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddComment(Guid documentId, string content)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            return RedirectToAction(nameof(Details), new { id = documentId });
-        }
-
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (Guid.TryParse(userIdString, out Guid userId))
-        {
-            await _documentService.AddCommentAsync(documentId, userId, content);
-        }
-
-        return RedirectToAction(nameof(Details), new { id = documentId });
-    }
-
-    [HttpPost]
+    /// <summary>
+    /// Uploads files to a chapter and enqueues indexing jobs for the accepted documents.
+    /// </summary>
+    /// <param name="chapterId">The chapter receiving the files.</param>
+    /// <param name="files">The uploaded files.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>A JSON list of created document file items.</returns>
+    [HttpPost("upload")]
     [RequestSizeLimit(100L * 1024 * 1024)]
-    public async Task<IActionResult> Upload(
-        int chapterId,
-        List<IFormFile> files,
-        CancellationToken cxlTkn)
+    public async Task<IActionResult> Upload(int chapterId, List<IFormFile> files, CancellationToken cxlTkn)
     {
         if (files.Count == 0)
+        {
             return BadRequest("No files uploaded.");
+        }
 
         var userId = User.GetUserId();
 
         var chapter = await _chapterService.GetByIdAsync(chapterId, cxlTkn);
         if (chapter == null)
+        {
             return BadRequest("No such chapter.");
+        }
 
         var canUpload = await _subjectService.IsChiefAsync(chapter.SubjectId, userId, cxlTkn);
         if (!canUpload)
+        {
             return Unauthorized("You do not have upload privilege for this subject.");
+        }
 
         var docs = new List<Document>();
 
@@ -213,7 +244,9 @@ public class DocumentsController(
             var storageName = $"{Guid.NewGuid()}{extension}";
 
             if (!AllowedExtensions.Contains(extension))
+            {
                 return BadRequest($"{file.FileName} is not supported");
+            }
 
             var tempDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirUploaded);
             Directory.CreateDirectory(tempDir);
@@ -224,8 +257,6 @@ public class DocumentsController(
             await file.CopyToAsync(fs, cxlTkn);
 
             var mime = MimeGuesser.GuessFileType(fullPath);
-
-            // FIXME: Studpidly insecure.
             if (mime is { MimeType: "inode/x-empty", Extension: "bin" })
             {
                 mime = new FileType("text/plain", "txt");
@@ -239,23 +270,19 @@ public class DocumentsController(
                     System.IO.File.Delete(d.FilePath);
                 }
 
-                return BadRequest(
-                    $"{file.FileName} is not supported.");
+                return BadRequest($"{file.FileName} is not supported.");
             }
 
             var doc = new Document
             {
                 ChapterId = chapterId,
                 UploaderId = userId,
-
                 Title = Path.GetFileNameWithoutExtension(file.FileName),
-
                 FileName = storageName,
                 OriginalFileName = file.FileName,
                 FileType = FileHelper.ParseFileType(extension),
                 FilePath = fullPath,
                 FileSize = file.Length,
-
                 Status = DocumentStatus.Uploaded,
                 UploadedAt = DateTime.UtcNow,
             };
@@ -267,16 +294,14 @@ public class DocumentsController(
 
         foreach (var doc in newDocs)
         {
-            var parseJobId =
-                BackgroundJob.Enqueue<IDocumentIndexer>(
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.ParseAsync(doc.Id));
+            var parseJobId = BackgroundJob.Enqueue<IDocumentIndexer>(
+                HangfireConstants.LowPriorityQueue,
+                e => e.ParseAsync(doc.Id));
 
-            var chunkJobId =
-                BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                    parseJobId,
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.ChunkAsync(doc.Id));
+            var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                parseJobId,
+                HangfireConstants.LowPriorityQueue,
+                e => e.ChunkAsync(doc.Id));
 
             BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                 chunkJobId,
@@ -288,31 +313,21 @@ public class DocumentsController(
         return Json(result);
     }
 
-    private static readonly HashSet<string> AllowedExtensions =
-    [
-        ".pdf",
-        ".docx",
-        ".pptx",
-        ".txt",
-        ".html",
-    ];
-
-    private static readonly HashSet<string>
-    AllowedMimeTypes =
-    [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "text/plain",
-        "text/html",
-    ];
-
-    private const int PageSize = 10;
-
-    [HttpGet]
+    /// <summary>
+    /// Returns a paginated preview of indexed chunks for a document.
+    /// </summary>
+    /// <param name="documentId">The document identifier.</param>
+    /// <param name="pageIndex">The one-based page index requested by the client.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <returns>A JSON page of chunk preview items.</returns>
+    [HttpGet("chunks")]
     public async Task<IActionResult> Chunks(Guid documentId, int pageIndex, CancellationToken cxlTkn)
     {
-        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(documentId, PageSize, pageIndex, cxlTkn);
+        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
+            documentId,
+            PageSize,
+            pageIndex,
+            cxlTkn);
 
         var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
         var pageDto = new ChunkPreviewPageDto

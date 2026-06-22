@@ -57,7 +57,12 @@ public class SubjectService(
             paginationSettings: (pageSize, pageIndex)
         );
 
-        return (PaginatedList<Subject>)(PaginatedEnumerable<Subject>)paginatedResult;
+        return paginatedResult switch
+        {
+            PaginatedList<Subject> paginatedList => paginatedList,
+            PaginatedEnumerable<Subject> paginatedEnumerable => paginatedEnumerable,
+            _ => new PaginatedList<Subject>([.. paginatedResult], paginatedResult.Count(), pageSize, pageIndex),
+        };
     }
 
     /// <inheritdoc/>
