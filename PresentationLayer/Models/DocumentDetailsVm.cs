@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Presentation.Models;
 
@@ -33,6 +33,10 @@ public class DocumentDetailsVm
     public DateTime UploadedAt { get; set; }
 
     public string UploadedBy { get; set; } = string.Empty;
+
+    public string? ExtractedText { get; set; }
+
+    public List<ParsedSectionVm> ParsedSections { get; set; } = [];
 
     public List<DocumentComment> Comments { get; set; } = [];
 }

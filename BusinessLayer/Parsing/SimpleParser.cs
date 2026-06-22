@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Domain.Contracts;
 using Domain.DTOs;
@@ -168,6 +168,58 @@ public class SimpleParser : IDocumentParser
 
     private async Task<ParsedDocument> ParsePptxAsync(string path, CancellationToken cxlTkn = default)
     {
-        return null!;
+        var parsedDoc = new ParsedDocument();
+        using var ppt = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(path, false);
+        var presentationPart = ppt.PresentationPart;
+        if (presentationPart == null) return parsedDoc;
+
+        var slideIdList = presentationPart.Presentation.SlideIdList;
+        if (slideIdList == null) return parsedDoc;
+
+        int slideIndex = 1;
+        int sectionIndex = 0;
+        foreach (var slideIdObj in slideIdList.Elements<DocumentFormat.OpenXml.Presentation.SlideId>())
+        {
+            cxlTkn.ThrowIfCancellationRequested();
+            var slidePart = presentationPart.GetPartById(slideIdObj.RelationshipId!) as SlidePart;
+            if (slidePart == null) continue;
+
+            var slideText = new StringBuilder();
+            var slideTitle = $"Slide {slideIndex}";
+
+            // Find all text elements on the slide
+            var texts = slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Text>();
+            foreach (var t in texts)
+            {
+                var text = t.Text;
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    slideText.AppendLine(text);
+                }
+            }
+
+            // Attempt to find slide title placeholder text
+            var titleShapes = slidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Shape>()
+                .Where(s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title
+                         || s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.CenteredTitle);
+            
+            var titleText = titleShapes.FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault()?.Text;
+            if (!string.IsNullOrWhiteSpace(titleText))
+            {
+                slideTitle = titleText.Trim();
+            }
+
+            parsedDoc.Sections.Add(new ParsedSection
+            {
+                SectionIndex = sectionIndex++,
+                PageNumber = slideIndex,
+                SectionTitle = slideTitle,
+                Text = slideText.ToString(),
+            });
+
+            slideIndex++;
+        }
+
+        return parsedDoc;
     }
 }

@@ -29,7 +29,6 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
     GenericRepository<TestResponse>? _testResponses;
-    GenericRepository<DocumentComment>? _documentComments;
 
     /// <inheritdoc/>
     public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(context);
@@ -69,8 +68,6 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(context);
     /// <inheritdoc/>
     public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(context);
-    /// <inheritdoc/>
-    public GenericRepository<DocumentComment> DocumentComments => _documentComments ??= new GenericRepository<DocumentComment>(context);
 
     /// <inheritdoc/>
     public async Task SaveAsync(CancellationToken cancellationToken = default)

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Business.Background;
 using Domain.Common;
 using Domain.Contracts;
@@ -157,11 +157,45 @@ public class DocumentsController(
                 nameof(Document.Uploader),
                 nameof(Document.Chunks),
                 nameof(Document.Comments),
+                "Comments.User",
+                "ParsedSections"
             ], cxlTkn);
         if (doc == null)
             return NotFound();
 
         var vm = _mapper.Map<DocumentDetailsVm>(doc);
+
+        if (doc.ParsedSections != null && doc.ParsedSections.Any())
+        {
+            vm.ParsedSections = doc.ParsedSections
+                .OrderBy(s => s.SectionIndex)
+                .Select(s => new ParsedSectionVm
+                {
+                    SectionIndex = s.SectionIndex,
+                    PageNumber = s.PageNumber,
+                    SectionTitle = s.SectionTitle,
+                    Text = s.Text
+                }).ToList();
+
+            vm.ExtractedText = string.Join("\n\n", doc.ParsedSections.OrderBy(s => s.SectionIndex).Select(s => s.Text));
+        }
+
+        // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
+        if (string.IsNullOrWhiteSpace(vm.ExtractedText) && System.IO.File.Exists(doc.FilePath))
+        {
+            try
+            {
+                if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+                {
+                    vm.ExtractedText = await System.IO.File.ReadAllTextAsync(doc.FilePath, cxlTkn);
+                }
+            }
+            catch
+            {
+                // Ignore read errors
+            }
+        }
+
         return View(vm);
     }
 
