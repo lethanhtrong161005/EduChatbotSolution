@@ -1,4 +1,6 @@
-﻿namespace Domain.Contracts;
+﻿using Domain.Common;
+
+namespace Domain.Contracts;
 
 public interface IDocumentIndexer
 {

@@ -27,7 +27,7 @@
     /* Background */
     --color-background: var(--color-bg-light);
     --color-background-muted: var(--color-bg-neutral);
-    --color-background-disabled: #808080;
+    --color-background-disabled: var(--color-bg-dim);
     /* Text */
     --color-foreground: var(--color-text-primary);
     --color-muted: var(--color-text-secondary);
@@ -202,6 +202,62 @@ body {
     }
 }
 
+.assistant-loading span {
+    animation: loadingDot 1.2s infinite;
+}
+
+    .assistant-loading span:nth-child(1) {
+        animation-delay: 0s;
+    }
+
+    .assistant-loading span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .assistant-loading span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+@keyframes loadingDot {
+    0%, 80%, 100% {
+        opacity: .3;
+        transform: scale(.8);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.assistant-thinking span {
+    animation: thinkingText 1.2s infinite;
+}
+
+    .assistant-thinking span:nth-child(3n+1) {
+        animation-delay: 0s;
+    }
+
+    .assistant-thinking span:nth-child(3n+2) {
+        animation-delay: 0.2s;
+    }
+
+    .assistant-thinking span:nth-child(3n+3) {
+        animation-delay: 0.4s;
+    }
+
+@keyframes thinkingText {
+    0%, 80%, 100% {
+        opacity: .6;
+        transform: scale(.9);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .message-inline-citation {
     color: var(--color-primary);
     cursor: pointer;
@@ -212,6 +268,57 @@ body {
         text-decoration: underline;
     }
 
+@utility prose-assistant {
+    --tw-prose-body: var(--color-foreground);
+    --tw-prose-headings: var(--color-foreground);
+    --tw-prose-links: var(--color-brand);
+    --tw-prose-bold: var(--color-foreground);
+    --tw-prose-code: var(--color-brand);
+    --tw-prose-pre-code: var(--color-foreground);
+    --tw-prose-pre-bg: var(--color-surface-alt);
+    --tw-prose-th-borders: var(--color-border);
+    --tw-prose-td-borders: var(--color-border);
+}
+
+.prose-assistant pre {
+    overflow-x: auto;
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.prose-assistant code:not(pre, code) {
+    background: var(--color-surface-alt);
+    border-radius: .375rem;
+    padding: .1rem .35rem;
+}
+
+.prose-assistant blockquote {
+    border-left: 4px solid var(--color-border);
+    padding-left: 1rem;
+}
+
+.prose-assistant table {
+    width: 100%;
+}
+
+@utility prose-error {
+    --tw-prose-body: var(--color-red-400);
+    --tw-prose-headings: var(--color-red-600);
+    --tw-prose-lead: var(--color-red-400);
+    --tw-prose-links: var(--color-red-600);
+    --tw-prose-bold: var(--color-red-600);
+    --tw-prose-counters: var(--color-red-300);
+    --tw-prose-bullets: var(--color-red-100);
+    --tw-prose-hr: var(--color-red-50);
+    --tw-prose-quotes: var(--color-red-600);
+    --tw-prose-quote-borders: var(--color-red-50);
+    --tw-prose-captions: var(--color-red-400);
+    --tw-prose-code: var(--color-red-600);
+    --tw-prose-pre-code: var(--color-red-50);
+    --tw-prose-pre-bg: var(--color-red-600);
+    --tw-prose-th-borders: var(--color-red-50);
+    --tw-prose-td-borders: var(--color-red-50);
+}
 /* ============================================================
    Sources Panel
    ============================================================ */
@@ -230,17 +337,17 @@ body {
     }
 
 .source-card-flash {
-    animation: source-flash 1.25s ease;
+    animation: source-flash 1.8s ease;
 }
 
 @keyframes source-flash {
 
-    0% {
+    25%, 75% {
         border-color: var(--color-primary);
         box-shadow: 0 0 0 2px color-mix( in srgb, var(--color-primary) 30%, transparent);
     }
 
-    100% {
+    0%, 50%, 100% {
         border-color: var(--color-border-light);
         box-shadow: none;
     }
@@ -249,7 +356,6 @@ body {
 .citation-details {
     overflow: hidden;
 }
-
 /* ============================================================
    Profile Dropdown
    ============================================================ */
@@ -270,27 +376,17 @@ body {
         transform: translateY(0) scale(1);
     }
 }
-
 /* ============================================================
    Message Utilities
    ============================================================ */
 
-.message-copy-btn,
-.message-sources-btn,
-.message-regenerate-btn,
-.response-prev-btn,
-.response-next-btn {
+.message-copy-btn, .message-sources-btn, .message-regenerate-btn, .response-prev-btn, .response-next-btn {
     transition: background-color .15s ease, color .15s ease;
 }
 
-    .message-copy-btn:hover,
-    .message-sources-btn:hover,
-    .message-regenerate-btn:hover,
-    .response-prev-btn:hover,
-    .response-next-btn:hover {
+    .message-copy-btn:hover, .message-sources-btn:hover, .message-regenerate-btn:hover, .response-prev-btn:hover, .response-next-btn:hover {
         color: var(--color-text-primary);
     }
-
 /* ============================================================
    Chat Input
    ============================================================ */
@@ -316,7 +412,6 @@ body {
     .chat-input-expanded::-webkit-scrollbar {
         width: 6px;
     }
-
 /* ============================================================
    Attachments
    ============================================================ */
@@ -328,7 +423,6 @@ body {
     .attachment-pill:hover {
         background: var(--color-surface-hover);
     }
-
 /* ============================================================
    Modal
    ============================================================ */
@@ -364,7 +458,6 @@ body {
         transform: translateY(0) scale(1);
     }
 }
-
 /* ============================================================
    Session List
    ============================================================ */
@@ -381,7 +474,6 @@ body {
     .chat-session-item-active:hover {
         background: color-mix( in srgb, var(--color-primary) 16%, transparent);
     }
-
 /* ============================================================
    New Chat Landing
    ============================================================ */
@@ -402,7 +494,6 @@ body {
         transform: translateY(0);
     }
 }
-
 /* ============================================================
    Mobile
    ============================================================ */

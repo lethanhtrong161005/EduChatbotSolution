@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using System.Text.Json.Serialization;
 
 namespace Presentation.DTOs;
 
@@ -8,9 +9,9 @@ public class ChatSessionDto
 
     public string Title { get; set; } = string.Empty;
 
-    public List<ChatMessageDto> Messages { get; set; } = [];
-
     public DateTime LastMessageAt { get; set; }
+
+    public List<ChatMessageDto> Messages { get; set; } = [];
 }
 
 public class ChatMessageDto
@@ -21,9 +22,13 @@ public class ChatMessageDto
 
     public string Content { get; set; } = string.Empty;
 
-    public List<ChatCitationDto> Citations { get; set; } = [];
-
     public DateTime SentAt { get; set; }
+
+    public MessageStatus Status { get; set; }
+
+    public string? GenerationErrors { get; set; }
+
+    public List<ChatCitationDto> Citations { get; set; } = [];
 }
 
 public class ChatCitationDto

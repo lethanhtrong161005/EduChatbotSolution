@@ -13,6 +13,7 @@ using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
 using Hangfire;
+using Hangfire.Common;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -71,14 +72,15 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
-builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
-
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
 builder.Services.AddScoped<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
 builder.Services.AddSingleton<IEmbeddingGeneratorFactory, EmbeddingGeneratorFactory>();
+
+builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 
 builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
@@ -98,14 +100,12 @@ builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
 // ── Background Services ──────────────────────────────────────────────
-builder.Services.AddTransient<AutomaticRetryAttribute>();
-
 builder.Services.AddHangfire((IServiceProvider provider, IGlobalConfiguration config) =>
 {
     config.UseSimpleAssemblyNameTypeSerializer();
     config.UseRecommendedSerializerSettings();
 
-    config.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
+    config.UseFilterProvider(new HangfireRetryJobFilterProvider());
 
     config.UsePostgreSqlStorage(
         options =>

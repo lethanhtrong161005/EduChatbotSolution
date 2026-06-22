@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621062006_AlterChatMessageGenerationSettings_AddEmbeddingModel")]
+    partial class AlterChatMessageGenerationSettings_AddEmbeddingModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -190,17 +193,9 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("GenerationErrors")
-                        .HasColumnType("text")
-                        .HasColumnName("generation_errors");
-
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -279,20 +274,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -317,11 +298,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
 
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
-
                     b.Property<double>("SimilarityThreshold")
                         .HasColumnType("double precision")
                         .HasColumnName("similarity_threshold");
@@ -331,8 +307,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("system_prompt");
 
-                    b.Property<float>("Temperature")
-                        .HasColumnType("real")
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision")
                         .HasColumnName("temperature");
 
                     b.Property<int>("TopK")
@@ -494,11 +470,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("location_in_document");
 
-                    b.Property<int>("OccurrenceIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("occurrence_index");
-
                     b.Property<string>("QuotedText")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("quoted_text");
 
@@ -723,20 +696,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -761,11 +720,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
 
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
-
                     b.Property<double>("SimilarityThreshold")
                         .HasColumnType("double precision")
                         .HasColumnName("similarity_threshold");
@@ -775,8 +729,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("system_prompt");
 
-                    b.Property<float>("Temperature")
-                        .HasColumnType("real")
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision")
                         .HasColumnName("temperature");
 
                     b.Property<int>("TopK")
@@ -1108,18 +1062,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float?>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1142,10 +1084,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
 
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
-
                     b.Property<double?>("SimilarityThreshold")
                         .HasColumnType("double precision")
                         .HasColumnName("similarity_threshold");
@@ -1154,8 +1092,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("system_prompt");
 
-                    b.Property<float?>("Temperature")
-                        .HasColumnType("real")
+                    b.Property<double?>("Temperature")
+                        .HasColumnType("double precision")
                         .HasColumnName("temperature");
 
                     b.Property<int?>("TopK")

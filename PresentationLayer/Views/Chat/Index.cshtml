@@ -219,7 +219,7 @@
             <!-- ===================================================== -->
 
             <aside id="sources-panel"
-                   class="hidden w-[420px] shrink-0 border-l border-border bg-card flex-col">
+                   class="hidden w-[420px] shrink-0 border-l border-border bg-card flex flex-col">
 
                 <!-- Header -->
 
@@ -242,7 +242,7 @@
 
                 <!-- Content -->
 
-                <div id="sources-content"
+                <div id="sources-panel-content"
                      class="flex-1 overflow-y-auto chat-scrollbar p-4 space-y-4">
 
                     <!-- JS -->
@@ -366,7 +366,7 @@
 
     <script>
         window.chatPage = {
-        activeSessionId: '@Model.ActiveSessionId',
+            activeSessionId: '@Model.ActiveSessionId',
         };
     </script>
 
@@ -378,6 +378,7 @@
 
     <script src="~/lib/marked/lib/marked.umd.js" asp-append-version="true"></script>
 
+    <script src="~/js/chat/chat-enums.js"></script>
     <script src="~/js/chat/chat-templates.js"></script>
     <script src="~/js/chat/chat-signalr.js"></script>
     <script src="~/js/chat/chat.js"></script>

@@ -157,15 +157,20 @@ public class ChatController(
             HangfireConstants.HighPriorityQueue,
             e => e.GenerateAsync(
                 req.SessionId,
-                assistantMessage.Id,
-                req.AssistantMessageClientId));
+                assistantMessage.Id));
 
         return Ok(new GenerateChatResponse
         {
             UserMessageId = userMessage.Id,
-            AssistantMessageId = assistantMessage.Id,
             UserMessageClientId = req.UserMessageClientId,
+            UserMessageContent = userMessage.Content,
+            UserMessageSentAt = userMessage.SentAt,
+            UserMessageStatus = userMessage.Status,
+
+            AssistantMessageId = assistantMessage.Id,
             AssistantMessageClientId = req.AssistantMessageClientId,
+            AssistantMessageSentAt = assistantMessage.SentAt,
+            AssistantMessageStatus = assistantMessage.Status,
         });
     }
 }

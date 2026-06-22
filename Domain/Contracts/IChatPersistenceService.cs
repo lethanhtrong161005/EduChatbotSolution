@@ -34,16 +34,16 @@ public interface IChatPersistenceService
 
 
 
-    Task<CreatedChatMessage> CreateUserMessageAsync(
+    Task<ResolvedChatMessage> CreateUserMessageAsync(
         Guid sessionId,
         string content,
         CancellationToken cancellationToken = default);
 
-    Task<CreatedChatMessage> CreateStreamingAssistantMessageAsync(
+    Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
-    Task<CreatedChatMessage> CompleteAssistantMessageAsync(
+    Task<ResolvedChatMessage> CompleteAssistantMessageAsync(
         Guid messageId,
         string content,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
@@ -53,4 +53,8 @@ public interface IChatPersistenceService
         ChatGenerationMetrics generationMetrics,
         CancellationToken cancellationToken = default);
 
+    Task FailAssistantMessageAsync(
+        Guid messageId,
+        string generationErrors,
+        CancellationToken cancellationToken = default);
 }

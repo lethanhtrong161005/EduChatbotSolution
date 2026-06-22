@@ -17,6 +17,10 @@ public class ChatMessage : NaturalEntity
     /// <summary>Gets or sets when the message was sent.</summary>
     public DateTime SentAt { get; set; }
 
+    public MessageStatus Status { get; set; }
+
+    public string? GenerationErrors { get; set; }
+
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent conversation.</summary>
     public virtual ChatSession ChatSession { get; set; } = null!;
@@ -34,4 +38,12 @@ public enum ChatRole
     System,
     User,
     Assistant,
+}
+
+public enum MessageStatus
+{
+    Pending,
+    Streaming,
+    Completed,
+    Failed,
 }

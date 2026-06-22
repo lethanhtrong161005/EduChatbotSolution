@@ -1,4 +1,6 @@
-﻿namespace Presentation.DTOs;
+﻿using Domain.Entities;
+
+namespace Presentation.DTOs;
 
 public class GenerateChatRequest
 {
@@ -13,11 +15,21 @@ public class GenerateChatRequest
 
 public class GenerateChatResponse
 {
-    public Guid UserMessageId { get; set; }
+    public required Guid UserMessageId { get; set; }
 
-    public Guid AssistantMessageId { get; set; }
+    public required Guid UserMessageClientId { get; set; }
 
-    public Guid UserMessageClientId { get; set; }
+    public required string UserMessageContent { get; set; }
 
-    public Guid AssistantMessageClientId { get; set; }
+    public required DateTime UserMessageSentAt { get; set; }
+
+    public required MessageStatus UserMessageStatus { get; set; }
+
+    public required Guid AssistantMessageId { get; set; }
+
+    public required Guid AssistantMessageClientId { get; set; }
+
+    public required DateTime AssistantMessageSentAt { get; set; }
+
+    public required MessageStatus AssistantMessageStatus { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using DataAccess.UnitOfWork;
+﻿using AutoMapper;
+using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -6,9 +7,13 @@ using Domain.Exceptions;
 
 namespace Business.Services.AI.Chat;
 
-public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceService
+public class ChatPersistenceService(
+    IUnitOfWork unitOfWork,
+    IMapper mapper)
+    : IChatPersistenceService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<ChatSession?> GetSessionByIdAsync(
         Guid id,
@@ -115,7 +120,7 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
 
 
 
-    public async Task<CreatedChatMessage> CreateUserMessageAsync(
+    public async Task<ResolvedChatMessage> CreateUserMessageAsync(
           Guid sessionId,
           string content,
           CancellationToken cancellationToken = default)
@@ -127,22 +132,17 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
                 ChatRole = ChatRole.User,
                 Content = content,
                 SentAt = DateTime.UtcNow,
+                Status = MessageStatus.Completed,
             });
 
         await _unitOfWork.SaveAsync(cancellationToken);
 
-        var messageDto = new CreatedChatMessage
-        {
-            Id = newMessage.Id,
-            ChatRole = newMessage.ChatRole,
-            Content = newMessage.Content,
-            SentAt = newMessage.SentAt,
-        };
+        var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
 
-        return messageDto;
+        return dto;
     }
 
-    public async Task<CreatedChatMessage> CreateStreamingAssistantMessageAsync(
+    public async Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
@@ -152,23 +152,17 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
                 ChatSessionId = sessionId,
                 ChatRole = ChatRole.Assistant,
                 SentAt = DateTime.UtcNow,
-                //Status = ChatMessageStatus.Generating,
+                Status = MessageStatus.Pending,
             });
 
         await _unitOfWork.SaveAsync(cancellationToken);
 
-        var messageDto = new CreatedChatMessage
-        {
-            Id = newMessage.Id,
-            ChatRole = newMessage.ChatRole,
-            Content = newMessage.Content,
-            SentAt = newMessage.SentAt,
-        };
+        var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
 
-        return messageDto;
+        return dto;
     }
 
-    public async Task<CreatedChatMessage> CompleteAssistantMessageAsync(
+    public async Task<ResolvedChatMessage> CompleteAssistantMessageAsync(
         Guid messageId,
         string content,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
@@ -187,16 +181,25 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         message.Content = content;
-        message.SentAt = DateTime.UtcNow;
+        message.Status = MessageStatus.Completed;
 
         message.GenerationSettings = new ChatMessageGenerationSettings
         {
+            EmbeddingModel = generationSettings.EmbeddingModel,
+
             TopK = generationSettings.TopK,
+            SimilarityThreshold = generationSettings.SimilarityThreshold,
 
             LlmModel = generationSettings.LlmModel,
             Temperature = generationSettings.Temperature,
 
             SystemPrompt = generationSettings.SystemPrompt,
+            ContextPrompt = generationSettings.ContextPrompt,
+            NoContextRetrievedPrompt = generationSettings.NoContextRetrievedPrompt,
+
+            CitationExtractionTemperature = generationSettings.CitationExtractionTemperature,
+            CitationExtractionPrompt = generationSettings.CitationExtractionPrompt,
+
             MaxContextChunks = generationSettings.MaxContextChunks,
             MaxHistoryMessages = generationSettings.MaxHistoryMessages,
         };
@@ -219,6 +222,7 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
                     c => new Citation
                     {
                         ChunkId = c.ChunkId,
+                        OccurrenceIndex = c.OccurrenceIndex,
                         CitationIndex = c.CitationIndex,
                         QuotedText = c.QuotedText,
                         SimilarityScore = c.SimilarityScore,
@@ -227,12 +231,14 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
 
         await _unitOfWork.SaveAsync(cancellationToken);
 
-        var dto = new CreatedChatMessage
+        var dto = new ResolvedChatMessage
         {
             Id = message.Id,
             ChatRole = message.ChatRole,
             Content = message.Content,
             SentAt = message.SentAt,
+            Status = message.Status,
+            GenerationErrors = message.GenerationErrors,
             Citations = resolvedCitations,
         };
 
@@ -240,10 +246,10 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
     }
 
     private async Task<IReadOnlyList<ResolvedCitation>> ResolveCitationsAsync(
-          IEnumerable<ChunkUsage> usedChunks,
+          IEnumerable<ChunkUsage> chunkUsages,
           CancellationToken cancellationToken = default)
     {
-        var chunkIds = usedChunks
+        var chunkIds = chunkUsages
             .Select(c => c.ChunkId)
             .Distinct()
             .ToList();
@@ -255,21 +261,22 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
 
         var chunkLookup = chunks.ToDictionary(c => c.Id, c => c);
 
-        return [.. usedChunks
+        return [.. chunkUsages
             .OrderBy(c => c.CitationIndex)
-            .Select(usedChunk =>
+            .Select(chunkUsage =>
             {
-                if (!chunkLookup.TryGetValue(usedChunk.ChunkId, out var chunk))
+                if (!chunkLookup.TryGetValue(chunkUsage.ChunkId, out var chunk))
                 {
-                    throw new EntityNotFoundException($"Chunk {usedChunk.ChunkId} not found.");
+                    throw new EntityNotFoundException($"Chunk {chunkUsage.ChunkId} not found.");
                 }
 
                 return new ResolvedCitation
                 {
-                    ChunkId = usedChunk.ChunkId,
-                    CitationIndex = usedChunk.CitationIndex,
-                    QuotedText = usedChunk.QuotedText,
-                    SimilarityScore = usedChunk.SimilarityScore,
+                    ChunkId = chunkUsage.ChunkId,
+                    OccurrenceIndex = chunkUsage.OccurrenceIndex,
+                    CitationIndex = chunkUsage.CitationIndex,
+                    QuotedText = chunkUsage.QuotedText,
+                    SimilarityScore = chunkUsage.SimilarityScore,
                     LocationInDocument = BuildLocation(),
                     ChunkIndex = chunk.ChunkIndex,
                     ChunkText = chunk.ChunkText,
@@ -295,5 +302,20 @@ public class ChatPersistenceService(IUnitOfWork unitOfWork) : IChatPersistenceSe
                         : null;
                 }
             })];
+    }
+
+    public async Task FailAssistantMessageAsync(
+        Guid messageId,
+        string generationErrors,
+        CancellationToken cxlTkn = default)
+    {
+        var message = await _unitOfWork.ChatMessages.FindByIdAsync(messageId, cxlTkn);
+        if (message == null)
+            return;
+
+        message.Status = MessageStatus.Failed;
+        message.GenerationErrors = generationErrors;
+
+        await _unitOfWork.SaveAsync(cxlTkn);
     }
 }

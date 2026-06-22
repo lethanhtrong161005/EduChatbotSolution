@@ -23,7 +23,7 @@
         `);
     }
 
-    function renderNewChat(subjects) {
+    function renderNewSession(subjects) {
 
         return `
         <div class="flex h-full items-center justify-center">
@@ -58,10 +58,10 @@
     `;
     }
 
-    function renderChatSession(session) {
+    function renderExistingSession(session) {
 
         return `
-            <div class="flex h-full flex-col mx-auto max-w-[70%]">
+            <div class="flex h-full flex-col mx-auto max-w-[900px]">
 
                 <div
                     id="message-list"
@@ -178,14 +178,14 @@
 
         return `
             <div
-                class="mb-8 flex justify-end"
+                class="user-message mb-8 flex justify-end"
                 data-message-id="${message.id ?? ""}"
-                data-elem-id="${message.clientId}">
+                data-client-id="${message._clientId}">
 
                 <div
                     class="max-w-3xl rounded-3xl bg-message-user px-5 py-3 text-white">
 
-                    ${escapeHtml(message.content)}
+                    ${escapeHtml(message.getContent())}
 
                 </div>
 
@@ -195,30 +195,78 @@
 
     function renderAssistantMessage(message) {
 
-        const responseCount =
-            message.responseCount ?? 1;
-
-        const responseIndex =
-            message.responseIndex ?? 0;
-
         return `
     <article
-        class="assistant-message group"
+        class="assistant-message mb-8"
         data-message-id="${message.id}"
-        data-elem-id="${message.clientId}">
+        data-client-id="${message._clientId}">
 
-        <div
-            class="prose prose-sm md:prose-base max-w-none
-                   prose-headings:text-foreground
-                   prose-p:text-foreground
-                   prose-strong:text-foreground
-                   prose-code:text-foreground
-                   prose-pre:bg-surface-alt">
+        <div class="assistant-message-content max-w-none wrap-normal md:wrap-anywhere prose prose-sm md:prose-base prose-assistant">
 
-            ${marked.parse(message.content ?? "")}
+            ${renderAssistantMessageContent(message)}
 
         </div>
 
+        ${message.status === ChatEnums.MessageStatus.Completed
+                ? renderAssistantMessageUtilityBar(message)
+                : ""}
+
+    </article>
+            `;
+    }
+
+    function renderAssistantMessageContent(message) {
+
+        switch (message.status) {
+
+            case ChatEnums.MessageStatus.Pending:
+
+                return `
+                <div class="assistant-loading flex gap-1 items-center min-h-6">
+                    <span class="w-2 h-2 rounded-full bg-muted"></span>
+                    <span class="w-2 h-2 rounded-full bg-muted"></span>
+                    <span class="w-2 h-2 rounded-full bg-muted"></span>
+                </div>
+            `;
+
+            case ChatEnums.MessageStatus.Streaming:
+
+                if (!message.getContent().trim()) {
+                    return `
+                    <div class="assistant-thinking flex gap-0 items-center min-h-6">
+                        <span class="text-foreground">T</span>
+                        <span class="text-foreground">h</span>
+                        <span class="text-foreground">in</span>
+                        <span class="text-foreground">k</span>
+                        <span class="text-foreground">in</span>
+                        <span class="text-foreground">g</span>
+                    </div>
+                    `;
+                }
+
+            case ChatEnums.MessageStatus.Completed:
+
+                return marked.parse(message.getContent() ?? "");
+
+            case ChatEnums.MessageStatus.Failed:
+
+                return `
+                    ${marked.parse(message.getContent() ?? "")}
+                    <hr>
+                    <div class="prose prose-error max-w-none wrap-normal md:wrap-anywhere">
+                        \n\n⚠ Generation failed.\n\n
+                        ${marked.parse(message.generationErrors ?? "")}
+                    </div>
+            `;
+        }
+    }
+
+    function renderAssistantMessageUtilityBar(message) {
+
+        const responseCount = message.responseCount ?? 1;
+        const responseIndex = message.responseIndex ?? 0;
+
+        return `
         <div
             class="mt-3 flex items-center gap-1
                    text-muted text-sm">
@@ -231,7 +279,7 @@
                         <button
                             class="response-prev-btn
                                    cursor-pointer hover:text-foreground"
-                            data-client-id="${message.clientId}">
+                            data-client-id="${message._clientId}">
 
                             <i class="fa-solid fa-chevron-left"></i>
 
@@ -247,7 +295,7 @@
                         <button
                             class="response-next-btn
                                    cursor-pointer hover:text-foreground"
-                            data-client-id="${message.clientId}">
+                            data-client-id="${message._clientId}">
 
                             <i class="fa-solid fa-chevron-right"></i>
 
@@ -261,7 +309,7 @@
                 class="message-copy-btn
                        rounded-md px-2 py-1
                        cursor-pointer hover:bg-surface-hover"
-                data-client-id="${message.clientId}">
+                data-client-id="${message._clientId}">
 
                 <i class="fa-regular fa-copy"></i>
                 <span class="ml-1">Copy</span>
@@ -272,7 +320,7 @@
                 class="message-sources-btn
                        rounded-md px-2 py-1
                        cursor-pointer hover:bg-surface-hover"
-                data-client-id="${message.clientId}">
+                data-client-id="${message._clientId}">
 
                 <i class="fa-solid fa-book"></i>
                 <span class="ml-1">Sources</span>
@@ -283,7 +331,7 @@
                 class="message-regenerate-btn
                        rounded-md px-2 py-1
                        cursor-pointer hover:bg-surface-hover"
-                data-client-id="${message.clientId}">
+                data-client-id="${message._clientId}">
 
                 <i class="fa-solid fa-rotate-right"></i>
                 <span class="ml-1">Regenerate</span>
@@ -291,44 +339,22 @@
             </button>
 
         </div>
-
-    </article>
-            `;
-    }
-
-    function renderStreamingAssistantMessage(message) {
-
-        return `
-            <div
-                class="assistant-message-group mb-8"
-                data-message-id="${message.id ?? ""}"
-                data-elem-id="${message.clientId}">
-
-                <div
-                    class="assistant-streaming
-                           prose prose-sm md:prose-base max-w-none
-                           prose-headings:text-foreground
-                           prose-p:text-foreground
-                           prose-strong:text-foreground
-                           prose-code:text-foreground
-                           prose-pre:bg-surface-alt">
-                </div>
-
-            </div>
         `;
     }
 
     function renderSourceCard(citation) {
 
+        const trailing =
+            citation._snippet.length < citation.chunkText.length
+                ? "..."
+                : "";
+
         return `
-            < section
-        class="source-card
-        rounded - xl
-               border border - border
-        bg - card
-        overflow - hidden"
-        data - citation - id="${citation.id}"
-        data - citation - index="${citation.citationIndex}" >
+    <section
+        class="source-card rounded-xl border border-border bg-card overflow-hidden"
+        data-id="${citation.id}"
+        data-client-id="${citation._clientId}"
+        data-citation-index="${citation.citationIndex}" >
 
         <div
             class="p-4 border-b border-border">
@@ -375,22 +401,15 @@
                     <div
                         class="text-sm text-muted">
 
-                        ${escapeHtml(
-                    citation.locationInDocument)}
+                        ${escapeHtml(citation.locationInDocument)}
 
                     </div>
                 `
                 : ""}
 
-            ${citation.contentSnippet
+            ${citation._snippet
                 ? `
-                    <div
-                        class="mt-3 text-sm whitespace-pre-wrap">
-
-                        ${escapeHtml(
-                    citation.contentSnippet)}
-
-                    </div>
+                    <div class="mt-3 text-sm whitespace-pre-wrap">${escapeHtml(citation.quotedText) + trailing}</div>
                 `
                 : ""}
 
@@ -456,11 +475,11 @@
 
     return {
         renderSidebarSessionList,
-        renderNewChat,
-        renderChatSession,
+        renderNewSession,
+        renderExistingSession,
         renderUserMessage,
         renderAssistantMessage,
-        renderStreamingAssistantMessage,
+        renderAssistantMessageContent,
         renderSourceCard,
         renderAttachmentChip,
         renderFileLibraryRow

@@ -12,9 +12,17 @@ public record EffectiveAiConfiguration
 
     public required string LlmModel { get; init; }
 
-    public required double Temperature { get; init; }
+    public required float Temperature { get; init; }
 
     public required string SystemPrompt { get; init; }
+
+    public required string ContextPrompt { get; init; }
+
+    public required string NoContextRetrievedPrompt { get; init; }
+
+    public required float CitationExtractionTemperature { get; init; }
+
+    public required string CitationExtractionPrompt { get; init; }
 
     public required int MaxContextChunks { get; init; }
 

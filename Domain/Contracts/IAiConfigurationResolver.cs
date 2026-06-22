@@ -5,6 +5,6 @@ namespace Domain.Contracts;
 public interface IAiConfigurationResolver
 {
     Task<EffectiveAiConfiguration> GetAiConfigurationAsync(
-        int subjectId,
+        int? subjectId,
         CancellationToken cancellationToken = default);
 }

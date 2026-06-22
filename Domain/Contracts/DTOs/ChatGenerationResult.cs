@@ -17,6 +17,8 @@ public record ChunkRetrieval
 {
     public required Guid ChunkId { get; init; }
 
+    public required string ChunkText { get; init; }
+
     public required double SimilarityScore { get; init; }
 }
 
@@ -24,9 +26,11 @@ public record ChunkUsage
 {
     public required Guid ChunkId { get; init; }
 
+    public required int OccurrenceIndex { get; init; }
+
     public required int CitationIndex { get; init; }
 
-    public required string QuotedText { get; init; }
+    public required string? QuotedText { get; init; }
 
     public required double SimilarityScore { get; init; }
 }

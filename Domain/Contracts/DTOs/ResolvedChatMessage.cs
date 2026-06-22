@@ -2,7 +2,7 @@
 
 namespace Domain.Contracts.DTOs;
 
-public record CreatedChatMessage
+public record ResolvedChatMessage
 {
     public required Guid Id { get; init; }
 
@@ -10,7 +10,11 @@ public record CreatedChatMessage
 
     public required string Content { get; init; }
 
-    public IReadOnlyList<ResolvedCitation> Citations { get; init; } = [];
-
     public required DateTime SentAt { get; init; }
+
+    public required MessageStatus Status { get; init; }
+
+    public string? GenerationErrors { get; set; }
+
+    public IReadOnlyList<ResolvedCitation> Citations { get; init; } = [];
 }

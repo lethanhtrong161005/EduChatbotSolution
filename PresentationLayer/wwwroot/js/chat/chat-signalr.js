@@ -10,27 +10,27 @@
             .build();
 
         connection.on("ReceiveToken",
-            (assistantMessageClientId, token) => {
+            (assistantMessageId, token) => {
 
                 $(document).trigger(
                     "chat:token",
-                    [assistantMessageClientId, token]);
+                    [assistantMessageId, token]);
             });
 
         connection.on("GenerationCompleted",
-            (assistantMessageClientId, chatMessageDto) => {
+            (assistantMessageId, chatMessageDto) => {
 
                 $(document).trigger(
                     "chat:completed",
-                    [assistantMessageClientId, chatMessageDto]);
+                    [assistantMessageId, chatMessageDto]);
             });
 
         connection.on("GenerationFailed",
-            (assistantMessageClientId, error) => {
+            (assistantMessageId, error) => {
 
                 $(document).trigger(
                     "chat:failed",
-                    [assistantMessageClientId, error]);
+                    [assistantMessageId, error]);
             });
 
         await connection.start();

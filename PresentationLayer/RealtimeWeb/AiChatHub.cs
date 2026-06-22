@@ -18,9 +18,9 @@ public class AiChatHub : Hub<IAiChatClient>
 
 public interface IAiChatClient
 {
-    Task ReceiveToken(Guid assistantMessageClientId, string token);
+    Task ReceiveToken(Guid assistantMessageId, string token);
 
-    Task GenerationCompleted(Guid assistantMessageClientId, ChatMessageDto chatMessageDto);
+    Task GenerationCompleted(Guid assistantMessageId, ChatMessageDto chatMessageDto);
 
-    Task GenerationFailed(Guid assistantMessageClientId, string error);
+    Task GenerationFailed(Guid assistantMessageId, string error);
 }

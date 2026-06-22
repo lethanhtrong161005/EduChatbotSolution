@@ -31,6 +31,7 @@
     /* Background Colors */
     --color-bg-light: #ffffff; /* White background */
     --color-bg-neutral: #f9fafb; /* Light neutral background */
+    --color-bg-dim: #808080; /* Dim background */
     --color-bg-dark: #1f2937; /* Dark background */
     /* Text Colors */
     --color-text-primary: #111827; /* Primary text - Dark */

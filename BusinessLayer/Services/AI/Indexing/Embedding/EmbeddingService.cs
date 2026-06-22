@@ -10,7 +10,10 @@ public class EmbeddingService(
 {
     private readonly IEmbeddingGeneratorFactory _factory = factory;
 
-    public async Task<EmbedResult> EmbedAsync(IEnumerable<string> texts, string modelName, CancellationToken cxlTkn = default)
+    public async Task<EmbedResult> EmbedAsync(
+        IEnumerable<string> texts,
+        string modelName,
+        CancellationToken cxlTkn = default)
     {
         var generator = _factory.GetEmbeddingGenerator(modelName);
 

@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622042758_AlterAiConfigsAndChatMessage_AddPrompts")]
+    partial class AlterAiConfigsAndChatMessage_AddPrompts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -279,15 +282,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
                     b.Property<string>("ContextPrompt")
                         .IsRequired()
                         .HasColumnType("text")
@@ -494,11 +488,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("location_in_document");
 
-                    b.Property<int>("OccurrenceIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("occurrence_index");
-
                     b.Property<string>("QuotedText")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("quoted_text");
 
@@ -722,15 +713,6 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
-
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
 
                     b.Property<string>("ContextPrompt")
                         .IsRequired()
@@ -1107,14 +1089,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<string>("ChunkingStrategy")
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
-
-                    b.Property<string>("CitationExtractionPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float?>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
 
                     b.Property<string>("ContextPrompt")
                         .HasColumnType("text")

@@ -1,25 +1,40 @@
 ﻿window.Chat = (function () {
 
-
     /* ==========================================================
        State
        ========================================================== */
 
-    let signalr;
+    let sessionHeaders = [];
+
+    let activeSessionId = null;
+    let activeSession = null;
 
     let selectedSubjectId = null;
     let selectedSubjectText = "All of Your Subjects";
 
-    let activeSessionId = null;
-    let activeSourcesClientId = null;
-    let currentSession = null;
-
     let isSourcesPanelOpen = false;
+    let activeSourcesClientId = null;
+
     let isProfileMenuOpen = false;
     let isAttachmentMenuOpen = false;
 
-    let messageContent = null;
+    let messageContent = "";
     let inputEnabled = true;
+
+    /* ==========================================================
+       State Mutation -- Session List
+       ========================================================== */
+
+    function setActiveSessionLastMessageAt(val) {
+
+        if (!val || !activeSession
+            || val === activeSession.lastMessageAt)
+            return;
+
+        activeSession.lastMessageAt = val;
+
+        updateSidebarSessionList();
+    }
 
     /* ==========================================================
        State Mutation -- Input Bar
@@ -27,7 +42,7 @@
 
     function setMessageContent(val) {
 
-        val = val?.trim() ?? "";
+        val = val ?? "";
 
         messageContent = val;
 
@@ -41,18 +56,30 @@
 
         inputEnabled = val;
 
-        // TODO: Add overlay over text input.
-
+        updateInputBar();
         updateSendButton();
     }
 
     function getCanSend() {
-        return !!messageContent.trim() && inputEnabled;
+        return !!messageContent?.trim() && inputEnabled;
     }
 
     /* ==========================================================
-       Observers
+       UI Observers
        ========================================================== */
+    function updateInputBar() {
+
+        $("#chat-message-input")
+            .prop("disabled", !inputEnabled)
+            .toggleClass("cursor-not-allowed", !inputEnabled);
+
+        $("#btn-attach-file")
+            .prop("disabled", !inputEnabled)
+            .toggleClass("hover:bg-surface-hover", inputEnabled)
+            .toggleClass("cursor-pointer", inputEnabled)
+            .toggleClass("opacity-50", !inputEnabled)
+            .toggleClass("cursor-not-allowed", !inputEnabled);
+    }
 
     function updateSendButton() {
 
@@ -60,12 +87,24 @@
 
         $("#btn-send-message")
             .prop("disabled", !canSend)
-            .toggleClass("opacity-50", !canSend)
             .toggleClass("bg-brand", canSend)
-            .toggleClass("bg-background-disabled", !canSend)
             .toggleClass("hover:bg-brand-dark", canSend)
             .toggleClass("cursor-pointer", canSend)
+            .toggleClass("bg-background-disabled", !canSend)
+            .toggleClass("opacity-50", !canSend)
             .toggleClass("cursor-not-allowed", !canSend);
+    }
+
+
+    function updateSidebarSessionList() {
+
+        sessionHeaders.sort((a, b) =>
+            b.lastMessageAt - a.lastMessageAt);
+
+        const $list = $("#session-list");
+
+        $list.html(
+            ChatTemplates.renderSidebarSessionList(sessionHeaders));
     }
 
     /* ==========================================================
@@ -77,22 +116,12 @@
         activeSessionId =
             window.chatPage.activeSessionId ?? null;
 
-        signalr = await ChatSignalR.start();
-
-        loadSessionList();
+        await ChatSignalR.start();
 
         bindEvents();
 
-        if (activeSessionId) {
-
-            await loadSession(
-                activeSessionId,
-                false);
-        }
-        else {
-
-            loadNewChat(false);
-        }
+        await loadSessionList();
+        await loadSession(activeSessionId, false);
     }
 
     /* ==========================================================
@@ -101,17 +130,14 @@
 
     async function loadSessionList() {
 
-        const response = await $.getJSON({
+        const sessionHeaderDtos = await $.getJSON({
             url: `/chat/sessions`,
             method: "GET",
         });
 
-        const $list = $("#session-list");
+        sessionHeaders = sessionHeaderDtos;
 
-        $list.html(
-            ChatTemplates.renderSidebarSessionList(
-                response)
-        );
+        updateSidebarSessionList();
 
         highlightActiveSession();
     }
@@ -145,7 +171,7 @@
             "click",
             "#btn-new-chat",
             () => {
-                loadNewChat();
+                loadSession();
             });
 
         $(document).on(
@@ -160,26 +186,17 @@
             });
 
         window.addEventListener(
-            "popstate",
+            "popstatus",
             async function () {
 
-                const path =
-                    window.location.pathname;
+                const path = window.location.pathname;
 
-                const match =
-                    path.match(
-                        /^\/chat\/([0-9a-fA-F-]+)$/);
+                const match = path.match(
+                    /^\/chat\/([0-9a-fA-F-]+)$/);
 
-                if (match) {
-
-                    await loadSession(
-                        match[1],
-                        false);
-
-                    return;
-                }
-
-                loadNewChat(false);
+                await loadSession(
+                    match ? match[1] : null,
+                    false);
             });
     }
 
@@ -375,9 +392,6 @@
 
                     e.preventDefault();
 
-                    if (!getCanSend())
-                        return;
-
                     sendCurrentMessage();
                 }
             });
@@ -403,11 +417,35 @@
             ".message-sources-btn",
             function () {
 
-                const msgClientId =
-                    $(this).data("client-id");
+                const msgClientId = $(this).data("client-id");
 
-                openSourcesPanel(
-                    msgClientId);
+                openSourcesPanel(msgClientId);
+            });
+
+        /* Inline citations */
+
+        $(document).on(
+            "click",
+            ".message-inline-citation",
+            function () {
+
+                const msgClientId =
+                    $(this)
+                        .closest(".assistant-message")
+                        .data("client-id");
+
+                const citationIndex =
+                    $(this)
+                        .data("citation-index");
+
+                openSourcesPanel(msgClientId);
+
+                setTimeout(
+                    () => {
+
+                        flashCitation(citationIndex);
+                    },
+                    150);
             });
 
         /* Regenerate */
@@ -431,12 +469,9 @@
             ".response-prev-btn",
             function () {
 
-                const msgClientId =
-                    $(this).data("client-id");
+                const msgClientId = $(this).data("client-id");
 
-                switchVariant(
-                    msgClientId,
-                    -1);
+                switchVariant(msgClientId, -1);
             });
 
         $(document).on(
@@ -444,66 +479,61 @@
             ".response-next-btn",
             function () {
 
-                const msgClientId =
-                    $(this).data("client-id");
+                const msgClientId = $(this).data("client-id");
 
-                switchVariant(
-                    msgClientId,
-                    1);
+                switchVariant(msgClientId, 1);
             });
-
-        /* Inline citations */
-
-        $(document).on(
-            "click",
-            ".message-inline-citation",
-            function () {
-
-                const msgClientId =
-                    $(this).data("client-id");
-
-                const citationIndex =
-                    $(this).data("citation-index");
-
-                openCitation(
-                    msgClientId,
-                    citationIndex);
-            });
-
     }
 
     function bindSignalREvents() {
 
         $(document).on(
             "chat:token",
-            function (_, assistantMessageClientId, token) {
+            function (_, assistantMessageId, token) {
 
-                onReceiveToken(assistantMessageClientId, token);
+                onReceiveToken(assistantMessageId, token);
             });
 
         $(document).on(
             "chat:completed",
-            function (_, assistantMessageClientId, chatMessageDto) {
+            function (_, assistantMessageId, chatMessageDto) {
 
-                onGenerationCompleted(assistantMessageClientId, chatMessageDto);
+                onGenerationCompleted(assistantMessageId, chatMessageDto);
             });
 
         $(document).on(
             "chat:failed",
-            function (_, [assistantMessageClientId, error]) {
+            function (_, assistantMessageId, error) {
 
-                onGenerationFailed(assistantMessageClientId, error);
+                onGenerationFailed(assistantMessageId, error);
             });
 
     }
 
     /* ==========================================================
-       New Chat
+       Session Loading
        ========================================================== */
 
-    async function loadNewChat(pushHistory = true) {
+    async function loadSession(
+        sessionId = null,
+        pushHistory = true) {
 
-        currentSession = null;
+        if (!sessionId)
+            await loadNewSession(pushHistory);
+        else
+            await loadExistingSession(sessionId, pushHistory);
+
+        highlightActiveSession();
+
+        clearInput();
+        setInputEnabled(true);
+
+        closeSourcesPanel();
+    }
+
+    async function loadNewSession(pushHistory) {
+
+        activeSession = null;
         activeSessionId = null;
         activeSourcesClientId = null;
 
@@ -515,13 +545,10 @@
                 "/chat");
         }
 
-        renderNewChat();
-
-        clearInput();
-        closeSourcesPanel();
+        renderNewSession();
     }
 
-    function renderNewChat() {
+    function renderNewSession() {
 
         const subjects = [];
 
@@ -541,32 +568,19 @@
 
         $("#chat-main")
             .html(
-                ChatTemplates.renderNewChat(
+                ChatTemplates.renderNewSession(
                     subjects));
     }
 
-    /* ==========================================================
-       Session Loading
-       ========================================================== */
+    async function loadExistingSession(sessionId, pushHistory) {
 
-    async function loadSession(
-        sessionId,
-        pushHistory = true) {
-
-        const dto =
-            await $.getJSON(
-                `/chat/session/${sessionId}`);
+        const dto = await $.getJSON(`/chat/session/${sessionId}`);
 
         await ChatSignalR.switchSession(activeSessionId, sessionId);
 
-        activeSessionId =
-            sessionId;
-
-        currentSession =
-            normalizeSession(dto);
-
-        activeSourcesClientId =
-            null;
+        activeSessionId = sessionId;
+        activeSession = normalizeSession(dto);
+        activeSourcesClientId = null;
 
         if (pushHistory) {
 
@@ -578,16 +592,10 @@
 
         $("#chat-main")
             .html(
-                ChatTemplates.renderChatSession(
-                    currentSession));
+                ChatTemplates.renderExistingSession(
+                    activeSession));
 
-        renderMessages(
-            currentSession.messages);
-
-        clearInput();
-        closeSourcesPanel();
-
-        highlightActiveSession();
+        renderMessages(activeSession.messages);
     }
 
     function normalizeSession(dto) {
@@ -601,11 +609,29 @@
 
     function normalizeMessage(message) {
 
-        message.clientId ??= crypto.randomUUID();
+        message._clientId ??= crypto.randomUUID();
 
-        if (message.chatRole !== 2) {
-            return message;
-        }
+        message.getContent = function () {
+
+            return this._variants[this._activeVariant].content;
+        };
+
+        message.setContent = function (val) {
+
+            this._variants[this._activeVariant].content = val;
+        };
+
+        message.getCitations = function () {
+
+            return this._variants[this._activeVariant].citations;
+        };
+
+        message.setCitations = function (val) {
+
+            this._variants[this._activeVariant].citations = val;
+        };
+
+        /* TODO */
 
         message._variants = [
             {
@@ -619,12 +645,23 @@
 
         message._activeVariant = 0;
 
+        message.citations =
+            (message.citations ?? [])
+                .map(normalizeCitation);
+
+        /* --- */
+
         return message;
     }
 
-    /* ==========================================================
-       Message Rendering
-       ========================================================== */
+    function normalizeCitation(citation) {
+
+        citation._clientId ??= crypto.randomUUID();
+
+        citation._snippet = citation.chunkText.substring(0, 200);
+
+        return citation;
+    }
 
     function renderMessages(messages) {
 
@@ -638,40 +675,37 @@
             if (message.chatRole === 1) {
 
                 $list.append(
-                    ChatTemplates.renderUserMessage(
-                        message));
+                    ChatTemplates.renderUserMessage(message));
             }
             else {
 
                 $list.append(
-                    ChatTemplates.renderAssistantMessage(
-                        message));
+                    ChatTemplates.renderAssistantMessage(message));
             }
         }
 
         scrollToBottom();
     }
 
-    function reRenderAssistantMessage(
-        msgClientId) {
+    /* ==========================================================
+       Message Rendering
+       ========================================================== */
 
-        const message =
-            findMessage(msgClientId);
+    function updateAssistantMessage(msgClientId) {
 
-        if (!message) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
             return;
-        }
 
         const $container =
-            $(`[data-elem-id='${message.clientId}']`);
+            $(`[data-client-id='${message._clientId}']`);
 
         if ($container.length === 0) {
             return;
         }
 
         $container.replaceWith(
-            ChatTemplates.renderAssistantMessage(
-                message));
+            ChatTemplates.renderAssistantMessage(message));
     }
 
     /* ==========================================================
@@ -758,6 +792,9 @@
 
     async function sendCurrentMessage() {
 
+        if (!getCanSend())
+            return;
+
         const $input = $("#chat-message-input");
         if ($input.length === 0)
             return;
@@ -769,9 +806,9 @@
         clearInput();
         setInputEnabled(false);
 
-        if (!currentSession) {
+        if (!activeSession) {
 
-            await createNewSession(content);
+            await createNewSession();
         }
 
         const userMessage =
@@ -782,33 +819,53 @@
 
         scrollToBottom();
 
-        const response = await $.ajax({
-            url: "/chat/generate",
-            method: "POST",
-            data: {
-                sessionId: currentSession.id,
-                userMessageClientId: userMessage.clientId,
-                assistantMessageClientId: assistantMessage.clientId,
-                content
-            },
-        });
+        const cachedLastMessagAt = activeSession.lastMessageAt;
+        setActiveSessionLastMessageAt(Date.now());
 
-        userMessage.id = response.userMessageId;
-        userMessage.state = MessageState.Completed;
+        let genChatRes;
 
-        $(`[data-elem-id='${userMessage.clientId}']`)
-            .attr("data-message-id", userMessage.id);
+        try {
+            genChatRes = await $.ajax({
+                url: "/chat/generate",
+                method: "POST",
+                data: {
+                    sessionId: activeSession.id,
+                    userMessageClientId: userMessage._clientId,
+                    assistantMessageClientId: assistantMessage._clientId,
+                    content,
+                },
+            });
+        } catch (err) {
 
-        assistantMessage.id = response.assistantMessageId;
-        assistantMessage.state = MessageState.Streaming;
+            alert(err);
+            // setActiveSessionLastMessageAt(cachedLastMessagAt);
+        }
 
-        $(`[data-elem-id='${assistantMessage.clientId}']`)
-            .attr("data-message-id", assistantMessage.id);
+        if (userMessage._clientId === genChatRes.userMessageClientId) {
 
-        setInputEnabled(true);
+            userMessage.id = genChatRes.userMessageId;
+            userMessage.setContent(genChatRes.userMessageContent);
+            userMessage.sentAt = genChatRes.userMessageSentAt;
+            userMessage.status = genChatRes.userMessageStatus
+                ?? ChatEnums.MessageStatus.Completed;
+
+            $(`[data-client-id='${userMessage._clientId}']`)
+                .attr("data-message-id", userMessage.id);
+        }
+
+        if (assistantMessage._clientId === genChatRes.assistantMessageClientId) {
+
+            assistantMessage.id = genChatRes.assistantMessageId;
+            assistantMessage.sentAt = genChatRes.assistantSentAt;
+            assistantMessage.status = genChatRes.assistantStatus
+                ?? ChatEnums.MessageStatus.Pending;
+
+            $(`[data-client-id='${assistantMessage._clientId}']`)
+                .attr("data-message-id", assistantMessage.id);
+        }
     }
 
-    async function createNewSession(content) {
+    async function createNewSession() {
 
         const subjectId = selectedSubjectId;
 
@@ -827,52 +884,44 @@
 
     function appendUserMessage(content) {
 
-        const message = {
+        const message = normalizeMessage(
+            {
+                id: null,
+                _clientId: crypto.randomUUID(),
+                chatRole: ChatEnums.ChatRole.User,
+                content, // TODO: Impl. variants
+                sentAt: null,
+                status: ChatEnums.MessageStatus.Pending,
+            });
 
-            id: null,
-            clientId: crypto.randomUUID(),
-            chatRole: ChatRole.User,
-            content,
-            state: MessageState.Pending,
-        };
-
-        currentSession.messages.push(
+        activeSession.messages.push(
             message);
 
         $("#message-list")
             .append(
-                ChatTemplates.renderUserMessage(
-                    message));
+                ChatTemplates.renderUserMessage(message));
 
         return message;
     }
 
     function appendStreamingAssistantMessage() {
 
-        const message = {
+        const message = normalizeMessage(
+            {
+                id: null,
+                _clientId: crypto.randomUUID(),
+                chatRole: ChatEnums.ChatRole.Assistant,
+                content: "", // TODO: Impl. variants
+                sentAt: null,
+                status: ChatEnums.MessageStatus.Pending,
+            });
 
-            id: null,
-            clientId: crypto.randomUUID(),
-            chatRole: ChatRole.Assistant,
-            content: "",
-            state: MessageState.Streaming,
-            citations: [],
-            _variants: [
-                {
-                    content: "",
-                    citations: []
-                }
-            ],
-            _activeVariant: 0
-        };
-
-        currentSession.messages.push(
+        activeSession.messages.push(
             message);
 
         $("#message-list")
             .append(
-                ChatTemplates.renderStreamingAssistantMessage(
-                    message));
+                ChatTemplates.renderAssistantMessage(message));
 
         return message;
     }
@@ -881,118 +930,96 @@
        Streaming Token Handling
        ========================================================== */
 
-    function onReceiveToken(assistantMessageClientId, token) {
+    function onReceiveToken(assistantMessageId, token) {
 
         if (!activeSessionId)
             return;
 
-        const message =
-            findMessage(
-                assistantMessageClientId);
-
-        if (!message) {
+        const message = findMessageById(assistantMessageId);
+        if (!message)
             return;
+
+        if (message.status === ChatEnums.MessageStatus.Pending) {
+
+            message.status = ChatEnums.MessageStatus.Streaming;
+
+            updateAssistantMessage(message._clientId);
         }
 
-        const variant =
-            message._variants[
-            message._activeVariant];
+        message.setContent(message.getContent() + token);
 
-        variant.content += token;
+        if (token) {
 
-        message.content =
-            variant.content;
-
-        updateStreamingMessageDom(
-            message);
-
-        scrollToBottomIfNeeded();
+            updateStreamingMessageContent(message);
+            scrollToBottomIfNearBottom();
+        }
     }
 
-    function updateStreamingMessageDom(
-        message) {
+    const StreamingMessageReRenderIntervalMs = 15;
 
-        const $container =
-            $(`[data-elem-id='${message.clientId}']`);
+    function updateStreamingMessageContent(message) {
 
-        if ($container.length === 0) {
+        if (Date.now() - message._lastRenderAt < StreamingMessageReRenderIntervalMs)
             return;
-        }
 
-        const $content =
-            $container.find(
-                ".assistant-streaming");
-
-        if ($content.length === 0) {
+        const $container = $(`[data-client-id='${message._clientId}']`);
+        if ($container.length === 0)
             return;
-        }
+
+        const $content = $container.find(".assistant-message-content");
+        if ($content.length === 0)
+            return;
 
         $content.html(
-            marked.parse(
-                message.content ?? ""));
+            ChatTemplates.renderAssistantMessageContent(message));
 
+        message._lastRenderAt = Date.now();
     }
 
-    function onGenerationCompleted(assistantMessageClientId, chatMessageDto) {
+    function onGenerationCompleted(assistantMessageId, chatMessageDto) {
 
         if (!activeSessionId)
             return;
 
-        const message =
-            findMessage(
-                assistantMessageClientId);
-
+        const message = findMessageById(assistantMessageId);
         if (!message) {
             return;
         }
 
-        if (message.id != chatMessageDto.id) {
+        if (chatMessageDto.id !== message.id) {
             return;
         }
 
-        message.state = MessageState.Completed;
+        message.status = ChatEnums.MessageStatus.Completed;
 
-        message.sentAt = chatMessageDto.sentAt;
+        message.setContent(chatMessageDto.content);
+        message.setCitations(
+            (chatMessageDto.citations ?? [])
+                .map(c => normalizeCitation(c)));
 
-        const variant = message._variants[message._activeVariant];
-        variant.content = chatMessageDto.content;
-        variant.citations = chatMessageDto.citations ?? [];
-
-        message.content = variant.content;
-        message.citations = variant.citations ?? [];
-
-        reRenderAssistantMessage(message.clientId);
-
+        updateAssistantMessage(message._clientId);
         scrollToBottom();
+
+        setInputEnabled(true);
     }
 
-    function onGenerationFailed(assistantMessageClientId, error) {
+    function onGenerationFailed(assistantMessageId, error) {
 
         if (!activeSessionId)
             return;
 
-        const message =
-            findMessage(
-                assistantMessageClientId);
+        const message = findMessageById(assistantMessageId);
+        if (!message)
+            return;
 
-        if (message) {
+        message.status = ChatEnums.MessageStatus.Failed;
 
-            message.state = MessageState.Failed;
+        message.generationErrors = error;
 
-            const variant =
-                message._variants[
-                message._activeVariant];
+        updateAssistantMessage(message._clientId);
+        scrollToBottom();
 
-            variant.content +=
-
-                `\n\n-- -\n\n⚠ Generation failed.\n\n${error}`
-
-            message.content =
-                variant.content;
-
-            reRenderAssistantMessage(
-                message.clientId);
-        }
+        setInputEnabled(true);
     }
 
     /* ==========================================================
@@ -1001,12 +1028,9 @@
 
     function switchVariant(msgClientId, delta) {
 
-        const message =
-            findMessage(msgClientId);
-
-        if (!message) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
             return;
-        }
 
         const count =
             message._variants.length;
@@ -1030,33 +1054,25 @@
         message._activeVariant =
             nextIndex;
 
-        updateMessageFromVariant(
-            message);
+        updateMessageFromVariant(message);
 
-        reRenderAssistantMessage(
-            message.clientId);
+        updateAssistantMessage(message._clientId);
 
-        if (activeSourcesClientId === message.clientId) {
+        if (activeSourcesClientId === message._clientId) {
 
-            openSourcesPanel(
-                message.clientId);
+            openSourcesPanel(message._clientId);
         }
 
     }
 
-    function updateMessageFromVariant(
-        message) {
+    function updateMessageFromVariant(message) {
 
         const variant =
             message._variants[
             message._activeVariant];
 
-        message.content =
-            variant.content;
-
-        message.citations =
-            variant.citations;
-
+        message.content = variant.content;
+        message.citations = variant.citations;
     }
 
     /* ==========================================================
@@ -1065,20 +1081,12 @@
 
     async function copyMessage(msgClientId) {
 
-        const message =
-            findMessage(msgClientId);
-
-        if (!message) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
             return;
-        }
-
-        const variant =
-            message._variants[
-            message._activeVariant];
 
         await navigator.clipboard.writeText(
-            variant.content ?? "");
-
+            message.getContent() ?? "");
     }
 
     /* ==========================================================
@@ -1088,12 +1096,9 @@
     function regenerateMessage(
         msgClientId) {
 
-        const message =
-            findMessage(msgClientId);
-
-        if (!message) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
             return;
-        }
 
         const variantNumber =
             message._variants.length + 1;
@@ -1114,53 +1119,37 @@
         message._activeVariant =
             message._variants.length - 1;
 
-        updateMessageFromVariant(
-            message);
+        updateMessageFromVariant(message);
 
-        reRenderAssistantMessage(
-            message.clientId);
+        updateAssistantMessage(message._clientId);
 
-        if (activeSourcesClientId === message.clientId) {
+        if (activeSourcesClientId === message._clientId) {
 
-            openSourcesPanel(
-                message.clientId);
+            openSourcesPanel(message._clientId);
         }
-
     }
 
     /* ==========================================================
        Sources Panel
        ========================================================== */
 
-    function openSourcesPanel(
-        msgClientId) {
+    function openSourcesPanel(msgClientId) {
 
-        activeSourcesClientId =
-            msgClientId;
-
+        activeSourcesClientId = msgClientId;
         isSourcesPanelOpen = true;
 
-        const $panel =
-            $("#sources-panel");
+        const $panel = $("#sources-panel");
+        const $content = $("#sources-panel-content");
 
-        const $body =
-            $("#sources-panel-body");
-
-        const message =
-            findMessage(msgClientId);
+        const message = findMessageByClientId(msgClientId);
 
         if (!message) {
             return;
         }
 
-        const variant =
-            message._variants[
-            message._activeVariant];
+        const citations = message.getCitations() ?? [];
 
-        const citations =
-            variant.citations ?? [];
-
-        $body.empty();
+        $content.empty();
 
         citations
             .sort(
@@ -1169,7 +1158,7 @@
                     b.citationIndex)
             .forEach(citation => {
 
-                $body.append(
+                $content.append(
                     ChatTemplates.renderSourceCard(
                         citation));
             });
@@ -1212,8 +1201,7 @@
             200);
     }
 
-    function flashCitation(
-        citationIndex) {
+    function flashCitation(citationIndex) {
 
         const $card =
             $(`.source-card[data-citation-index='${citationIndex}']`);
@@ -1248,7 +1236,6 @@
         if (isProfileMenuOpen) {
 
             closeProfileMenu();
-
             return;
         }
 
@@ -1275,7 +1262,6 @@
         if (isAttachmentMenuOpen) {
 
             closeAttachmentMenu();
-
             return;
         }
 
@@ -1332,45 +1318,24 @@
         setMessageContent("");
     }
 
-    function findMessage(msgClientId) {
+    function findMessageById(messageId) {
 
-        if (!currentSession) {
+        if (!activeSession)
+            return null;
+
+        return activeSession.messages.find(
+            x => x.id === messageId);
+    }
+
+    function findMessageByClientId(msgClientId) {
+
+        if (!activeSession) {
             return null;
         }
 
-        return currentSession.messages.find(
-            x => x.clientId === msgClientId);
+        return activeSession.messages.find(
+            x => x._clientId === msgClientId);
     }
-
-    function openCitation(
-        msgClientId,
-        citationIndex) {
-
-        openSourcesPanel(
-            msgClientId);
-
-        setTimeout(
-            () => {
-
-                flashCitation(
-                    citationIndex);
-
-            },
-            150);
-    }
-
-    const MessageState = Object.freeze({
-        Pending: 0,
-        Streaming: 1,
-        Completed: 2,
-        Failed: 3,
-    });
-
-    const ChatRole = Object.freeze({
-        System: 0,
-        User: 1,
-        Assistant: 2,
-    });
 
     /* ==========================================================
        Scrolling
@@ -1426,15 +1391,14 @@
         }
 
         const remaining =
-            container.scrollHeight -
-            container.scrollTop -
-            container.clientHeight;
+            container.scrollHeight
+            - container.scrollTop
+            - container.clientHeight;
 
-        return remaining < 150;
-
+        return remaining < 100;
     }
 
-    function scrollToBottomIfNeeded() {
+    function scrollToBottomIfNearBottom() {
 
         if (isNearBottom()) {
 
@@ -1448,11 +1412,6 @@
 
     return {
         init,
-        openSourcesPanel,
-        closeSourcesPanel,
-        flashCitation,
-        reRenderAssistantMessage,
-        scrollToBottom
     };
 
 

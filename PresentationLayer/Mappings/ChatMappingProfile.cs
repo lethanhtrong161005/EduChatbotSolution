@@ -22,10 +22,10 @@ public class ChatMappingProfile : Profile
 
         /* Load session */
         CreateMap<Citation, ChatCitationDto>()
-                .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.Chunk.ChunkIndex))
-                .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.Chunk.ChunkText))
-                .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.Chunk.Document.Title))
-                .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.Chunk.DocumentId));
+            .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.Chunk.ChunkIndex))
+            .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.Chunk.ChunkText))
+            .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.Chunk.Document.Title))
+            .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.Chunk.DocumentId));
 
         CreateMap<ChatMessage, ChatMessageDto>();
 
@@ -33,7 +33,10 @@ public class ChatMappingProfile : Profile
             .ForMember(dest => dest.LastMessageAt, opts => opts.MapFrom<LastMessageAtResolver>());
 
         /* Send message */
-        CreateMap<CreatedChatMessage, ChatMessageDto>();
+        CreateMap<ChatMessage, ResolvedChatMessage>()
+            .ForMember(dest => dest.Citations, opts => opts.Ignore());
+
+        CreateMap<ResolvedChatMessage, ChatMessageDto>();
 
         CreateMap<ResolvedCitation, ChatCitationDto>();
     }

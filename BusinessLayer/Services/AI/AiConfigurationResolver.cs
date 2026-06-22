@@ -8,17 +8,17 @@ public class AiConfigurationResolver(IUnitOfWork unitOfWork) : IAiConfigurationR
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<EffectiveAiConfiguration> GetAiConfigurationAsync(int subjectId, CancellationToken cxlTkn)
+    public async Task<EffectiveAiConfiguration> GetAiConfigurationAsync(int? subjectId, CancellationToken cxlTkn)
     {
-        var subjectConfig = (await _unitOfWork.SubjectAiConfigurations.GetAsync(
-            filter: e => e.Id == subjectId,
-            cancellationToken: cxlTkn))
-            .FirstOrDefault();
+        var subjectConfig = subjectId.HasValue
+            ? (await _unitOfWork.SubjectAiConfigurations.GetAsync(
+                filter: e => e.Id == subjectId,
+                cancellationToken: cxlTkn))
+                .FirstOrDefault()
+            : null;
 
-        var globalConfig = (await _unitOfWork.GlobalAiConfigurations.GetAsync(cancellationToken: cxlTkn))
-            .FirstOrDefault()
-            ?? throw new InvalidOperationException("Global AI configuration has not been initialized.");
-
+        var globalConfig = (await _unitOfWork.GlobalAiConfigurations.GetAsync(cancellationToken: cxlTkn)).FirstOrDefault()
+                           ?? throw new InvalidOperationException("Global AI configuration has not been initialized.");
 
         return new EffectiveAiConfiguration
         {
@@ -49,6 +49,22 @@ public class AiConfigurationResolver(IUnitOfWork unitOfWork) : IAiConfigurationR
             SystemPrompt =
                 subjectConfig?.SystemPrompt
                 ?? globalConfig.SystemPrompt,
+
+            ContextPrompt =
+                subjectConfig?.ContextPrompt
+                ?? globalConfig.ContextPrompt,
+
+            NoContextRetrievedPrompt =
+                subjectConfig?.NoContextRetrievedPrompt
+                ?? globalConfig.NoContextRetrievedPrompt,
+
+            CitationExtractionTemperature =
+                subjectConfig?.CitationExtractionTemperature
+                ?? globalConfig.CitationExtractionTemperature,
+
+            CitationExtractionPrompt =
+                subjectConfig?.CitationExtractionPrompt
+                ?? globalConfig.CitationExtractionPrompt,
 
             MaxContextChunks =
                 subjectConfig?.MaxContextChunks

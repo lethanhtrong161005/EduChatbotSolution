@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621130341_AlterChatMessage_AddGenerationErrors")]
+    partial class AlterChatMessage_AddGenerationErrors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -279,20 +282,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -316,11 +305,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<int>("MaxHistoryMessages")
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
-
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
 
                     b.Property<double>("SimilarityThreshold")
                         .HasColumnType("double precision")
@@ -494,11 +478,8 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("location_in_document");
 
-                    b.Property<int>("OccurrenceIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("occurrence_index");
-
                     b.Property<string>("QuotedText")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("quoted_text");
 
@@ -723,20 +704,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -760,11 +727,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<int>("MaxHistoryMessages")
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
-
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
 
                     b.Property<double>("SimilarityThreshold")
                         .HasColumnType("double precision")
@@ -1108,18 +1070,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
-                    b.Property<string>("CitationExtractionPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("citation_extraction_prompt");
-
-                    b.Property<float?>("CitationExtractionTemperature")
-                        .HasColumnType("real")
-                        .HasColumnName("citation_extraction_temperature");
-
-                    b.Property<string>("ContextPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("context_prompt");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1141,10 +1091,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<int?>("MaxHistoryMessages")
                         .HasColumnType("integer")
                         .HasColumnName("max_history_messages");
-
-                    b.Property<string>("NoContextRetrievedPrompt")
-                        .HasColumnType("text")
-                        .HasColumnName("no_context_retrieved_prompt");
 
                     b.Property<double?>("SimilarityThreshold")
                         .HasColumnType("double precision")

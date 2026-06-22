@@ -848,7 +848,8 @@ public static class HostExtensions
                     ChatSessionId = sessionId,
                     ChatRole = ChatRole.User,
                     Content = userText,
-                    SentAt = timestamp
+                    SentAt = timestamp,
+                    Status = MessageStatus.Completed,
                 });
 
                 var assistant = unitOfWork.ChatMessages.Insert(new ChatMessage
@@ -857,13 +858,14 @@ public static class HostExtensions
                     ChatRole = ChatRole.Assistant,
                     Content = assistantText,
                     SentAt = timestamp.AddMinutes(1),
+                    Status = MessageStatus.Completed,
 
                     GenerationSettings = new ChatMessageGenerationSettings
                     {
                         TopK = 8,
 
                         LlmModel = "gpt-4.1-mini",
-                        Temperature = 0.7,
+                        Temperature = 0.7F,
 
                         SystemPrompt = "You are a smart university assistant. Answer using only the context below. If you do not know the answer, do not make one up, simply say you do not know.",
                         MaxContextChunks = 10,
