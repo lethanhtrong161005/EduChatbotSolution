@@ -1,0 +1,46 @@
+@using Domain.Common
+@using Domain.Entities
+@using Microsoft.AspNetCore.Identity
+@using Presentation.Common
+
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
+    var authenticated = SignInManager.IsSignedIn(User);
+    var isAdmin = User.IsInRole(UserRole.Admin.ToString());
+    var isLecturer = User.IsInRole(UserRole.Lecturer.ToString());
+    var isStudent = User.IsInRole(UserRole.Student.ToString());
+}
+
+<ul class="nav navbar-nav nav-pills flex-grow-1">
+    <li class="nav-item"><a class="nav-link text-dark @NavBar.HomeNavClass(Context)" id="home" asp-page="/Home/Index">Home</a></li>
+    <li class="nav-item"><a class="nav-link text-dark @NavBar.ChatNavClass(Context)" id="chat" asp-page="/Chat/Index">Chat</a></li>
+    @if (isLecturer || isAdmin)
+    {
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-page="/Documents/Library">Documents</a></li>
+    }
+    @if (isAdmin)
+    {
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.AccountsNavClass(Context)" id="accounts" href="/acc">Accounts</a></li>
+        <li class="nav-item"><a class="nav-link text-dark @NavBar.RblNavClass(Context)" id="rbl" href="/rbl">Analyze</a></li>
+    }
+</ul>
+<ul class="navbar-nav">
+    @if (authenticated)
+    {
+        @if (isStudent || isLecturer)
+        {
+            <li class="nav-item"><a class="nav-link text-dark @NavBar.PlansNavClass(Context)" id="plans" asp-page="/Subscriptions/SelectPlan">Plans</a></li>
+        }
+        <li class="nav-item">
+            <form class="form-inline" method="post" asp-page="/Account/Logout" asp-route-return-url="@Context.Request.Path">
+                <button type="submit" class="nav-link btn btn-link text-dark" style="line-height: normal !important;">Log out</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Account/Register" asp-route-return-url="@Context.Request.Path">Register</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Account/Login" asp-route-return-url="@Context.Request.Path">Log in</a></li>
+    }
+</ul>

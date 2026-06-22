@@ -202,7 +202,7 @@ public class LocationAnnotatedParser : IDocumentParser
             var titleShapes = slidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Shape>()
                 .Where(s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title
                          || s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.CenteredTitle);
-            
+
             var titleText = titleShapes.FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault()?.Text;
             if (!string.IsNullOrWhiteSpace(titleText))
             {

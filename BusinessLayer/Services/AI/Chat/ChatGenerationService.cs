@@ -2,7 +2,6 @@
 using Domain.Contracts.DTOs;
 using Microsoft.Extensions.AI;
 using System.Text;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Business.Services.AI.Chat;
@@ -168,7 +167,7 @@ public class ChatGenerationService(
             Temperature = request.Settings.CitationExtractionTemperature,
             Reasoning = new ReasoningOptions
             {
-                Effort = ReasoningEffort.ExtraHigh,
+                Effort = ReasoningEffort.High,
                 Output = ReasoningOutput.None,
             },
         };
@@ -211,6 +210,10 @@ public class ChatGenerationService(
 
         var indexMap = new Dictionary<int, int>();
 
+        var extractionLookup = citationExtractions
+            .Where(e => e.Valid)
+            .ToDictionary(e => (e.OccurrenceId, e.ChunkIndex));
+
         var processedAnswer = CitationRegex.Replace(answer, match =>
             {
                 if (!int.TryParse(match.Groups[1].Value, out var chunkRetrievalIndex))
@@ -222,28 +225,27 @@ public class ChatGenerationService(
                     return string.Empty;
                 }
 
+                indexMap.TryAdd(chunkRetrievalIndex, indexMap.Count + 1);
+
                 var occurrenceIndex = chunkUsages.Count + 1;
-
-                indexMap.TryAdd(chunkRetrievalIndex, occurrenceIndex);
-
-                var firstOccurrenceIndex = indexMap[chunkRetrievalIndex];
+                var citationIndex = indexMap[chunkRetrievalIndex];
 
                 var usedChunkRetrieval = chunkRetrievalsInContext[chunkRetrievalIndex - 1];
+
+                _ = extractionLookup.TryGetValue(
+                    (occurrenceIndex, chunkRetrievalIndex),
+                    out var citationExtractionItem);
 
                 chunkUsages.Add(new ChunkUsage
                 {
                     ChunkId = usedChunkRetrieval.ChunkId,
                     OccurrenceIndex = occurrenceIndex,
-                    CitationIndex = firstOccurrenceIndex,
-                    QuotedText = citationExtractions
-                        .FirstOrDefault(e => e.Valid
-                                             && e.OccurrenceId == occurrenceIndex
-                                             && e.ChunkIndex == chunkRetrievalIndex)?   // Safeguard check
-                        .SupportingQuote,
+                    CitationIndex = citationIndex,
+                    QuotedText = citationExtractionItem?.SupportingQuote,
                     SimilarityScore = usedChunkRetrieval.SimilarityScore,
                 });
 
-                return RenderCitationMarkup(firstOccurrenceIndex);
+                return RenderCitationMarkup(citationIndex);
             });
 
         var cleanedAnswer = processedAnswer.Trim();

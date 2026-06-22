@@ -1,0 +1,17 @@
+@page "/error"
+@model Presentation.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Error</h1>
+<h2 class="text-danger">@Model.ViewModel.Title</h2>
+<p>
+    <strong>Details:</strong> <code>@Model.ViewModel.Detail</code>
+</p>
+@if (Model.ViewModel.ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model.ViewModel.RequestId</code>
+    </p>
+}

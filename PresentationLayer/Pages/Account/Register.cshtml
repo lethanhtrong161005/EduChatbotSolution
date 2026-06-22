@@ -1,0 +1,207 @@
+@page "/register"
+@model Presentation.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register - EduChatAI";
+    Layout = null; // No layout for register page
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Global Color Scheme -->
+    <link rel="stylesheet" href="~/css/colors.css">
+
+    <!-- Account Auth Styles -->
+    <link rel="stylesheet" href="~/css/account-auth.css">
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="bg-animation"></div>
+
+    <!-- Main Register Container -->
+    <div class="container-login">
+        <!-- Left Sidebar - Branding -->
+        <div class="login-sidebar d-none d-lg-flex">
+            <div class="sidebar-content">
+                <div class="sidebar-logo">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h2 class="sidebar-title">EduChatAI</h2>
+                <p class="sidebar-subtitle">Smart Educational Companion</p>
+
+                <ul class="sidebar-features">
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span>AI-Powered Learning</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span>Instant Q&A Support</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span>Personalized Education</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Side - Register Form -->
+        <div class="login-form-container">
+            <div class="login-form-box">
+                <!-- Header -->
+                <div class="login-header login-header--compact">
+                    <h1>Register Account</h1>
+                    <p>Get your free EduChatAI account now.</p>
+                </div>
+
+                <!-- Error Messages -->
+                @if (ViewData.ModelState.Values.SelectMany(v => v.Errors).Any())
+                {
+                    <div class="alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        @Html.ValidationSummary(false)
+                    </div>
+                }
+
+                <!-- Register Form -->
+                <form id="registerForm" method="post" asp-page="/Account/Register" asp-route-return-url="@Model.ReturnUrl">
+                    <!-- Email Input -->
+                    <div class="form-group">
+                        <label class="form-label" asp-for="ViewModel.Email">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <div class="input-icon-wrapper">
+                            <input type="email"
+                                   class="form-control form-control-with-icon"
+                                   placeholder="Enter your email"
+                                   asp-for="ViewModel.Email"
+                                   required>
+                            <i class="fas fa-envelope input-icon"></i>
+                        </div>
+                        <span asp-validation-for="ViewModel.Email" class="text-danger"></span>
+                    </div>
+
+                    <!-- Full Name Input -->
+                    <div class="form-group">
+                        <label class="form-label" asp-for="ViewModel.FullName">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <div class="input-icon-wrapper">
+                            <input type="text"
+                                   class="form-control form-control-with-icon"
+                                   placeholder="Enter your full name"
+                                   asp-for="ViewModel.FullName"
+                                   required>
+                            <i class="fas fa-user input-icon"></i>
+                        </div>
+                        <span asp-validation-for="ViewModel.FullName" class="text-danger"></span>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="form-group">
+                        <label class="form-label" asp-for="ViewModel.Password">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="input-icon-wrapper">
+                            <input type="password"
+                                   class="form-control form-control-with-icon password-input"
+                                   id="password"
+                                   placeholder="Enter your password"
+                                   asp-for="ViewModel.Password"
+                                   required>
+                            <button type="button" class="toggle-password" data-target="password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ViewModel.Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- Confirm Password Input -->
+                    <div class="form-group">
+                        <label class="form-label" asp-for="ViewModel.ConfirmPassword">
+                            <i class="fas fa-lock"></i> Confirm Password
+                        </label>
+                        <div class="input-icon-wrapper">
+                            <input type="password"
+                                   class="form-control form-control-with-icon password-input"
+                                   id="confirmPassword"
+                                   placeholder="Re-enter your password"
+                                   asp-for="ViewModel.ConfirmPassword"
+                                   required>
+                            <button type="button" class="toggle-password" data-target="confirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ViewModel.ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <!-- Terms Checkbox -->
+                    <div class="form-check">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               id="agreeTerms"
+                               required>
+                        <label class="form-check-label" for="agreeTerms">
+                            I agree to the <a href="#" style="color: var(--color-primary);">Terms of Service</a>
+                        </label>
+                    </div>
+
+                    <!-- Register Button with Loading Animation -->
+                    <button type="submit" class="btn-login" id="registerBtn">
+                        <span class="spinner-loading">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        </span>
+                        <span class="btn-text">Register</span>
+                    </button>
+                </form>
+
+                <!-- Social Divider -->
+                <div class="social-divider">
+                    <span>Or sign up with</span>
+                </div>
+
+                <!-- Social Buttons -->
+                <div class="social-buttons">
+                    <a href="/login/google?returnUrl=@Uri.EscapeDataString(Model.ReturnUrl)"
+                       class="btn-social btn-social--google">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        </svg>
+                        <span>Google</span>
+                    </a>
+                </div>
+
+                <!-- Login Link -->
+                <div class="signup-link">
+                    Already have an account? <a asp-page="/Account/Login" asp-route-return-url="@Model.ReturnUrl">Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery and Validation Scripts for client-side validation -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+
+    <!-- Register Interactions Script -->
+    <script src="~/js/account-register.js"></script>
+</body>
+</html>

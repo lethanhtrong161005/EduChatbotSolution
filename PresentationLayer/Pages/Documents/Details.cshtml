@@ -1,0 +1,1251 @@
+@page "{id:guid}/{handler?}"
+@model Presentation.Pages.Documents.DetailsModel
+@{
+    ViewData["Title"] = Model.ViewModel.Title;
+    var extensionClean = Model.ViewModel.Extension.TrimStart('.').ToLower();
+}
+
+<!-- Google Fonts & FontAwesome -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/colors.css" />
+<link rel="stylesheet" href="~/css/status-badge.css" />
+<link rel="stylesheet" href="~/css/document-details.css" />
+
+<style>
+    /* Premium Design Overrides */
+    :root {
+        --font-outfit: 'Outfit', sans-serif;
+        --font-inter: 'Inter', sans-serif;
+        --font-mono: 'Fira Code', monospace;
+        --accent-green: #2ecc71;
+        --accent-green-dark: #27ae60;
+        --accent-green-light: #e8f8f0;
+    }
+
+    body {
+        font-family: var(--font-inter);
+    }
+
+    h1, h2, h3, h4, h5, h6, .brand-name, .font-display {
+        font-family: var(--font-outfit);
+    }
+
+    /* Page Setup */
+    .doc-page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+    }
+
+    .breadcrumb-nav {
+        display: flex;
+        align-items: center;
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+    }
+    .breadcrumb-nav a {
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+    .breadcrumb-nav a:hover {
+        color: var(--color-primary);
+    }
+
+    /* Grid Layout */
+    .doc-grid-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+    @@media (min-width: 992px) {
+        .doc-grid-layout {
+            grid-template-columns: minmax(0, 1fr) 350px;
+        }
+    }
+
+    /* Primary Viewer Section */
+    .viewer-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 700px;
+        margin-bottom: 2rem;
+    }
+
+    .viewer-toolbar {
+        background: var(--color-surface-alt);
+        border-bottom: 1px solid var(--color-border-light);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .viewer-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+    }
+
+    .viewer-content {
+        flex: 1;
+        position: relative;
+        background: #f9fafb;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* DOCX Style */
+    .docx-viewer-wrapper {
+        height: 750px;
+        overflow-y: auto;
+        background: #f3f4f6;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .docx-page-sheet {
+        background: white;
+        width: 100%;
+        max-width: 800px;
+        min-height: 800px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--color-border-light);
+        border-radius: 4px;
+        padding: 3rem 4rem;
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: #2c3e50;
+    }
+    .docx-page-sheet p.doc-p {
+        margin-bottom: 1.25rem;
+        text-align: justify;
+    }
+    .docx-rendered-container {
+        width: 100%;
+    }
+    .docx-rendered-container table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+    }
+    .docx-rendered-container th, .docx-rendered-container td {
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* PPTX Slideshow outline styles */
+    .pptx-slide-viewer {
+        display: grid;
+        grid-template-columns: 1fr;
+        height: 700px;
+        background: #1e293b;
+    }
+    @@media (min-width: 768px) {
+        .pptx-slide-viewer {
+            grid-template-columns: 180px minmax(0, 1fr);
+        }
+    }
+    .slide-outline-sidebar {
+        background: #0f172a;
+        border-right: 1px solid #334155;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: row;
+        gap: 0.75rem;
+    }
+    @@media (min-width: 768px) {
+        .slide-outline-sidebar {
+            flex-direction: column;
+        }
+    }
+    .slide-thumb {
+        background: #1e293b;
+        border: 2px solid #475569;
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        aspect-ratio: 16/9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        user-select: none;
+    }
+    .slide-thumb:hover {
+        border-color: #64748b;
+        color: #f1f5f9;
+    }
+    .slide-thumb.active {
+        border-color: var(--accent-green);
+        color: white;
+        background: rgba(46, 204, 113, 0.1);
+    }
+    .slide-canvas-area {
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        justify-content: space-between;
+        position: relative;
+    }
+    .slide-box {
+        flex: 1;
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        aspect-ratio: 16/9;
+        max-width: 800px;
+        margin: auto;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        color: #f8fafc;
+        position: relative;
+        overflow: hidden;
+    }
+    .slide-box::before {
+        content: '';
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(46, 204, 113, 0.03);
+        border-radius: 50%;
+        top: -100px;
+        right: -100px;
+        pointer-events: none;
+    }
+    .slide-title {
+        font-family: var(--font-outfit);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+        border-bottom: 2px solid rgba(255,255,255,0.1);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .slide-body {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #cbd5e1;
+        overflow-y: auto;
+    }
+    .slide-body ul {
+        padding-left: 1.25rem;
+    }
+    .slide-body li {
+        margin-bottom: 0.5rem;
+    }
+    .slide-footer-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+        color: #94a3b8;
+    }
+    .slide-btn {
+        background: #334155;
+        border: none;
+        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background var(--transition-fast);
+    }
+    .slide-btn:hover {
+        background: #475569;
+    }
+    .slide-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    /* TXT Viewer Style */
+    .txt-viewer-container {
+        display: flex;
+        flex-direction: column;
+        height: 700px;
+        background: #fdfdfd;
+    }
+    .txt-search-bar {
+        background: white;
+        border-bottom: 1px solid var(--color-border-light);
+        padding: 0.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .txt-search-input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 0.9rem;
+    }
+    .txt-scroller {
+        flex: 1;
+        overflow: auto;
+        padding: 1.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    .text-line {
+        display: flex;
+        min-height: 1.5rem;
+    }
+    .line-number {
+        width: 45px;
+        text-align: right;
+        padding-right: 15px;
+        color: var(--color-neutral-400);
+        user-select: none;
+        border-right: 1px solid var(--color-border-light);
+        margin-right: 15px;
+    }
+    .line-text {
+        flex: 1;
+        white-space: pre;
+    }
+    .line-text.wrapped {
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    mark.search-highlight {
+        background: #ffe082;
+        color: #000;
+        padding: 0.1rem 0.2rem;
+        border-radius: 2px;
+    }
+
+    /* Tab switcher style */
+    .nav-toggle-tabs {
+        display: inline-flex;
+        background: var(--color-neutral-200);
+        padding: 0.25rem;
+        border-radius: var(--radius-md);
+    }
+    .tab-toggle-btn {
+        background: none;
+        border: none;
+        padding: 0.35rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        color: var(--color-text-secondary);
+        transition: all var(--transition-fast);
+    }
+    .tab-toggle-btn.active {
+        background: white;
+        color: var(--color-text-primary);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* SIDEBAR METADATA */
+    .sidebar-details-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem;
+        position: sticky;
+        top: 24px;
+    }
+    .sidebar-details-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--color-border-light);
+        color: var(--color-text-primary);
+    }
+    .meta-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+    }
+    .meta-row-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-secondary);
+        font-weight: 600;
+    }
+    .meta-row-val {
+        font-size: 0.95rem;
+        color: var(--color-text-primary);
+        font-weight: 500;
+    }
+    .btn-action-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: var(--gradient-primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+        cursor: pointer;
+        transition: all var(--transition-base);
+    }
+    .btn-action-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(46, 204, 113, 0.3);
+    }
+    .btn-action-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1px solid var(--color-border-neutral);
+        color: var(--color-text-primary);
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        transition: all var(--transition-base);
+    }
+    .btn-action-secondary:hover {
+        background: var(--color-neutral-50);
+        border-color: var(--color-text-secondary);
+    }
+
+    /* SLIDING CHUNK DRAWER OVERRIDES */
+    .chunk-drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 1040;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease-in-out;
+    }
+    .chunk-drawer-backdrop.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    #chunkShowcase.chunk-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 650px;
+        max-width: 90vw;
+        background: white;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+        z-index: 1050;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        border-radius: 0;
+        border: none;
+    }
+    #chunkShowcase.chunk-drawer.open {
+        transform: translateX(0);
+    }
+    .chunk-drawer-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--color-border-light);
+        display: flex;
+        align-items: center;
+        background: var(--color-neutral-50);
+    }
+    .chunk-drawer-header h5 {
+        margin: 0;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    .chunk-drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* COMMENTS SECTION REDESIGN */
+    .comments-section-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        margin-top: 2rem;
+        overflow: hidden;
+    }
+    .comments-header {
+        border-bottom: 1px solid var(--color-border-light);
+        padding: 1.25rem 1.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: var(--color-neutral-50);
+    }
+    .comments-title {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--color-text-primary);
+    }
+    .comments-body {
+        padding: 1.5rem 1.75rem;
+    }
+    .comments-list-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+    .comment-item {
+        display: flex;
+        gap: 1rem;
+    }
+    .avatar-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.05rem;
+        font-family: var(--font-outfit);
+        box-shadow: var(--shadow-sm);
+    }
+    .avatar-bg-0 { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .avatar-bg-1 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+    .avatar-bg-2 { background: linear-gradient(135deg, #e67e22, #d35400); }
+    .avatar-bg-3 { background: linear-gradient(135deg, #1abc9c, #16a085); }
+    .avatar-bg-4 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+    .comment-bubble {
+        flex: 1;
+        background: #f8fafc;
+        border: 1px solid var(--color-border-light);
+        border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
+        padding: 0.85rem 1.15rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+    }
+    .comment-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.4rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .commenter-name {
+        font-weight: 600;
+        color: var(--color-text-primary);
+        font-size: 0.95rem;
+    }
+    .commenter-time {
+        font-size: 0.775rem;
+        color: var(--color-text-secondary);
+    }
+    .comment-badge-role {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.15rem 0.4rem;
+        border-radius: var(--radius-sm);
+        text-transform: uppercase;
+    }
+    .badge-lecturer {
+        background: rgba(46, 204, 113, 0.1);
+        color: #27ae60;
+        border: 1px solid rgba(46, 204, 113, 0.2);
+    }
+    .badge-admin {
+        background: rgba(155, 89, 182, 0.1);
+        color: #8e44ad;
+        border: 1px solid rgba(155, 89, 182, 0.2);
+    }
+    .badge-student {
+        background: rgba(52, 152, 219, 0.1);
+        color: #2980b9;
+        border: 1px solid rgba(52, 152, 219, 0.2);
+    }
+    .comment-text {
+        font-size: 0.925rem;
+        color: var(--color-neutral-800);
+        margin: 0;
+        line-height: 1.55;
+        white-space: pre-wrap;
+    }
+    .comment-form-container {
+        border-top: 1px solid var(--color-border-light);
+        padding-top: 1.5rem;
+    }
+    .comment-input-area {
+        border: 1px solid var(--color-border-neutral);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    }
+    .comment-input-area:focus-within {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+    }
+    .comment-textarea {
+        width: 100%;
+        border: none;
+        resize: vertical;
+        padding: 0.85rem 1.15rem;
+        font-size: 0.95rem;
+        outline: none;
+        min-height: 85px;
+    }
+    .comment-toolbar {
+        background: var(--color-neutral-50);
+        padding: 0.6rem 1.15rem;
+        display: flex;
+        justify-content: flex-end;
+        border-top: 1px solid var(--color-border-light);
+    }
+    .comments-empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--color-text-secondary);
+    }
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--color-neutral-300);
+        margin-bottom: 0.75rem;
+    }
+</style>
+
+<div class="doc-page-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
+        <a asp-page="/Home/Index">Trang chủ</a>
+        <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
+        <a asp-page="/Documents/Library">Tài liệu</a>
+        <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
+        <span class="text-muted">Chi tiết</span>
+    </nav>
+
+    <!-- Document Heading Info -->
+    <div class="document-overview-card">
+        <div class="document-overview-header">
+            <div class="document-file-icon" style="background: @(extensionClean == "pdf" ? "rgba(231, 76, 60, 0.12)" : extensionClean == "docx" ? "rgba(52, 152, 219, 0.12)" : extensionClean == "pptx" ? "rgba(230, 126, 34, 0.12)" : "rgba(149, 165, 166, 0.12)"); color: @(extensionClean == "pdf" ? "#e74c3c" : extensionClean == "docx" ? "#3498db" : extensionClean == "pptx" ? "#e67e22" : "#7f8c8d")">
+                <i class="fas @(extensionClean == "pdf" ? "fa-file-pdf" : extensionClean == "docx" ? "fa-file-word" : extensionClean == "pptx" ? "fa-file-powerpoint" : extensionClean == "txt" ? "fa-file-alt" : "fa-file")"></i>
+            </div>
+            <div class="document-header-content">
+                <div class="document-title-row">
+                    <h2 class="document-title" style="font-size: 1.8rem;">@Model.ViewModel.Title</h2>
+                    <span id="documentStatusBadge" data-status="@Model.ViewModel.Status"></span>
+                </div>
+                <div class="document-subtitle">
+                    <span>Người đăng: <strong>@Model.ViewModel.UploadedBy</strong></span>
+                    <span><i class="far fa-calendar-alt me-1"></i> @Model.ViewModel.UploadedAt.ToString("dd-MM-yyyy HH:mm")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="document-stats-grid">
+            <div class="document-stat">
+                <div class="stat-label">Công cụ phân tích</div>
+                <div class="stat-value" id="docParserUsed">@(Model.ViewModel.ParserUsed ?? "Chờ xử lý")</div>
+            </div>
+            <div class="document-stat">
+                <div class="stat-label">Số Vector Chunks</div>
+                <div class="stat-value" id="docChunkCount">@(Model.ViewModel.ChunkCount?.ToString() ?? "Chờ xử lý")</div>
+            </div>
+            <div class="document-stat">
+                <div class="stat-label">Mô hình nhúng (Embedding)</div>
+                <div class="stat-value" id="docEmbeddingModel">@(Model.ViewModel.EmbeddingModel ?? "Chờ xử lý")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="doc-grid-layout">
+        <!-- Left: Document Preview & Comments -->
+        <main>
+            <div class="viewer-card">
+                <div class="viewer-toolbar">
+                    <div class="viewer-title">
+                        <i class="fas fa-eye text-primary"></i>
+                        <span>Bộ xem tài liệu trực tuyến</span>
+                    </div>
+
+                    <!-- View Mode Selector (docx, pptx, txt) -->
+                    @if (extensionClean is "docx" or "pptx" or "txt")
+                    {
+                        <div class="viewer-controls">
+                            <div class="nav-toggle-tabs" id="view-mode-tabs">
+                                <button class="tab-toggle-btn active" id="btn-formatted-view" onclick="setViewMode('formatted')">
+                                    <i class="fas fa-file-alt me-1"></i> Định dạng gốc
+                                </button>
+                                <button class="tab-toggle-btn" id="btn-text-view" onclick="setViewMode('text')">
+                                    <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="viewer-content">
+                    <!-- PDF VIEWER -->
+                    @if (extensionClean == "pdf")
+                    {
+                        <div id="pdf-viewer-section" class="w-100 h-100" style="flex: 1;">
+                            <iframe src="/documents/display/@(Model.ViewModel.Id)" style="border: none; width: 100%; height: 750px;" title="PDF Viewer"></iframe>
+                        </div>
+                    }
+                    <!-- DOCX VIEWER -->
+                    else if (extensionClean == "docx")
+                    {
+                        <div id="docx-formatted-viewer" class="docx-viewer-wrapper w-100">
+                            <div class="docx-page-sheet" id="docx-sheet">
+                                <div id="docx-render-target" class="docx-rendered-container">
+                                    <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                                        <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
+                                        <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="docx-text-viewer" class="txt-viewer-container w-100 d-none">
+                            <div class="txt-scroller">
+                                <div class="docx-page-sheet">
+                                    @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
+                                    {
+                                        var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                        foreach (var block in blocks)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(block))
+                                            {
+                                                <p class="doc-p">@block</p>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <!-- PPTX VIEWER -->
+                    else if (extensionClean == "pptx")
+                    {
+                        <div id="pptx-formatted-viewer" class="pptx-slide-viewer w-100">
+                            <div class="slide-outline-sidebar" id="slides-thumbnail-sidebar">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="slide-canvas-area">
+                                <div class="slide-box" id="slide-presentation-box">
+                                    <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
+                                    <div class="slide-body" id="active-slide-body">
+                                        <p class="text-muted">Đang tải nội dung slides...</p>
+                                    </div>
+                                </div>
+                                <div class="slide-footer-controls">
+                                    <button class="slide-btn" id="btn-prev-slide" onclick="prevSlide()">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <span id="slide-progress-indicator">Slide 0 / 0</span>
+                                    <button class="slide-btn" id="btn-next-slide" onclick="nextSlide()">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-light ms-3" onclick="toggleFullscreenSlide()">
+                                        <i class="fas fa-expand"></i> Fullscreen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
+                            <div class="txt-scroller">
+                                <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 0 auto;">
+                                    <pre style="white-space: pre-wrap; font-family: var(--font-inter); line-height: 1.6; border: none; background: transparent; padding: 0;">@Model.ViewModel.ExtractedText</pre>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <!-- TXT VIEWER -->
+                    else if (extensionClean == "txt")
+                    {
+                        <div id="txt-viewer-section" class="txt-viewer-container w-100">
+                            <div class="txt-search-bar">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
+                                <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
+                            </div>
+                            <div class="txt-scroller">
+                                <div id="txt-lines-container">
+                                    <!-- Rendered line-by-line by JS -->
+                                    <div class="d-flex justify-content-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- FALLBACK CARD -->
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
+                            <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
+                            <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
+                            <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
+                            <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
+                                <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Comments / Discussion -->
+            <div class="comments-section-card">
+                <div class="comments-header">
+                    <i class="fas fa-comments text-primary" style="font-size: 1.25rem;"></i>
+                    <h2 class="comments-title">Thảo luận môn học</h2>
+                </div>
+                <div class="comments-body">
+                    <div class="comments-list-wrapper">
+                        @if (Model.ViewModel.Comments != null && Model.ViewModel.Comments.Any())
+                        {
+                            var commentIndex = 0;
+                            foreach (var comment in Model.ViewModel.Comments.OrderBy(c => c.CreatedAt))
+                            {
+                                var avatarBg = $"avatar-bg-{commentIndex % 5}";
+                                commentIndex++;
+                                <div class="comment-item">
+                                    <div class="avatar-wrapper">
+                                        <div class="avatar-circle @avatarBg" title="@comment.User.FullName">
+                                            @(comment.User.FullName.Length > 0 ? comment.User.FullName[0].ToString().ToUpper() : "U")
+                                        </div>
+                                    </div>
+                                    <div class="comment-bubble">
+                                        <div class="comment-meta">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="commenter-name">@comment.User.FullName</span>
+                                                <!-- If uploader, add a badge -->
+                                                @if (comment.User.UserName == "admin" || comment.User.Email == Model.ViewModel.UploadedBy)
+                                                {
+                                                    <span class="comment-badge-role badge-lecturer">Giảng viên</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="comment-badge-role badge-student">Học viên</span>
+                                                }
+                                            </div>
+                                            <span class="commenter-time">
+                                                <i class="far fa-clock me-1"></i> @comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                            </span>
+                                        </div>
+                                        <p class="comment-text">@comment.Content</p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="comments-empty-state">
+                                <i class="far fa-comments empty-state-icon"></i>
+                                <h5>Chưa có thảo luận nào</h5>
+                                <p class="text-muted font-size-sm mt-1">Hãy để lại câu hỏi hoặc ý kiến đầu tiên của bạn về tài liệu này bên dưới.</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Add Comment Form -->
+                    <div class="comment-form-container">
+                        <form asp-page="/Documents/Details" asp-page-handler="AddComment" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="documentId" value="@Model.ViewModel.Id" />
+                            <div class="comment-input-area">
+                                <textarea name="content" class="comment-textarea" placeholder="Viết câu hỏi hoặc chia sẻ ý kiến của bạn tại đây..." required></textarea>
+                                <div class="comment-toolbar">
+                                    <button type="submit" class="btn-action-primary">
+                                        <i class="fas fa-paper-plane me-1"></i> Gửi ý kiến
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right: Metadata Sidebar -->
+        <aside>
+            <div class="sidebar-details-card">
+                <h3 class="sidebar-details-title">Thông tin file</h3>
+                <div class="meta-row">
+                    <span class="meta-row-label">Tên tệp gốc</span>
+                    <span class="meta-row-val text-truncate" title="@Model.ViewModel.OriginalFileName">@Model.ViewModel.OriginalFileName</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-row-label">Chương học</span>
+                    <span class="meta-row-val">@Model.ViewModel.ChapterName</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-row-label">Dung lượng</span>
+                    <span class="meta-row-val">@FormatFileSize(Model.ViewModel.FileSize)</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-row-label">Định dạng</span>
+                    <span class="meta-row-val text-uppercase">@Model.ViewModel.Extension.TrimStart('.')</span>
+                </div>
+
+                <div class="d-flex flex-column gap-2 mt-4">
+                    <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary w-100">
+                        <i class="fas fa-download"></i> Tải xuống tài liệu
+                    </a>
+                    <button type="button" class="btn-action-secondary w-100" onclick="toggleChunkDrawer(true)">
+                        <i class="fas fa-cubes"></i> Mở hộc Vector Chunks
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Sliding Chunk Drawer Backdrop -->
+<div id="chunk-drawer-backdrop" class="chunk-drawer-backdrop" onclick="toggleChunkDrawer(false)"></div>
+
+<!-- Sliding Chunk Drawer Container -->
+<div id="chunkShowcase" class="chunk-preview-card chunk-drawer" data-doc-id="@Model.ViewModel.Id">
+    <div class="chunk-drawer-header">
+        <h5>
+            <i class="fas fa-cubes text-primary me-2"></i>
+            Hộc Vector Chunks
+        </h5>
+        <button type="button" class="btn-close-drawer" onclick="toggleChunkDrawer(false)" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="chunk-drawer-body">
+        <div id="chunkList">
+            <!-- Loaded dynamically via AJAX in document-details.js -->
+        </div>
+        <div id="chunkPagination" class="chunk-pagination">
+            <!-- Pagination buttons -->
+        </div>
+    </div>
+</div>
+
+@functions {
+    string FormatFileSize(long? bytes)
+    {
+        if (!bytes.HasValue) return "N/A";
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes.Value;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number /= 1024;
+            counter++;
+        }
+        return string.Format("{0:n1} {1}", number, suffixes[counter]);
+    }
+}
+
+<!-- CDN libraries for DOCX viewer -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx-preview@0.1.15/dist/docx-preview.min.js"></script>
+
+<script>
+    // Global data passed from model safely
+    const docType = "@extensionClean.ToUpper()";
+    const rawTextContent = @Html.Raw(Json.Serialize(Model.ViewModel.ExtractedText ?? ""));
+    const docFilePath = "/documents/download/@Model.ViewModel.Id";
+    const pptxSlides = @Html.Raw(Json.Serialize(Model.ViewModel.ParsedSections));
+
+    // --- 1. View Mode Toggling ---
+    function setViewMode(mode) {
+        const btnFormatted = document.getElementById("btn-formatted-view");
+        const btnText = document.getElementById("btn-text-view");
+        
+        const docxFormatted = document.getElementById("docx-formatted-viewer");
+        const docxText = document.getElementById("docx-text-viewer");
+        
+        const pptxFormatted = document.getElementById("pptx-formatted-viewer");
+        const pptxText = document.getElementById("pptx-text-viewer");
+
+        if (mode === 'formatted') {
+            btnFormatted?.classList.add("active");
+            btnText?.classList.remove("active");
+            
+            docxFormatted?.classList.remove("d-none");
+            docxText?.classList.add("d-none");
+            
+            pptxFormatted?.classList.remove("d-none");
+            pptxText?.classList.add("d-none");
+        } else {
+            btnFormatted?.classList.remove("active");
+            btnText?.classList.add("active");
+            
+            docxFormatted?.classList.add("d-none");
+            docxText?.classList.remove("d-none");
+            
+            pptxFormatted?.classList.add("d-none");
+            pptxText?.classList.remove("d-none");
+        }
+    }
+
+    // --- 2. Chunk Drawer Toggling ---
+    function toggleChunkDrawer(show) {
+        const drawer = document.getElementById("chunkShowcase");
+        const backdrop = document.getElementById("chunk-drawer-backdrop");
+        if (show) {
+            drawer.classList.add("open");
+            backdrop.classList.add("open");
+        } else {
+            drawer.classList.remove("open");
+            backdrop.classList.remove("open");
+        }
+    }
+
+    // --- 3. Word Document Rendering (DOCX) ---
+    if (docType === "DOCX") {
+        const renderContainer = document.getElementById("docx-render-target");
+        
+        fetch(docFilePath)
+            .then(res => {
+                if (!res.ok) throw new Error("File not found");
+                return res.arrayBuffer();
+            })
+            .then(arrayBuffer => {
+                renderContainer.innerHTML = ""; // Clear loader
+                docx.renderAsync(arrayBuffer, renderContainer)
+                    .catch(err => {
+                        console.error("docx-preview failed:", err);
+                        showDocxTextFallback();
+                    });
+            })
+            .catch(err => {
+                console.error("fetch failed for docx:", err);
+                showDocxTextFallback();
+            });
+    }
+
+    function showDocxTextFallback() {
+        const renderContainer = document.getElementById("docx-render-target");
+        renderContainer.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i> Không thể hiển thị bản xem trước có định dạng. Hệ thống đã tự động chuyển sang chế độ hiển thị văn bản trần.
+            </div>
+        `;
+        setViewMode('text');
+    }
+
+    // --- 4. PowerPoint Slide Presentation Viewer (PPTX) ---
+    let currentSlideIdx = 0;
+
+    if (docType === "PPTX") {
+        renderPPTXSlides();
+    }
+
+    function renderPPTXSlides() {
+        const sidebar = document.getElementById("slides-thumbnail-sidebar");
+        if (!sidebar) return;
+        
+        sidebar.innerHTML = "";
+        if (!pptxSlides || pptxSlides.length === 0) {
+            sidebar.innerHTML = "<div class='text-muted' style='font-size:0.8rem;'>Không có slide nào.</div>";
+            document.getElementById("active-slide-title").textContent = "Nội dung trống";
+            document.getElementById("active-slide-body").innerHTML = "<p class='text-muted fst-italic'>Slide này không có nội dung văn bản.</p>";
+            document.getElementById("slide-progress-indicator").textContent = "Slide 0 / 0";
+            return;
+        }
+
+        pptxSlides.forEach((slide, idx) => {
+            const thumb = document.createElement("div");
+            thumb.className = `slide-thumb ${idx === 0 ? 'active' : ''}`;
+            thumb.setAttribute("onclick", `goToSlide(${idx})`);
+            thumb.innerHTML = `<div>Slide ${idx + 1}</div><div style="font-size:0.6rem; opacity:0.7; font-weight:normal; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(slide.sectionTitle || 'Không có tiêu đề')}</div>`;
+            sidebar.appendChild(thumb);
+        });
+        
+        displaySlide(0);
+    }
+
+    function displaySlide(idx) {
+        if (!pptxSlides || pptxSlides.length === 0) return;
+        currentSlideIdx = idx;
+        
+        const thumbs = document.querySelectorAll(".slide-thumb");
+        thumbs.forEach((thumb, i) => {
+            if (i === idx) thumb.classList.add("active");
+            else thumb.classList.remove("active");
+        });
+        
+        const slide = pptxSlides[idx];
+        document.getElementById("active-slide-title").textContent = slide.sectionTitle || `Slide ${idx + 1}`;
+        
+        const bodyEl = document.getElementById("active-slide-body");
+        if (slide.text) {
+            const points = slide.text.split('\n');
+            let html = "<ul>";
+            points.forEach(point => {
+                const cleanPoint = point.trim().replace(/^[-*•]\s*/, '');
+                if (cleanPoint) {
+                    html += `<li>${escapeHtml(cleanPoint)}</li>`;
+                }
+            });
+            html += "</ul>";
+            bodyEl.innerHTML = html;
+        } else {
+            bodyEl.innerHTML = `<p class="text-muted fst-italic">Slide này không có nội dung văn bản trích xuất.</p>`;
+        }
+        
+        document.getElementById("slide-progress-indicator").textContent = `Slide ${idx + 1} / ${pptxSlides.length}`;
+        document.getElementById("btn-prev-slide").disabled = (idx === 0);
+        document.getElementById("btn-next-slide").disabled = (idx === pptxSlides.length - 1);
+    }
+
+    // Previous slides control
+    function prevSlide() {
+        if (currentSlideIdx > 0) {
+            displaySlide(currentSlideIdx - 1);
+        }
+    }
+
+    // Next slides control
+    function nextSlide() {
+        if (pptxSlides && currentSlideIdx < pptxSlides.length - 1) {
+            displaySlide(currentSlideIdx + 1);
+        }
+    }
+
+    function goToSlide(idx) {
+        displaySlide(idx);
+    }
+
+    function toggleFullscreenSlide() {
+        const slideBox = document.getElementById("slide-presentation-box");
+        if (!document.fullscreenElement) {
+            slideBox.requestFullscreen().catch(err => {
+                console.error("Fullscreen error:", err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // --- 5. Plain Text Line-By-Line Renderer (TXT) ---
+    if (docType === "TXT") {
+        const textLinesContainer = document.getElementById("txt-lines-container");
+        if (textLinesContainer) {
+            const lines = rawTextContent ? rawTextContent.split('\n') : ["Tài liệu không có nội dung văn bản."];
+            let html = "";
+            lines.forEach((line, idx) => {
+                html += `
+                    <div class="text-line">
+                        <span class="line-number">${idx + 1}</span>
+                        <span class="line-text">${escapeHtml(line)}</span>
+                    </div>
+                `;
+            });
+            textLinesContainer.innerHTML = html;
+        }
+    }
+
+    function searchInTextViewer(query) {
+        const cleanQuery = query.trim();
+        const lineTexts = document.querySelectorAll(".line-text");
+        const countBadge = document.getElementById("txt-search-count");
+        
+        if (!cleanQuery) {
+            lineTexts.forEach(el => { el.innerHTML = escapeHtml(el.textContent); });
+            countBadge.classList.add("d-none");
+            return;
+        }
+        
+        const regex = new RegExp(`(${escapeRegExp(cleanQuery)})`, "gi");
+        let matches = 0;
+        
+        lineTexts.forEach(el => {
+            const originalText = el.textContent;
+            if (originalText.toLowerCase().includes(cleanQuery.toLowerCase())) {
+                matches += (originalText.toLowerCase().match(new RegExp(escapeRegExp(cleanQuery.toLowerCase()), "g")) || []).length;
+                el.innerHTML = escapeHtml(originalText).replace(regex, `<mark class="search-highlight">$1</mark>`);
+            } else {
+                el.innerHTML = escapeHtml(originalText);
+            }
+        });
+        
+        countBadge.textContent = `${matches} matches`;
+        countBadge.classList.remove("d-none");
+    }
+
+    // --- 6. Helper Functions ---
+    function escapeHtml(text) {
+        if (!text) return "";
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Regex escape helper
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+</script>
+
+<script>
+    const razor_docId = "@Model.ViewModel.Id";
+    const razor_docStatus = "@Model.ViewModel.Status";
+</script>
+
+@section Scripts {
+
+    <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script src="~/js/status-badge.js"></script>
+    <script src="~/js/document-details.js"></script>
+    <script src="~/js/document-details-signalr.js"></script>
+
+}

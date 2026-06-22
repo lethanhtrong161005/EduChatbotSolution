@@ -10,10 +10,10 @@ using Business.Services.ExternalPayment;
 using Business.Services.SubscriptionPlan;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
+using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Hangfire;
-using Hangfire.Common;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -35,7 +35,7 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = "Docker";
+var connStrName = builder.Environment.IsDevelopment() ? "Docker" : "Tailscale";
 var connStr = builder.Configuration.GetConnectionString(connStrName)
                   ?? throw new KeyNotFoundException("Connection string not configured.");
 
@@ -92,11 +92,11 @@ var ollamaOpts = builder.Configuration.GetRequiredSection("Ollama").Get<OllamaOp
                  ?? throw new KeyNotFoundException("Ollama is not configured.");
 
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, OllamaApiClient>(
-    ollamaOpts.EmbeddingModel,
+    EmbeddingModelNames.BgeM3,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
 builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
-    ollamaOpts.ChatModel,
+    ChatModelNames.Qwen3,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
 // ── Background Services ──────────────────────────────────────────────
@@ -169,8 +169,6 @@ builder.Services.AddSignalR();
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
 
-builder.Services.AddRouting(opts => opts.ConstraintMap["slugify"] = typeof(SlugifyParameterTransformer));
-
 builder.Services.AddCors(opts =>
 {
     opts.AddPolicy("Dev", policy =>
@@ -183,17 +181,21 @@ builder.Services.AddCors(opts =>
     });
 });
 
-builder.Services.AddControllersWithViews(opts =>
+builder.Services.AddControllers();
+
+builder.Services.AddRazorPages(options =>
 {
-    opts.Conventions.Add(new RouteTokenTransformerConvention(
-                            new SlugifyParameterTransformer()));
+    options.Conventions.Add(
+        new PageRouteTransformerConvention(
+            new SlugifyParameterTransformer()));
+    options.Conventions.AddPageRoute("/Home/Index", string.Empty);
 });
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/error");
 
     await app.MigrateDbAsync<EduChatAiDbContext>();
     await app.SeedDbAsync<EduChatAiDbContext>();
@@ -226,9 +228,8 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = [new HangfireAuthFilter()],
 });
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller:slugify=home}/{action:slugify=index}/{id?}");
+app.MapControllers();
+app.MapRazorPages();
 
 app.MapHub<DocumentHub>("/documents/status");
 app.MapHub<AiChatHub>("/chat/answer");

@@ -10,7 +10,7 @@ public class GlobalAiConfiguration : CategoryLikeEntity
 
     public int TopK { get; set; } = 15;
 
-    public double SimilarityThreshold { get; set; } = 0.65;
+    public double SimilarityThreshold { get; set; } = 0.6;
 
     public string LlmModel { get; set; } = ChatModelNames.Qwen3;
 
@@ -74,7 +74,7 @@ public class GlobalAiConfiguration : CategoryLikeEntity
         Do not speculate.
         """;
 
-    public float CitationExtractionTemperature { get; set; }
+    public float CitationExtractionTemperature { get; set; } = 0.0F;
 
     public string CitationExtractionPrompt { get; set; } =
         """
@@ -91,7 +91,14 @@ public class GlobalAiConfiguration : CategoryLikeEntity
         {{2}}
         {{3}}
 
-        The number corresponds to the retrieved chunk number.
+        The number corresponds to the retrieved chunk's index:
+
+        {{1}} -> [Chunk 1]
+        {{2}} -> [Chunk 2]
+        {{3}} -> [Chunk 3]
+
+        The order of occurrence of citation markers
+        is NOT related to chunk order in any away.
 
         For every citation marker occurrence:
 
@@ -99,6 +106,7 @@ public class GlobalAiConfiguration : CategoryLikeEntity
         * Find a supporting quote from the corresponding chunk.
         * Extract the smallest self-contained quote that supports the claim.
         * Copy quoted text verbatim from the chunk.
+        * Do not modify lettercase or spacing in the quote.
         * You may use "[...]" to omit irrelevant text.
         * Do not invent text.
         * Do not paraphrase text.
@@ -121,7 +129,9 @@ public class GlobalAiConfiguration : CategoryLikeEntity
 
         * Output one JSON object per citation marker occurrence.
         * Output count MUST equal citation marker occurrence count.
-        * Preserve occurrence order.
+        * Preserve citation marker occurrence order.
+        * The number in the citation marker MUST match the chunk index
+          in the corresponding output JSON object.
         * If a citation is unsupported, set:
           {
             "supportingQuote": null,

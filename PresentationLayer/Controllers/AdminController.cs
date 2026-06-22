@@ -1,7 +1,6 @@
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.ViewModels;
 
@@ -15,42 +14,10 @@ namespace Presentation.Controllers;
 [Route("admin")]
 public class AdminController(
     IUserManagementService userManagementService,
-    UserManager<ApplicationUser> userManager,
     ISubjectService subjectService) : Controller
 {
     private readonly IUserManagementService _userMgmt = userManagementService;
-    private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly ISubjectService _subjectService = subjectService;
-
-    // ── USER MANAGE PAGE ──────────────────────────────────────────
-
-    /// <summary>
-    /// Displays the user management page with a paginated, filtered list of users.
-    /// </summary>
-    /// <param name="name">Optional name filter.</param>
-    /// <param name="email">Optional email filter.</param>
-    /// <param name="role">Optional role filter.</param>
-    /// <param name="limit">Page size (default 10).</param>
-    /// <param name="offset">Record offset (default 0).</param>
-    [HttpGet("user-manage")]
-    public async Task<IActionResult> UserManage(
-        string? name, string? email, string? role, int limit = 10, int offset = 0)
-    {
-        var users = await _userMgmt.GetPagedUsersAsync(name, email, role, limit, offset);
-        var roles = await _userMgmt.GetAllRolesAsync();
-
-        var vm = new AdminUserListVm
-        {
-            NameFilter = name,
-            EmailFilter = email,
-            RoleFilter = role,
-            Limit = limit,
-            Offset = offset,
-            Users = users,
-            AvailableRoles = roles,
-        };
-        return View(vm);
-    }
 
     // ── ROLES API ─────────────────────────────────────────────────
 
@@ -161,27 +128,6 @@ public class AdminController(
         return Json(new { success, error });
     }
 
-    // ── SUBJECTS MANAGEMENT ───────────────────────────────────────
-
-    /// <summary>
-    /// Displays the subject management page with a paginated, filtered list of subjects.
-    /// </summary>
-    [HttpGet("subject-manage")]
-    public async Task<IActionResult> SubjectManage(
-        string? code, string? name, int limit = 10, int offset = 0)
-    {
-        var subjects = await _subjectService.GetPagedSubjectsAsync(code, name, limit, offset);
-
-        var vm = new AdminSubjectListVm
-        {
-            CodeFilter = code,
-            NameFilter = name,
-            Limit = limit,
-            Offset = offset,
-            Subjects = subjects
-        };
-        return View(vm);
-    }
 
     [HttpPost("subjects/create")]
     [ValidateAntiForgeryToken]

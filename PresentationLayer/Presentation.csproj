@@ -24,7 +24,20 @@
 		<PackageReference Include="NuGet.Protocol" Version="7.6.0" />
 	</ItemGroup>
 
-	<Target Name="TailwindBuild" BeforeTargets="Build">
+	<Target Name="CheckNpm" BeforeTargets="TailwindBuild" Condition="'$(SkipTailwindBuild)' != 'true'">
+		<Exec Command="npm --version"
+			  IgnoreExitCode="true"
+			  ConsoleToMsBuild="true"
+			  StandardOutputImportance="Low"
+			  StandardErrorImportance="Low">
+			<Output TaskParameter="ExitCode" PropertyName="NpmCheckExitCode" />
+		</Exec>
+	</Target>
+
+	<Target Name="TailwindBuild"
+			BeforeTargets="Build"
+			DependsOnTargets="CheckNpm"
+			Condition="'$(SkipTailwindBuild)' != 'true' and '$(NpmCheckExitCode)' == '0'">
 		<Exec Command="npm run tailwind:build" />
 	</Target>
 
