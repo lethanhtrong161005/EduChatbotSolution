@@ -2,7 +2,6 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace DataAccess.Data;
 
@@ -10,9 +9,10 @@ namespace DataAccess.Data;
 /// EF Core database context for the EduChatAI application.
 /// Uses a custom schema aligned with <c>database-script.sql</c> (not ASP.NET Identity).
 /// </summary>
-/// <remarks>Initializes a new instance of <see cref="EduChatAIDbContext"/> with options.</remarks>
+/// <remarks>Initializes a new instance of <see cref="EduChatAiDbContext"/> with options.</remarks>
 /// <param name="options">The DbContext configuration options.</param>
-public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
+public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
     // ── Subscription & Payment ───────────────────────────────
     /// <summary>Gets or sets the subscription plans set.</summary>
@@ -38,6 +38,8 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
 
     public DbSet<SubjectAiConfiguration> SubjectAiConfigurations { get; set; }
 
+    public DbSet<GlobalAiConfiguration> GlobalAiConfigurations { get; set; }
+
     /// <summary>Gets or sets the chapters set.</summary>
     public DbSet<Chapter> Chapters { get; set; }
 
@@ -53,10 +55,14 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
 
     // ── Conversations ────────────────────────────────────────
     /// <summary>Gets or sets the conversations set.</summary>
-    public DbSet<ChatSession> Conversations { get; set; }
+    public DbSet<ChatSession> ChatSessions { get; set; }
 
     /// <summary>Gets or sets the messages set.</summary>
-    public DbSet<ChatMessage> Messages { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public DbSet<ChatMessageGenerationSettings> ChatMessageGenerationSettings { get; set; }
+
+    public DbSet<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; set; }
 
     /// <summary>Gets or sets the citations set.</summary>
     public DbSet<Citation> Citations { get; set; }
@@ -75,8 +81,9 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        optionsBuilder.ConfigureWarnings(builder
-            => builder.Ignore(RelationalEventId.PendingModelChangesWarning));
+
+        //optionsBuilder.ConfigureWarnings(builder 
+        //    => builder.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     /// <inheritdoc/>
@@ -94,82 +101,28 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
         modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
 
-        modelBuilder
-            .Entity<Plan>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<PlanOption>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Order>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Subscription>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Payment>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Subject>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<SubjectMembership>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<SubjectAiConfiguration>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Chapter>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Document>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<DocumentComment>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<ParsedSection>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Chunk>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<ChatSession>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Citation>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Citation>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<TestQuestion>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<Experiment>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
-        modelBuilder
-            .Entity<TestResponse>()
-            .Property(e => e.CreatedAt)
-            .HasDefaultValueSql("now()");
+        modelBuilder.Entity<Plan>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<PlanOption>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Order>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Subscription>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Payment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Subject>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<SubjectMembership>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<SubjectAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<GlobalAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Chapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Document>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<DocumentComment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ParsedSection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Chunk>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatSession>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessageGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessageGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Citation>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestQuestion>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Experiment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
 
         modelBuilder.Entity<Plan>()
             .HasIndex(p => p.Tier)
@@ -179,8 +132,12 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
             .HasIndex(e => new { e.PlanId, e.DurationDays })
             .IsUnique();
 
-        modelBuilder
-            .Entity<SubjectMembership>()
+        modelBuilder.Entity<SubjectAiConfiguration>()
+            .HasOne(d => d.Subject)
+            .WithOne(p => p.AiConfiguration)
+            .HasForeignKey<SubjectAiConfiguration>(d => d.Id);
+
+        modelBuilder.Entity<SubjectMembership>()
             .HasIndex(e => new { e.UserId, e.SubjectId })
             .IsUnique();
         modelBuilder.Entity<SubjectMembership>()
@@ -198,9 +155,14 @@ public class EduChatAIDbContext(DbContextOptions<EduChatAIDbContext> options) : 
             .HasStorageParameter("m", 32)
             .HasStorageParameter("ef_construction", 128);
 
-        modelBuilder.Entity<ChatSession>()
-            .ToTable("chat_sessions");
-        modelBuilder.Entity<ChatMessage>()
-            .ToTable("chat_messages");
+        modelBuilder.Entity<ChatMessageGenerationSettings>()
+            .HasOne(d => d.ChatMessage)
+            .WithOne(p => p.GenerationSettings)
+            .HasForeignKey<ChatMessageGenerationSettings>(d => d.Id);
+
+        modelBuilder.Entity<ChatMessageGenerationMetrics>()
+            .HasOne(d => d.ChatMessage)
+            .WithOne(p => p.GenerationMetrics)
+            .HasForeignKey<ChatMessageGenerationMetrics>(d => d.Id);
     }
 }

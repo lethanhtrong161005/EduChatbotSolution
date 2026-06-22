@@ -1,11 +1,9 @@
-﻿using Domain.DTOs;
+﻿using Domain.Contracts.DTOs;
 using Domain.Entities;
 
 namespace Domain.Contracts;
 
 public interface IDocumentChunker
 {
-    string ChunkStrategy { get; }
-
-    IEnumerable<ChunkDto> Chunk(ParsedSection section);
+    IEnumerable<ChunkResult> Chunk(ParsedSection section, int startIndex = 0);
 }

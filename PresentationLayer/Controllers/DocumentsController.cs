@@ -1,5 +1,5 @@
 using AutoMapper;
-using Business.Background;
+using Business.Services.AI.Indexing;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -9,13 +9,16 @@ using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using Presentation.Constants;
+using Presentation.DTOs;
 using Presentation.Extensions;
-using Presentation.Models;
+using Presentation.Utils;
+using Presentation.ViewModels;
 using System.Security.Claims;
 
 namespace Presentation.Controllers;
 
-[Authorize]
+[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DocumentsController(
     ISubjectService subjectService,
     IChapterService chapterService,
@@ -61,7 +64,7 @@ public class DocumentsController(
     public async Task<IActionResult> GetChapters(int subjectId, CancellationToken cxlTkn)
     {
         var chapters = await _chapterService.GetBySubjectAsync(subjectId, cxlTkn);
-        return Json(_mapper.Map<List<ChapterLookupVm>>(chapters));
+        return Json(_mapper.Map<List<ChapterLookupDto>>(chapters));
     }
 
     [HttpGet]
@@ -74,11 +77,10 @@ public class DocumentsController(
             ? await _documentService.GetByChapterAsync(chapterId.Value, cxlTkn)
             : await _documentService.GetBySubjectAsync(subjectId!.Value, cxlTkn);
 
-        return Json(_mapper.Map<List<DocumentFileVm>>(docs));
+        return Json(_mapper.Map<List<DocumentFileDto>>(docs));
     }
 
     [HttpGet]
-    [AllowAnonymous]
     public async Task<IActionResult> Download(Guid id, CancellationToken cxlTkn)
     {
         var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
@@ -301,19 +303,22 @@ public class DocumentsController(
         {
             var parseJobId =
                 BackgroundJob.Enqueue<IDocumentIndexer>(
+                    HangfireConstants.LowPriorityQueue,
                     e => e.ParseAsync(doc.Id));
 
             var chunkJobId =
                 BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                     parseJobId,
+                    HangfireConstants.LowPriorityQueue,
                     e => e.ChunkAsync(doc.Id));
 
             BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                 chunkJobId,
+                HangfireConstants.LowPriorityQueue,
                 e => e.EmbedAsync(doc.Id));
         }
 
-        var result = _mapper.Map<List<DocumentFileVm>>(newDocs);
+        var result = _mapper.Map<List<DocumentFileDto>>(newDocs);
         return Json(result);
     }
 
@@ -339,24 +344,18 @@ public class DocumentsController(
     private const int PageSize = 10;
 
     [HttpGet]
-    public async Task<IActionResult> ChunkTable(Guid id, CancellationToken cxlTkn)
-    {
-        return PartialView("_ChunkPreview");
-    }
-
-    [HttpGet]
     public async Task<IActionResult> Chunks(Guid documentId, int pageIndex, CancellationToken cxlTkn)
     {
-        var chunks = (PaginatedList<Chunk>)await _documentService.GetChunksAsync(documentId, PageSize, pageIndex, cxlTkn);
+        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(documentId, PageSize, pageIndex, cxlTkn);
 
-        var chunkVms = _mapper.Map<List<ChunkPreviewVm>>(chunks);
-        var pageVm = new ChunkPreviewPageVm
+        var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
+        var pageDto = new ChunkPreviewPageDto
         {
-            Chunks = chunkVms,
+            Chunks = chunkDtos,
             PageIndex = chunks.PageIndex,
             TotalPages = chunks.TotalPages,
         };
 
-        return Json(pageVm);
+        return Json(pageDto);
     }
 }

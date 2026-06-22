@@ -1241,7 +1241,12 @@
     const razor_docStatus = "@Model.Status";
 </script>
 
-<script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
-<script src="~/js/status-badge.js"></script>
-<script src="~/js/document-details.js"></script>
-<script src="~/js/document-details-signalr.js"></script>
+@section Scripts {
+
+    <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script src="~/js/status-badge.js"></script>
+    <script src="~/js/document-details.js"></script>
+    <script src="~/js/document-details-signalr.js"></script>
+
+}

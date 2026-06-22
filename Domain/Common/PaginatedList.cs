@@ -23,4 +23,13 @@ public class PaginatedList<T> : List<T>
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
         }
     }
+
+    public static implicit operator PaginatedList<T>(PaginatedEnumerable<T> enumerable)
+    {
+        return new PaginatedList<T>(
+            [.. enumerable.Items],
+            enumerable.Items.Count(),
+            enumerable.PageSize,
+            enumerable.PageIndex);
+    }
 }

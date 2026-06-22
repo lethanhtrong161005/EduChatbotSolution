@@ -93,5 +93,6 @@ public interface ISubjectService
 
     // ==================================================
     Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<bool> HasAccessAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> IsChiefAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
 }

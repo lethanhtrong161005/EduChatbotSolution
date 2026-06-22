@@ -12,7 +12,7 @@ using Pgvector;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatAIDbContext))]
+    [DbContext(typeof(EduChatAiDbContext))]
     [Migration("20260603192719_AddDocumentIndexingEntitiesAndProps")]
     partial class AddDocumentIndexingEntitiesAndProps
     {

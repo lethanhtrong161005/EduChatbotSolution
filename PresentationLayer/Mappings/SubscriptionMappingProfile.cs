@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Domain.Entities;
-using Presentation.Models;
+using Presentation.ViewModels;
 
 namespace Presentation.Mappings;
 
@@ -9,7 +9,7 @@ public class SubscriptionMappingProfile : Profile
     public SubscriptionMappingProfile()
     {
         CreateMap<Plan, PlanCardVm>()
-            .ConvertUsing<SelectPlanConverter>();
+            .ForMember(dest => dest.Options, opts => opts.MapFrom<PlanOptionsResolver>());
 
         CreateMap<PlanOption, PlanOptionCardVm>();
 
@@ -18,24 +18,10 @@ public class SubscriptionMappingProfile : Profile
     }
 }
 
-public class SelectPlanConverter : ITypeConverter<Plan, PlanCardVm>
+public class PlanOptionsResolver : IValueResolver<Plan, PlanCardVm, ICollection<PlanOptionCardVm>>
 {
-    public PlanCardVm Convert(Plan source, PlanCardVm destination, ResolutionContext context)
+    public ICollection<PlanOptionCardVm> Resolve(Plan source, PlanCardVm destination, ICollection<PlanOptionCardVm> destMember, ResolutionContext context)
     {
-        destination ??= new PlanCardVm();
-
-        destination.Name = source.Name;
-        destination.Tier = source.Tier;
-        destination.Description = source.Description;
-        destination.DailyMessageQuota = source.DailyMessageQuota;
-        destination.ChatSessionLimit = source.ChatSessionLimit;
-        destination.DailyFileUploadQuota = source.DailyFileUploadQuota;
-        destination.FileLibraryLimit = source.FileLibraryLimit;
-        destination.AllowAdvancedModels = source.AllowAdvancedModels;
-        destination.IsFeatured = source.IsFeatured;
-
-        destination.Options = context.Mapper.Map<ICollection<PlanOptionCardVm>>(source.PlanOptions);
-
-        return destination;
+        return context.Mapper.Map<ICollection<PlanOptionCardVm>>(source.PlanOptions);
     }
 }

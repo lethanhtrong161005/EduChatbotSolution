@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
-using Presentation.Settings;
+using Presentation.Constants;
 using System.Runtime.ExceptionServices;
 
 namespace Presentation.Middleware;
@@ -135,11 +135,11 @@ public class CustomExceptionMiddleware : IMiddleware
 
     private async Task WriteError(HttpContext context, ProblemDetails problemDetails, RequestDelegate next)
     {
-        context.Items[ErrorHandlingDefaults.ProblemDetailsHttpContextItemName] = problemDetails;
+        context.Items[ErrorHandlingConstants.ProblemDetailsHttpContextItemName] = problemDetails;
 
         // Re-execute the pipeline, this time to the error page
         context.Request.Method = HttpMethod.Get.Method;
-        context.Request.Path = ErrorHandlingDefaults.ErrorPagePath;
+        context.Request.Path = ErrorHandlingConstants.ErrorPagePath;
         context.SetEndpoint(null);
         await next.Invoke(context);
     }

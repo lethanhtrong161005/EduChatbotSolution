@@ -30,7 +30,7 @@ public static class HostExtensions
     /// </summary>
     /// <typeparam name="TContext">The EF Core DbContext type to migrate.</typeparam>
     /// <param name="host">The application host instance.</param>
-    public static async Task MigrateDb<TContext>(this IHost host)
+    public static async Task MigrateDbAsync<TContext>(this IHost host)
         where TContext : DbContext
     {
         using var scope = host.Services.CreateScope();
@@ -111,10 +111,10 @@ public static class HostExtensions
                 await userManager.AddClaimsAsync(adminUser,
                 [
                     new(System.Security.Claims.ClaimTypes.NameIdentifier, adminUser.Id.ToString()),
-                        new(System.Security.Claims.ClaimTypes.Email, adminUser.Email ?? adminEmail),
-                        new(System.Security.Claims.ClaimTypes.Name, adminUser.FullName),
-                        new(System.Security.Claims.ClaimTypes.Role, "Admin"),
-                    ]);
+                    new(System.Security.Claims.ClaimTypes.Email, adminUser.Email ?? adminEmail),
+                    new(System.Security.Claims.ClaimTypes.Name, adminUser.FullName),
+                    new(System.Security.Claims.ClaimTypes.Role, "Admin"),
+                ]);
                 logger.LogInformation("Successfully seeded default Admin user.");
             }
             else
@@ -124,7 +124,40 @@ public static class HostExtensions
             }
         }
 
-        if ((await unitOfWork.Plans.GetAsync()).Any())
+        var lecturerEmail = "johndoe@educhatai.com";
+        var lecturerUser = await userManager.FindByEmailAsync(lecturerEmail);
+        if (lecturerUser == null)
+        {
+            lecturerUser = new ApplicationUser
+            {
+                UserName = lecturerEmail[..lecturerEmail.LastIndexOf('@')],
+                Email = lecturerEmail,
+                FullName = "John Doe",
+                EmailConfirmed = true,
+                IsActive = true,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Doe123!"),
+            };
+            var createResult = await userManager.CreateAsync(lecturerUser);
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(lecturerUser, "Lecturer");
+                await userManager.AddClaimsAsync(lecturerUser,
+                [
+                    new(System.Security.Claims.ClaimTypes.NameIdentifier, lecturerUser.Id.ToString()),
+                    new(System.Security.Claims.ClaimTypes.Email, lecturerUser.Email ?? lecturerEmail),
+                    new(System.Security.Claims.ClaimTypes.Name, lecturerUser.FullName),
+                    new(System.Security.Claims.ClaimTypes.Role, "Lecturer"),
+                ]);
+                logger.LogInformation("Successfully seeded default Lecturer user.");
+            }
+            else
+            {
+                logger.LogError("Failed to seed default Lecturer user: {Errors}",
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            }
+        }
+
+        if (await unitOfWork.Plans.ExistsAsync())
         {
             logger.LogInformation("Plans already exist. Skipping subscription seed.");
             goto DOCUMENT;
@@ -295,18 +328,12 @@ public static class HostExtensions
         await unitOfWork.SaveAsync();
 
     DOCUMENT:
-        var uploader = await userManager.Users.FirstOrDefaultAsync();
+        var uploader = lecturerUser;
 
-        if (uploader == null)
+        if (await unitOfWork.Subjects.ExistsAsync())
         {
-            logger.LogWarning("Skipping document seed: no users exist.");
-            return;
-        }
-
-        if ((await unitOfWork.Subjects.GetAsync()).Any())
-        {
-            logger.LogInformation("Subjects already exist. Skipping seed.");
-            return;
+            logger.LogInformation("Subjects already exist. Skipping subject-chapter-document seed.");
+            goto CHAT;
         }
 
         var rnd = new Random();
@@ -542,6 +569,30 @@ public static class HostExtensions
             });
         }
 
+        static DocumentType RandomFileType(Random rnd)
+        {
+            return rnd.Next(5) switch
+            {
+                0 => DocumentType.PDF,
+                1 => DocumentType.DOCX,
+                2 => DocumentType.PPTX,
+                3 => DocumentType.TXT,
+                _ => DocumentType.HTML
+            };
+        }
+
+        static DocumentStatus RandomStatus(Random rnd)
+        {
+            return rnd.Next(100) switch
+            {
+                < 75 => DocumentStatus.Indexed,
+                < 85 => DocumentStatus.Embedding,
+                < 92 => DocumentStatus.Chunking,
+                < 98 => DocumentStatus.Parsing,
+                _ => DocumentStatus.Failed
+            };
+        }
+
         await unitOfWork.SaveAsync();
 
         unitOfWork.SubjectMemberships.Insert(
@@ -563,29 +614,310 @@ public static class HostExtensions
             });
 
         await unitOfWork.SaveAsync();
-    }
 
-    static DocumentType RandomFileType(Random rnd)
-    {
-        return rnd.Next(5) switch
-        {
-            0 => DocumentType.PDF,
-            1 => DocumentType.DOCX,
-            2 => DocumentType.PPTX,
-            3 => DocumentType.TXT,
-            _ => DocumentType.HTML
-        };
-    }
+        /* =========================================================
+         * CHAT
+         * ========================================================= */
 
-    static DocumentStatus RandomStatus(Random rnd)
-    {
-        return rnd.Next(100) switch
+    CHAT:
+        if (!await unitOfWork.Chunks.ExistsAsync())
         {
-            < 75 => DocumentStatus.Indexed,
-            < 85 => DocumentStatus.Embedding,
-            < 92 => DocumentStatus.Chunking,
-            < 98 => DocumentStatus.Parsing,
-            _ => DocumentStatus.Failed
-        };
+            var docs = (await unitOfWork.Documents.GetAsync())
+                .Take(6)
+                .ToList();
+
+            foreach (var doc in docs)
+            {
+                unitOfWork.Chunks.Insert(new Chunk
+                {
+                    DocumentId = doc.Id,
+                    ChunkIndex = 0,
+                    PageNumber = 1,
+                    SectionTitle = "Introduction",
+                    ChunkText =
+                        $"Introduction content for '{doc.Title}'. " +
+                        $"This material explains the fundamental concepts covered by the document."
+                });
+
+                unitOfWork.Chunks.Insert(new Chunk
+                {
+                    DocumentId = doc.Id,
+                    ChunkIndex = 1,
+                    PageNumber = 2,
+                    SectionTitle = "Key Concepts",
+                    ChunkText =
+                        $"Key concepts from '{doc.Title}'. " +
+                        $"This section contains the primary learning objectives and terminology."
+                });
+
+                unitOfWork.Chunks.Insert(new Chunk
+                {
+                    DocumentId = doc.Id,
+                    ChunkIndex = 2,
+                    PageNumber = 3,
+                    SectionTitle = "Summary",
+                    ChunkText =
+                        $"Summary of '{doc.Title}'. " +
+                        $"This section reviews the most important takeaways."
+                });
+            }
+
+            await unitOfWork.SaveAsync();
+        }
+
+        if (!await unitOfWork.ChatSessions.ExistsAsync())
+        {
+            var user = uploader;
+
+            string[] codes = ["SE401", "AI301", "DB201"];
+
+            var subjects = (await unitOfWork.Subjects.GetAsync(
+                filter: e => codes.Contains(e.Code)))
+                .ToList();
+
+            if (subjects.Count != 3)
+            {
+                logger.LogWarning("Default subjects not found. Skipping chunk & chat seed.");
+                goto AI_CONFIG;
+            }
+
+            var architectureSubject = subjects.First(e => e.Code == "SE401").Id;
+            var aiSubject = subjects.First(e => e.Code == "AI301").Id;
+            var dbSubject = subjects.First(e => e.Code == "DB201").Id;
+
+            var chunks = (await unitOfWork.Chunks.GetAsync(
+                includeProperties: [nameof(Chunk.Document)]))
+                .ToList();
+
+            var chunk1 = chunks[0];
+            var chunk2 = chunks[1];
+            var chunk3 = chunks[2];
+            var chunk4 = chunks[3];
+            var chunk5 = chunks[4];
+
+            DateTime now = DateTime.UtcNow;
+
+            /* =====================================================
+             * SESSION 1 (1 exchange)
+             * ===================================================== */
+
+            var session1 = unitOfWork.ChatSessions.Insert(new ChatSession
+            {
+                UserId = user.Id,
+                SubjectId = subjects[0].Id,
+                Title = "What is software architecture?",
+                CreatedAt = now.AddDays(-5)
+            });
+
+            await unitOfWork.SaveAsync();
+
+            var s1Assistant = AddExchange(
+                session1.Id,
+                now.AddDays(-5).AddMinutes(1),
+                "What is software architecture?",
+                "Software architecture defines the high-level structure of a software system.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s1Assistant, chunk1, 1);
+
+            await unitOfWork.SaveAsync();
+
+            /* =====================================================
+             * SESSION 2 (3 exchanges)
+             * ===================================================== */
+
+            var session2 = unitOfWork.ChatSessions.Insert(new ChatSession
+            {
+                UserId = user.Id,
+                SubjectId = aiSubject,
+                Title = "Machine learning basics",
+                CreatedAt = now.AddDays(-3)
+            });
+
+            await unitOfWork.SaveAsync();
+
+            var s2a1 = AddExchange(
+                session2.Id,
+                now.AddDays(-3).AddMinutes(1),
+                "What is supervised learning?",
+                "Supervised learning trains a model using labeled examples.");
+
+            var s2a2 = AddExchange(
+                session2.Id,
+                now.AddDays(-3).AddMinutes(10),
+                "Can you give an example?",
+                "Email spam detection is a classic supervised learning problem.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s2a2, chunk2, 1);
+            AddCitation(s2a2, chunk3, 2);
+
+            var s2a3 = AddExchange(
+                session2.Id,
+                now.AddDays(-3).AddMinutes(20),
+                "How is accuracy measured?",
+                "Common metrics include accuracy, precision, recall and F1 score.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s2a3, chunk1, 1);
+            AddCitation(s2a3, chunk2, 2);
+            AddCitation(s2a3, chunk3, 3);
+
+            await unitOfWork.SaveAsync();
+
+            /* =====================================================
+             * SESSION 3 (5 exchanges)
+             * ===================================================== */
+
+            var session3 = unitOfWork.ChatSessions.Insert(new ChatSession
+            {
+                UserId = user.Id,
+                SubjectId = dbSubject,
+                Title = "Database normalization",
+                CreatedAt = now.AddDays(-1)
+            });
+
+            await unitOfWork.SaveAsync();
+
+            var s3a1 = AddExchange(
+                session3.Id,
+                now.AddDays(-1).AddMinutes(1),
+                "What is normalization?",
+                "Normalization reduces redundancy and improves consistency.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s3a1, chunk1, 1);
+            AddCitation(s3a1, chunk2, 2);
+            AddCitation(s3a1, chunk3, 3);
+            AddCitation(s3a1, chunk4, 4);
+            AddCitation(s3a1, chunk5, 5);
+
+            AddExchange(
+                session3.Id,
+                now.AddDays(-1).AddMinutes(6),
+                "What is 1NF?",
+                "First Normal Form requires atomic values.");
+
+            var s3a3 = AddExchange(
+                session3.Id,
+                now.AddDays(-1).AddMinutes(12),
+                "What is 2NF?",
+                "Second Normal Form removes partial dependencies.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s3a3, chunk4, 1);
+
+            var s3a4 = AddExchange(
+                session3.Id,
+                now.AddDays(-1).AddMinutes(18),
+                "What is 3NF?",
+                "Third Normal Form removes transitive dependencies.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s3a4, chunk4, 1);
+            AddCitation(s3a4, chunk5, 2);
+
+            var s3a5 = AddExchange(
+                session3.Id,
+                now.AddDays(-1).AddMinutes(25),
+                "When should normalization stop?",
+                "It depends on performance requirements and domain constraints.");
+
+            await unitOfWork.SaveAsync();
+
+            AddCitation(s3a5, chunk1, 1);
+            AddCitation(s3a5, chunk3, 2);
+            AddCitation(s3a5, chunk5, 3);
+
+            await unitOfWork.SaveAsync();
+
+            ChatMessage AddExchange(
+                Guid sessionId,
+                DateTime timestamp,
+                string userText,
+                string assistantText)
+            {
+                unitOfWork.ChatMessages.Insert(new ChatMessage
+                {
+                    ChatSessionId = sessionId,
+                    ChatRole = ChatRole.User,
+                    Content = userText,
+                    SentAt = timestamp
+                });
+
+                var assistant = unitOfWork.ChatMessages.Insert(new ChatMessage
+                {
+                    ChatSessionId = sessionId,
+                    ChatRole = ChatRole.Assistant,
+                    Content = assistantText,
+                    SentAt = timestamp.AddMinutes(1),
+
+                    GenerationSettings = new ChatMessageGenerationSettings
+                    {
+                        TopK = 8,
+
+                        LlmModel = "gpt-4.1-mini",
+                        Temperature = 0.7,
+
+                        SystemPrompt = "You are a smart university assistant. Answer using only the context below. If you do not know the answer, do not make one up, simply say you do not know.",
+                        MaxContextChunks = 10,
+                        MaxHistoryMessages = 10,
+                    },
+
+                    GenerationMetrics = new ChatMessageGenerationMetrics
+                    {
+                        RetrievedChunkCount = 5,
+                        ContextChunkCount = 5,
+
+                        PromptTokens = 150,
+                        CompletionTokens = 60,
+
+                        RetrievalTimeMs = 40,
+                        TimeToFirstTokenMs = 300,
+                        TotalResponseTimeMs = 1000,
+                        TokensPerSecond = 60,
+                    },
+                });
+
+                return assistant;
+            }
+
+            void AddCitation(
+                ChatMessage message,
+                Chunk chunk,
+                int citationIndex,
+                double similarity = 0.90)
+            {
+                unitOfWork.Citations.Insert(new Citation
+                {
+                    ChatMessageId = message.Id,
+                    ChunkId = chunk.Id,
+                    CitationIndex = citationIndex,
+                    QuotedText = chunk.ChunkText[..Math.Min(80, chunk.ChunkText.Length)],
+                    SimilarityScore = similarity,
+                    LocationInDocument =
+                        $"Page: {chunk.PageNumber ?? 1}" +
+                        (!string.IsNullOrWhiteSpace(chunk.SectionTitle)
+                            ? $" • Section: {chunk.SectionTitle}"
+                            : "")
+                });
+            }
+        }
+
+    AI_CONFIG:
+        if (!await unitOfWork.GlobalAiConfigurations.ExistsAsync())
+        {
+            logger.LogInformation("No global AI configuration found. Initializing with default values.");
+
+            unitOfWork.GlobalAiConfigurations.Insert(new GlobalAiConfiguration());
+
+            await unitOfWork.SaveAsync();
+        }
     }
 }

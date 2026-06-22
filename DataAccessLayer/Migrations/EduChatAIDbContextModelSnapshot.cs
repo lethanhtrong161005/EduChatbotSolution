@@ -11,14 +11,14 @@ using Pgvector;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatAIDbContext))]
-    partial class EduChatAIDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(EduChatAiDbContext))]
+    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
@@ -179,10 +179,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("chat_session_id");
 
-                    b.Property<int?>("CompletionTokens")
-                        .HasColumnType("integer")
-                        .HasColumnName("completion_tokens");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text")
@@ -191,27 +187,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<double?>("GenerationTemperature")
-                        .HasColumnType("double precision")
-                        .HasColumnName("generation_temperature");
-
-                    b.Property<string>("LlmModel")
-                        .HasColumnType("text")
-                        .HasColumnName("llm_model");
-
-                    b.Property<int?>("PromptTokens")
-                        .HasColumnType("integer")
-                        .HasColumnName("prompt_tokens");
-
-                    b.Property<long?>("ResponseTimeMs")
-                        .HasColumnType("bigint")
-                        .HasColumnName("response_time_ms");
-
-                    b.Property<int?>("RetrievedChunkCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("retrieved_chunk_count");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone")
@@ -231,6 +208,116 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("chat_messages", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ChatMessageGenerationMetrics", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("completion_tokens");
+
+                    b.Property<int>("ContextChunkCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("context_chunk_count");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("prompt_tokens");
+
+                    b.Property<long>("RetrievalTimeMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("retrieval_time_ms");
+
+                    b.Property<int>("RetrievedChunkCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("retrieved_chunk_count");
+
+                    b.Property<long>("TimeToFirstTokenMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("time_to_first_token_ms");
+
+                    b.Property<double>("TokensPerSecond")
+                        .HasColumnType("double precision")
+                        .HasColumnName("tokens_per_second");
+
+                    b.Property<long>("TotalResponseTimeMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_response_time_ms");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_message_generation_metrics");
+
+                    b.ToTable("chat_message_generation_metrics", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ChatMessageGenerationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("LlmModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("llm_model");
+
+                    b.Property<int>("MaxContextChunks")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_context_chunks");
+
+                    b.Property<int>("MaxHistoryMessages")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_history_messages");
+
+                    b.Property<double>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
+                    b.Property<string>("SystemPrompt")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("system_prompt");
+
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temperature");
+
+                    b.Property<int>("TopK")
+                        .HasColumnType("integer")
+                        .HasColumnName("top_k");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_message_generation_settings");
+
+                    b.ToTable("chat_message_generation_settings", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ChatSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -244,7 +331,7 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int>("SubjectId")
+                    b.Property<int?>("SubjectId")
                         .HasColumnType("integer")
                         .HasColumnName("subject_id");
 
@@ -353,9 +440,17 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("ChatMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chat_message_id");
+
                     b.Property<Guid>("ChunkId")
                         .HasColumnType("uuid")
                         .HasColumnName("chunk_id");
+
+                    b.Property<int>("CitationIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("citation_index");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -363,9 +458,9 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<Guid>("MessageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("message_id");
+                    b.Property<string>("LocationInDocument")
+                        .HasColumnType("text")
+                        .HasColumnName("location_in_document");
 
                     b.Property<string>("QuotedText")
                         .IsRequired()
@@ -384,11 +479,11 @@ namespace DataAccessLayer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_citations");
 
+                    b.HasIndex("ChatMessageId")
+                        .HasDatabaseName("ix_citations_chat_message_id");
+
                     b.HasIndex("ChunkId")
                         .HasDatabaseName("ix_citations_chunk_id");
-
-                    b.HasIndex("MessageId")
-                        .HasDatabaseName("ix_citations_message_id");
 
                     b.ToTable("citations", (string)null);
                 });
@@ -577,6 +672,72 @@ namespace DataAccessLayer.Migrations
                         .HasName("pk_experiments");
 
                     b.ToTable("experiments", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.GlobalAiConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChunkingStrategy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("chunking_strategy");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("EmbeddingModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("embedding_model");
+
+                    b.Property<string>("LlmModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("llm_model");
+
+                    b.Property<int>("MaxContextChunks")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_context_chunks");
+
+                    b.Property<int>("MaxHistoryMessages")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_history_messages");
+
+                    b.Property<double>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
+                    b.Property<string>("SystemPrompt")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("system_prompt");
+
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temperature");
+
+                    b.Property<int>("TopK")
+                        .HasColumnType("integer")
+                        .HasColumnName("top_k");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_global_ai_configurations");
+
+                    b.ToTable("global_ai_configurations", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Order", b =>
@@ -889,10 +1050,7 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
                     b.Property<string>("ChunkingStrategy")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("chunking_strategy");
 
@@ -903,22 +1061,36 @@ namespace DataAccessLayer.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("EmbeddingModel")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("embedding_model");
 
                     b.Property<string>("LlmModel")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("llm_model");
 
-                    b.Property<int>("RetrievalTopK")
+                    b.Property<int?>("MaxContextChunks")
                         .HasColumnType("integer")
-                        .HasColumnName("retrieval_top_k");
+                        .HasColumnName("max_context_chunks");
 
-                    b.Property<int>("SubjectId")
+                    b.Property<int?>("MaxHistoryMessages")
                         .HasColumnType("integer")
-                        .HasColumnName("subject_id");
+                        .HasColumnName("max_history_messages");
+
+                    b.Property<double?>("SimilarityThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("similarity_threshold");
+
+                    b.Property<string>("SystemPrompt")
+                        .HasColumnType("text")
+                        .HasColumnName("system_prompt");
+
+                    b.Property<double?>("Temperature")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temperature");
+
+                    b.Property<int?>("TopK")
+                        .HasColumnType("integer")
+                        .HasColumnName("top_k");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -927,10 +1099,6 @@ namespace DataAccessLayer.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_subject_ai_configurations");
-
-                    b.HasIndex("SubjectId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_subject_ai_configurations_subject_id");
 
                     b.ToTable("subject_ai_configurations", (string)null);
                 });
@@ -1331,13 +1499,35 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("ChatSession");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ChatMessageGenerationMetrics", b =>
+                {
+                    b.HasOne("Domain.Entities.ChatMessage", "ChatMessage")
+                        .WithOne("GenerationMetrics")
+                        .HasForeignKey("Domain.Entities.ChatMessageGenerationMetrics", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_message_generation_metrics_chat_messages_id");
+
+                    b.Navigation("ChatMessage");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ChatMessageGenerationSettings", b =>
+                {
+                    b.HasOne("Domain.Entities.ChatMessage", "ChatMessage")
+                        .WithOne("GenerationSettings")
+                        .HasForeignKey("Domain.Entities.ChatMessageGenerationSettings", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_message_generation_settings_chat_messages_id");
+
+                    b.Navigation("ChatMessage");
+                });
+
             modelBuilder.Entity("Domain.Entities.ChatSession", b =>
                 {
                     b.HasOne("Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_chat_sessions_subjects_subject_id");
 
                     b.HasOne("Domain.Entities.ApplicationUser", "User")
@@ -1366,6 +1556,13 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.Citation", b =>
                 {
+                    b.HasOne("Domain.Entities.ChatMessage", "ChatMessage")
+                        .WithMany("Citations")
+                        .HasForeignKey("ChatMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_citations_chat_messages_chat_message_id");
+
                     b.HasOne("Domain.Entities.Chunk", "Chunk")
                         .WithMany("Citations")
                         .HasForeignKey("ChunkId")
@@ -1373,16 +1570,9 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_citations_chunks_chunk_id");
 
-                    b.HasOne("Domain.Entities.ChatMessage", "Message")
-                        .WithMany("Citations")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_citations_messages_message_id");
+                    b.Navigation("ChatMessage");
 
                     b.Navigation("Chunk");
-
-                    b.Navigation("Message");
                 });
 
             modelBuilder.Entity("Domain.Entities.Document", b =>
@@ -1479,10 +1669,10 @@ namespace DataAccessLayer.Migrations
                 {
                     b.HasOne("Domain.Entities.Subject", "Subject")
                         .WithOne("AiConfiguration")
-                        .HasForeignKey("Domain.Entities.SubjectAiConfiguration", "SubjectId")
+                        .HasForeignKey("Domain.Entities.SubjectAiConfiguration", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_subject_ai_configurations_subjects_subject_id");
+                        .HasConstraintName("fk_subject_ai_configurations_subjects_id");
 
                     b.Navigation("Subject");
                 });
@@ -1622,6 +1812,10 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("Domain.Entities.ChatMessage", b =>
                 {
                     b.Navigation("Citations");
+
+                    b.Navigation("GenerationMetrics");
+
+                    b.Navigation("GenerationSettings");
                 });
 
             modelBuilder.Entity("Domain.Entities.ChatSession", b =>

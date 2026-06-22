@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatAIDbContext))]
+    [DbContext(typeof(EduChatAiDbContext))]
     [Migration("20260601201221_AddTimestampGeneration")]
     partial class AddTimestampGeneration
     {

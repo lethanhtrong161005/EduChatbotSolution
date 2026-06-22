@@ -4,7 +4,7 @@ using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Presentation.Models;
+using Presentation.ViewModels;
 using System.Security.Claims;
 
 namespace Presentation.Controllers;

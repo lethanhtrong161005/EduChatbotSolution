@@ -7,7 +7,7 @@
         document.getElementById('continueButton');
 
     const purchaseForm =
-        document.getElementById('purchaseForm');
+        document.getElementById('paymentForm');
 
     document
         .querySelectorAll('.plan-option-btn')
@@ -66,7 +66,7 @@
             });
         });
 
-    purchaseForm.addEventListener(
+    paymentForm.addEventListener(
         'submit',
         (e) => {
             e.preventDefault();

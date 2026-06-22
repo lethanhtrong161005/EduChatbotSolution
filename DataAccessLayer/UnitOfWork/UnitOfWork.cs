@@ -8,7 +8,7 @@ namespace DataAccess.UnitOfWork;
 /// Implements the Unit of Work pattern, providing lazy-loaded repositories
 /// for all aggregate roots and coordinating saves via a shared DbContext.
 /// </summary>
-public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
+public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
 {
     GenericRepository<Plan>? _plans;
     GenericRepository<PlanOption>? _planOptions;
@@ -18,6 +18,7 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     GenericRepository<Subject>? _subjects;
     GenericRepository<SubjectMembership>? _subjectMemberships;
     GenericRepository<SubjectAiConfiguration>? _subjectAiConfigurations;
+    GenericRepository<GlobalAiConfiguration>? _globalAiConfigurations;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
     GenericRepository<DocumentComment>? _documentComments;
@@ -25,6 +26,8 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     GenericRepository<Chunk>? _chunks;
     GenericRepository<ChatSession>? _chatSessions;
     GenericRepository<ChatMessage>? _chatMessages;
+    GenericRepository<ChatMessageGenerationSettings>? _chatMessageGenerationSettings;
+    GenericRepository<ChatMessageGenerationMetrics>? _chatMessageGenerationMetrics;
     GenericRepository<Citation>? _citations;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
@@ -47,6 +50,8 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations => _subjectAiConfigurations ??= new GenericRepository<SubjectAiConfiguration>(context);
     /// <inheritdoc/>
+    public GenericRepository<GlobalAiConfiguration> GlobalAiConfigurations => _globalAiConfigurations ??= new GenericRepository<GlobalAiConfiguration>(context);
+    /// <inheritdoc/>
     public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(context);
     /// <inheritdoc/>
     public GenericRepository<Document> Documents => _documents ??= new GenericRepository<Document>(context);
@@ -60,6 +65,10 @@ public class UnitOfWork(EduChatAIDbContext context) : IUnitOfWork
     public GenericRepository<ChatSession> ChatSessions => _chatSessions ??= new GenericRepository<ChatSession>(context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics => _chatMessageGenerationMetrics ??= new GenericRepository<ChatMessageGenerationMetrics>(context);
     /// <inheritdoc/>
     public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(context);
     /// <inheritdoc/>

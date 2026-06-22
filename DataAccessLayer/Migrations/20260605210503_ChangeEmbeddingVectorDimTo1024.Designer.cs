@@ -12,7 +12,7 @@ using Pgvector;
 
 namespace DataAccessLayer.Migrations
 {
-    [DbContext(typeof(EduChatAIDbContext))]
+    [DbContext(typeof(EduChatAiDbContext))]
     [Migration("20260605210503_ChangeEmbeddingVectorDimTo1024")]
     partial class ChangeEmbeddingVectorDimTo1024
     {

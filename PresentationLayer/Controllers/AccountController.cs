@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Presentation.Models;
-using Presentation.Settings;
+using Presentation.Constants;
+using Presentation.ViewModels;
 using System.Security.Claims;
 
 namespace Presentation.Controllers;
@@ -34,13 +34,13 @@ public class AccountController(
     /// Displays the login page. Redirects authenticated users to the home page.
     /// </summary>
     /// <param name="returnUrl">Optional URL to redirect to after successful login.</param>
-    [HttpGet(AuthenticationSettings.LoginPath)]
+    [HttpGet(AuthenticationConstants.LoginPath)]
     [AllowAnonymous]
-    public IActionResult Login(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    public IActionResult Login(string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(returnUrl ?? AuthenticationConstants.FallbackReturnUrl);
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -52,12 +52,12 @@ public class AccountController(
     /// </summary>
     /// <param name="model">Login credentials.</param>
     /// <param name="returnUrl">Optional return URL after login.</param>
-    [HttpPost(AuthenticationSettings.LoginPath)]
+    [HttpPost(AuthenticationConstants.LoginPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(
         LoginRequestVm model,
-        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+        string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         if (!ModelState.IsValid)
         {
@@ -85,7 +85,7 @@ public class AccountController(
             if (isAdmin)
                 return Redirect("/admin/user-manage");
 
-            return LocalRedirect(returnUrl ?? AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(returnUrl ?? AuthenticationConstants.FallbackReturnUrl);
         }
 
         ModelState.AddModelError(string.Empty, loginResult.Errors.FirstOrDefault() ?? AppConstants.InvalidCredentials);
@@ -97,13 +97,13 @@ public class AccountController(
     /// <summary>
     /// Displays the forgot-password page where a user can request a reset code.
     /// </summary>
-    [HttpGet(AuthenticationSettings.ForgotPasswordPath)]
+    [HttpGet(AuthenticationConstants.ForgotPasswordPath)]
     [AllowAnonymous]
     public IActionResult ForgotPassword()
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return LocalRedirect(AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(AuthenticationConstants.FallbackReturnUrl);
         }
 
         return View(new ForgotPasswordVm());
@@ -114,7 +114,7 @@ public class AccountController(
     /// Uses a generic redirect message so account existence is not exposed in the UI.
     /// </summary>
     /// <param name="model">The email address submitted by the user.</param>
-    [HttpPost(AuthenticationSettings.ForgotPasswordPath)]
+    [HttpPost(AuthenticationConstants.ForgotPasswordPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordVm model)
@@ -146,7 +146,7 @@ public class AccountController(
     /// Displays the password-reset page with OTP and new-password fields.
     /// </summary>
     /// <param name="email">The account email address that requested password reset.</param>
-    [HttpGet(AuthenticationSettings.ResetPasswordPath)]
+    [HttpGet(AuthenticationConstants.ResetPasswordPath)]
     [AllowAnonymous]
     public IActionResult ResetPassword(string email)
     {
@@ -157,7 +157,7 @@ public class AccountController(
     /// Verifies the password-reset OTP and stores the new password as a BCrypt hash.
     /// </summary>
     /// <param name="model">The email, OTP code, and new password fields.</param>
-    [HttpPost(AuthenticationSettings.ResetPasswordPath)]
+    [HttpPost(AuthenticationConstants.ResetPasswordPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(ResetPasswordVm model)
@@ -208,13 +208,13 @@ public class AccountController(
     /// <summary>
     /// Displays the registration page.
     /// </summary>
-    [HttpGet(AuthenticationSettings.RegistrationPath)]
+    [HttpGet(AuthenticationConstants.RegistrationPath)]
     [AllowAnonymous]
-    public IActionResult Register(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    public IActionResult Register(string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return LocalRedirect(AuthenticationSettings.FallbackReturnUrl);
+            return LocalRedirect(AuthenticationConstants.FallbackReturnUrl);
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -228,12 +228,12 @@ public class AccountController(
     /// </summary>
     /// <param name="model">Registration data.</param>
     /// <param name="returnUrl">Optional return URL after eventual login.</param>
-    [HttpPost(AuthenticationSettings.RegistrationPath)]
+    [HttpPost(AuthenticationConstants.RegistrationPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(
         RegisterRequestVm model,
-        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+        string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         if (!ModelState.IsValid)
         {
@@ -268,9 +268,9 @@ public class AccountController(
     /// </summary>
     /// <param name="email">The email address to verify.</param>
     /// <param name="returnUrl">Optional return URL after successful account creation.</param>
-    [HttpGet(AuthenticationSettings.VerifyEmailPath)]
+    [HttpGet(AuthenticationConstants.VerifyEmailPath)]
     [AllowAnonymous]
-    public IActionResult VerifyEmail(string email, string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    public IActionResult VerifyEmail(string email, string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         ViewData["ReturnUrl"] = returnUrl;
         return View(new VerifyEmailVm { Email = email });
@@ -282,12 +282,12 @@ public class AccountController(
     /// </summary>
     /// <param name="model">The email address and 6-digit code from the verification form.</param>
     /// <param name="returnUrl">Optional return URL after login.</param>
-    [HttpPost(AuthenticationSettings.VerifyEmailPath)]
+    [HttpPost(AuthenticationConstants.VerifyEmailPath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> VerifyEmail(
         VerifyEmailVm model,
-        string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+        string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         if (!ModelState.IsValid)
         {
@@ -422,7 +422,7 @@ public class AccountController(
     /// Re-sends a new OTP to the email. Returns JSON so the client can restart the countdown timer.
     /// </summary>
     /// <param name="email">The email address to resend the verification code to.</param>
-    [HttpPost(AuthenticationSettings.ResendCodePath)]
+    [HttpPost(AuthenticationConstants.ResendCodePath)]
     [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendCode([FromForm] string email)
@@ -444,12 +444,12 @@ public class AccountController(
     /// Initiates the Google OAuth flow by issuing a challenge redirect to Google.
     /// </summary>
     /// <param name="returnUrl">URL to redirect to after successful authentication.</param>
-    [HttpGet(AuthenticationSettings.GoogleLoginPath)]
+    [HttpGet(AuthenticationConstants.GoogleLoginPath)]
     [AllowAnonymous]
-    public IActionResult GoogleLogin(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    public IActionResult GoogleLogin(string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         var callbackUrl = Url.Action(nameof(GoogleCallback), "Account", new { returnUrl }, Request.Scheme)
-                         ?? AuthenticationSettings.FallbackReturnUrl;
+                         ?? AuthenticationConstants.FallbackReturnUrl;
         var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", callbackUrl);
         return Challenge(properties, "Google");
     }
@@ -459,9 +459,9 @@ public class AccountController(
     /// then signs in and redirects to <paramref name="returnUrl"/>.
     /// </summary>
     /// <param name="returnUrl">URL to redirect to after successful authentication.</param>
-    [HttpGet(AuthenticationSettings.GoogleCallbackAction)]
+    [HttpGet(AuthenticationConstants.GoogleCallbackAction)]
     [AllowAnonymous]
-    public async Task<IActionResult> GoogleCallback(string returnUrl = AuthenticationSettings.FallbackReturnUrl)
+    public async Task<IActionResult> GoogleCallback(string returnUrl = AuthenticationConstants.FallbackReturnUrl)
     {
         var info = await _signInManager.GetExternalLoginInfoAsync();
         if (info is null)
@@ -494,8 +494,9 @@ public class AccountController(
     /// <summary>
     /// Signs out the currently authenticated user and redirects to the login page.
     /// </summary>
-    [HttpPost(AuthenticationSettings.LogoutPath)]
-    [ValidateAntiForgeryToken]
+    [HttpPost(AuthenticationConstants.LogoutPath)]
+    //[ValidateAntiForgeryToken]
+    [AllowAnonymous]
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();

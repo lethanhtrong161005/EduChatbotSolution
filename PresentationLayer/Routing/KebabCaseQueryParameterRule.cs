@@ -17,12 +17,12 @@ public class KebabCaseQueryParameterRule : IRule
 
     private static string ToPascalCase(string kebabCase)
     {
-        return string.Join(string.Empty, kebabCase.Split('-').Select(str => Capitalize(str)));
+        return string.Join(string.Empty, kebabCase.Split('-').Select(Capitalize));
     }
 
     private static string ToCamelCase(string kebabCase)
     {
-        var tokens = kebabCase.Split('-').Select(str => Capitalize(str)).ToArray();
+        var tokens = kebabCase.Split('-').Select(Capitalize).ToArray();
         tokens[0] = Uncapitalize(tokens[0]);
         return string.Join(string.Empty, tokens);
     }
