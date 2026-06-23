@@ -29,10 +29,12 @@ public class DetailsModel(
     /// </summary>
     public DocumentDetailsVm ViewModel { get; private set; } = new();
 
-    /// <summary>
-    /// Gets whether the physical file exists on this local server.
-    /// </summary>
     public bool IsPhysicalFileAvailable { get; private set; } = true;
+
+    /// <summary>
+    /// Gets whether the current user has permission to edit this document.
+    /// </summary>
+    public bool CanEdit { get; private set; } = false;
 
     /// <summary>
     /// Loads document metadata, chunks, and comments.
@@ -78,6 +80,11 @@ public class DetailsModel(
                 return Forbid();
             }
         }
+
+        var isChief = await _unitOfWork.SubjectMemberships.ExistsAsync(
+            filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId && m.Role == MembershipRole.Chief,
+            cancellationToken: cxlTkn);
+        CanEdit = isChief;
 
         var vm = _mapper.Map<DocumentDetailsVm>(doc);
 

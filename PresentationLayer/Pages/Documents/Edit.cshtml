@@ -1,7 +1,8 @@
-@model Presentation.ViewModels.DocumentEditVm
+@page "{id:guid}"
+@model Presentation.Pages.Documents.EditModel
 
 @{
-    ViewData["Title"] = "Chỉnh sửa tài liệu - " + Model.Title;
+    ViewData["Title"] = "Chỉnh sửa tài liệu - " + Model.ViewModel.Title;
 }
 
 <!-- Google Fonts & Layout Styles -->
@@ -32,10 +33,10 @@
     }
 
     .edit-card {
-        background: white;
+        background: var(--color-card-bg);
         border-radius: var(--radius-xl);
         border: 1px solid var(--color-border-light);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--shadow-md);
         padding: 2.5rem;
     }
 
@@ -55,7 +56,7 @@
     }
 
     .edit-icon {
-        background: rgba(var(--color-primary-rgb), 0.1);
+        background: rgba(46, 204, 113, 0.1);
         color: var(--color-primary);
         width: 45px;
         height: 45px;
@@ -78,7 +79,8 @@
     }
 
     .form-control-custom {
-        border: 1px solid var(--color-border-light);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-neutral);
         border-radius: var(--radius-md);
         padding: 0.75rem 1rem;
         font-size: 0.975rem;
@@ -86,9 +88,14 @@
         color: var(--color-text-primary);
     }
 
+    .form-control-custom::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 0.7;
+    }
+
     .form-control-custom:focus {
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.1);
+        box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.15);
         outline: none;
     }
 
@@ -114,11 +121,11 @@
 <div class="edit-page-container">
     <!-- Breadcrumbs -->
     <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
-        <a asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <a asp-page="/Home/Index">Trang chủ</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-controller="Documents" asp-action="Library">Tài liệu</a>
+        <a asp-page="Library">Tài liệu</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id">Chi tiết</a>
+        <a asp-page="Details" asp-route-id="@Model.ViewModel.Id">Chi tiết</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
         <span class="text-muted">Chỉnh sửa</span>
     </nav>
@@ -133,27 +140,27 @@
             </div>
         </div>
 
-        <form asp-controller="Documents" asp-action="Edit" method="post" autocomplete="off">
+        <form method="post" autocomplete="off">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ViewModel.Id" />
 
             <!-- Tiêu đề -->
             <div class="form-group-custom d-flex flex-column">
-                <label asp-for="Title" class="form-label-custom">Tiêu đề tài liệu</label>
-                <input asp-for="Title" class="form-control-custom" placeholder="Nhập tiêu đề hiển thị..." required />
-                <span asp-validation-for="Title" class="text-danger-custom"></span>
+                <label asp-for="ViewModel.Title" class="form-label-custom">Tiêu đề tài liệu</label>
+                <input asp-for="ViewModel.Title" class="form-control-custom" placeholder="Nhập tiêu đề hiển thị..." required />
+                <span asp-validation-for="ViewModel.Title" class="text-danger-custom"></span>
             </div>
 
             <!-- Mô tả -->
             <div class="form-group-custom d-flex flex-column">
-                <label asp-for="Description" class="form-label-custom">Mô tả chi tiết</label>
-                <textarea asp-for="Description" class="form-control-custom" rows="5" placeholder="Nhập mô tả tóm tắt nội dung tài liệu..."></textarea>
-                <span asp-validation-for="Description" class="text-danger-custom"></span>
+                <label asp-for="ViewModel.Description" class="form-label-custom">Mô tả chi tiết</label>
+                <textarea asp-for="ViewModel.Description" class="form-control-custom" rows="5" placeholder="Nhập mô tả tóm tắt nội dung tài liệu..."></textarea>
+                <span asp-validation-for="ViewModel.Description" class="text-danger-custom"></span>
             </div>
 
             <!-- Nút điều hướng -->
             <div class="btn-action-area">
-                <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
+                <a asp-page="Details" asp-route-id="@Model.ViewModel.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
                     <i class="fas fa-times me-1"></i> Hủy bỏ
                 </a>
                 <button type="submit" class="btn-action-primary py-2 px-4">
