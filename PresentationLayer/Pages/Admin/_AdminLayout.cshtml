@@ -34,12 +34,12 @@
             <nav class="sidebar-nav">
                 <div class="nav-section-title">Management</div>
                 <a asp-page="/Admin/UserManage"
-                   class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "UserManage" ? "active" : "")">
+                   class="nav-item @(ViewContext.RouteData.Values["page"]?.ToString() == "/Admin/UserManage" ? "active" : "")">
                     <i class="fas fa-users nav-icon"></i>
                     <span class="nav-label">User Management</span>
                 </a>
                 <a asp-page="/Admin/SubjectManage"
-                   class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "SubjectManage" ? "active" : "")">
+                   class="nav-item @(ViewContext.RouteData.Values["page"]?.ToString() == "/Admin/SubjectManage" ? "active" : "")">
                     <i class="fas fa-book nav-icon"></i>
                     <span class="nav-label">Subject Management</span>
                 </a>

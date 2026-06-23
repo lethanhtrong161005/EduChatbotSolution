@@ -181,8 +181,6 @@ builder.Services.AddCors(opts =>
     });
 });
 
-builder.Services.AddControllers();
-
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.Add(
@@ -228,7 +226,6 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = [new HangfireAuthFilter()],
 });
 
-app.MapControllers();
 app.MapRazorPages();
 
 app.MapHub<DocumentHub>("/documents/status");

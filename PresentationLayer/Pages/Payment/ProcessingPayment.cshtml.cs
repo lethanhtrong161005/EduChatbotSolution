@@ -12,6 +12,7 @@ namespace Presentation.Pages.Payment;
 
 /// <summary>
 /// Displays the payment verification page after returning from a provider.
+/// Provides payment status API via handlers.
 /// </summary>
 [Authorize]
 public class ProcessingPaymentModel(
@@ -79,5 +80,24 @@ public class ProcessingPaymentModel(
         }
 
         return payment;
+    }
+
+    /// <summary>
+    /// Returns the current payment status for polling clients.
+    /// </summary>
+    /// <param name="id">The payment transaction identifier (as string).</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    /// <exception cref="BadRequestException">Thrown when the payment ID is empty or invalid.</exception>
+    public async Task<IActionResult> OnGetStatusAsync([FromQuery] string id, CancellationToken cxlTkn)
+    {
+        if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out var paymentId))
+            throw new BadRequestException("Missing or invalid transaction ID.");
+
+        var payment = await GetAndValidatePaymentAsync(paymentId.ToString(), cxlTkn);
+        return new JsonResult(new
+        {
+            Status = payment.Status.ToString(),
+            RedirectUrl = "/plans",
+        });
     }
 }

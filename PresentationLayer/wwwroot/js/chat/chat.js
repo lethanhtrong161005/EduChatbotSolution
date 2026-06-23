@@ -593,7 +593,7 @@
 
         const subjectHeaderDtos =
             await $.getJSON({
-                url: `/chat/subjects`,
+                url: `/chat?handler=GetSubjectHeaders`,
                 method: "GET",
             });
 
@@ -616,7 +616,7 @@
 
         const sessionHeaderDtos =
             await $.getJSON({
-                url: `/chat/sessions`,
+                url: `/chat?handler=GetSessionHeaders`,
                 method: "GET",
             });
 
@@ -693,7 +693,7 @@
 
     async function loadExistingSession(sessionId, pushHistory) {
 
-        const dto = await $.getJSON(`/chat/session/${sessionId}`);
+        const dto = await $.getJSON(`/chat?handler=GetSession/chat/session/${sessionId}id=${sessionId}`);
 
         await ChatSignalR.switchSession(activeSessionId, sessionId);
 
@@ -934,7 +934,7 @@
 
         try {
             genChatRes = await $.ajax({
-                url: "/chat/generate",
+                url: "/chat?handler=Generate",
                 method: "POST",
                 data: {
                     sessionId: activeSession.id,
@@ -979,7 +979,7 @@
 
         const response =
             await $.ajax({
-                url: "/chat/session",
+                url: "/chat?handler=CreateSession",
                 method: "POST",
                 data: {
                     subjectId,

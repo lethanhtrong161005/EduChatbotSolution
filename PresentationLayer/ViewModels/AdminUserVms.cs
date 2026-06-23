@@ -90,3 +90,8 @@ public class AdminUpdateUserVm
     [Required]
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+/// <summary>
+/// Minimal request body carrying only the optimistic-concurrency token.
+/// </summary>
+public record ConcurrencyTokenBody(DateTimeOffset UpdatedAt);

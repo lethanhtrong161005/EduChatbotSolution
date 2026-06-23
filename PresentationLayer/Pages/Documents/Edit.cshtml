@@ -1,7 +1,8 @@
-@model Presentation.ViewModels.DocumentEditVm
+@page "{id:guid}/{handler?}"
+@model Presentation.Pages.Documents.EditModel
 
 @{
-    ViewData["Title"] = "Chỉnh sửa tài liệu - " + Model.Title;
+    ViewData["Title"] = "Chỉnh sửa tài liệu - " + Model.ViewModel.Title;
 }
 
 <!-- Google Fonts & Layout Styles -->
@@ -114,11 +115,11 @@
 <div class="edit-page-container">
     <!-- Breadcrumbs -->
     <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
-        <a asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <a asp-page="/Home/Index">Trang chủ</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-controller="Documents" asp-action="Library">Tài liệu</a>
+        <a asp-page="/Documents/Library">Tài liệu</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id">Chi tiết</a>
+        <a asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id">Chi tiết</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
         <span class="text-muted">Chỉnh sửa</span>
     </nav>
@@ -133,27 +134,27 @@
             </div>
         </div>
 
-        <form asp-controller="Documents" asp-action="Edit" method="post" autocomplete="off">
+        <form method="post" autocomplete="off">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ViewModel.Id" />
 
             <!-- Tiêu đề -->
             <div class="form-group-custom d-flex flex-column">
-                <label asp-for="Title" class="form-label-custom">Tiêu đề tài liệu</label>
-                <input asp-for="Title" class="form-control-custom" placeholder="Nhập tiêu đề hiển thị..." required />
-                <span asp-validation-for="Title" class="text-danger-custom"></span>
+                <label asp-for="ViewModel.Title" class="form-label-custom">Tiêu đề tài liệu</label>
+                <input asp-for="ViewModel.Title" class="form-control-custom" placeholder="Nhập tiêu đề hiển thị..." required />
+                <span asp-validation-for="ViewModel.Title" class="text-danger-custom"></span>
             </div>
 
             <!-- Mô tả -->
             <div class="form-group-custom d-flex flex-column">
-                <label asp-for="Description" class="form-label-custom">Mô tả chi tiết</label>
-                <textarea asp-for="Description" class="form-control-custom" rows="5" placeholder="Nhập mô tả tóm tắt nội dung tài liệu..."></textarea>
-                <span asp-validation-for="Description" class="text-danger-custom"></span>
+                <label asp-for="ViewModel.Description" class="form-label-custom">Mô tả chi tiết</label>
+                <textarea asp-for="ViewModel.Description" class="form-control-custom" rows="5" placeholder="Nhập mô tả tóm tắt nội dung tài liệu..."></textarea>
+                <span asp-validation-for="ViewModel.Description" class="text-danger-custom"></span>
             </div>
 
             <!-- Nút điều hướng -->
             <div class="btn-action-area">
-                <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
+                <a asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
                     <i class="fas fa-times me-1"></i> Hủy bỏ
                 </a>
                 <button type="submit" class="btn-action-primary py-2 px-4">

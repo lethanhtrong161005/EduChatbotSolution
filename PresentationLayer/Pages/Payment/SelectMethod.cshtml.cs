@@ -15,8 +15,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ZaloPayCreateTransactionResponse = Presentation.Controllers.ZaloPayCreateTransactionResponse;
-using ZaloPayInitTransactionReturnCode = Presentation.Controllers.ZaloPayInitTransactionReturnCode;
+using ZaloPayCreateTransactionResponse = Presentation.DTOs.ZaloPayCreateTransactionResponse;
+using ZaloPayInitTransactionReturnCode = Presentation.DTOs.ZaloPayInitTransactionReturnCode;
 
 namespace Presentation.Pages.Payment;
 
