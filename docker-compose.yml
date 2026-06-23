@@ -36,8 +36,8 @@ services:
       - redis
 
   web:
-    image: ${DOCKER_REGISTRY-}educhatai-mvc
-    container_name: educhatai_mvc
+    image: ${DOCKER_REGISTRY-}educhatai-aspnet
+    container_name: educhatai_web
     build:
       context: .
       dockerfile: PresentationLayer/Dockerfile

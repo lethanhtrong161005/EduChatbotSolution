@@ -58,3 +58,5 @@ yarn-error.log*
 .vscode/
 .vscode
 .idea/
+
+wwwroot/css/styles.css

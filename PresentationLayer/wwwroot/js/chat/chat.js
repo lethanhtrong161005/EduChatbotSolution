@@ -24,6 +24,8 @@
     let messageContent = "";
     let inputEnabled = true;
 
+    let concurrencyToken = null;
+
     /* ==========================================================
        State Mutation -- Active Session & Session List
        ========================================================== */
@@ -182,7 +184,7 @@
     function updateDom_AssistantMessage(msgClientId) {
 
         // On:
-        // * messages[?]
+        // * activeSession.messages[?]
 
         const message = findMessageByClientId(msgClientId);
         if (!message)
@@ -261,7 +263,7 @@
             });
 
         window.addEventListener(
-            "popstatus",
+            "popstate",
             async function () {
 
                 const path = window.location.pathname;
@@ -594,7 +596,6 @@
         const subjectHeaderDtos =
             await $.getJSON({
                 url: `/chat/subjects`,
-                method: "GET",
             });
 
         subjectHeaders =
@@ -617,7 +618,6 @@
         const sessionHeaderDtos =
             await $.getJSON({
                 url: `/chat/sessions`,
-                method: "GET",
             });
 
         sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
@@ -693,9 +693,21 @@
 
     async function loadExistingSession(sessionId, pushHistory) {
 
-        const dto = await $.getJSON(`/chat/session/${sessionId}`);
+        const reqToken = crypto.randomUUID();
+        concurrencyToken = reqToken;
+
+        const dto =
+            await $.getJSON({
+                url: `/chat/session/${sessionId}`,
+            });
+
+        if (concurrencyToken !== reqToken)
+            return;
 
         await ChatSignalR.switchSession(activeSessionId, sessionId);
+
+        if (concurrencyToken !== reqToken)
+            return;
 
         activeSession = normalizeSession(dto);
         activeSessionId = sessionId;
@@ -946,7 +958,11 @@
         } catch (err) {
 
             alert(err);
+
             // setActiveSessionLastMessageAt(cachedLastMessagAt);
+            setInputEnabled(true);
+
+            return;
         }
 
         if (userMessage._clientId === genChatRes.userMessageClientId) {
@@ -1002,8 +1018,7 @@
                 status: ChatEnums.MessageStatus.Pending,
             });
 
-        activeSession.messages.push(
-            message);
+        activeSession.messages.push(message);
 
         $("#message-list")
             .append(
@@ -1024,8 +1039,7 @@
                 status: ChatEnums.MessageStatus.Pending,
             });
 
-        activeSession.messages.push(
-            message);
+        activeSession.messages.push(message);
 
         $("#message-list")
             .append(

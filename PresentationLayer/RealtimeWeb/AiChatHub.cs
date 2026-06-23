@@ -14,6 +14,12 @@ public class AiChatHub : Hub<IAiChatClient>
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.Chat(sessionId));
     }
+
+    public async Task SwitchSession(Guid oldSessionId, Guid newSessionId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.Chat(oldSessionId));
+        await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.Chat(newSessionId));
+    }
 }
 
 public interface IAiChatClient

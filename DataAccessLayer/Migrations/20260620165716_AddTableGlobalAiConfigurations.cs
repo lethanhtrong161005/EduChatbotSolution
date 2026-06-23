@@ -111,12 +111,154 @@ namespace DataAccessLayer.Migrations
                     table.PrimaryKey("pk_global_ai_configurations", x => x.id);
                 });
 
+            /* ==========================================================
+               !!! WARNING !!! NO ROLLBACK
+               ========================================================== */
+
             migrationBuilder.Sql("""
+                ALTER FUNCTION public."Update_Timestamp_Function"() RENAME TO "update_timestamp";
+                """);
+
+            migrationBuilder.Sql("""
+                CREATE OR REPLACE FUNCTION public.update_timestamp()
+                RETURNS trigger
+                LANGUAGE plpgsql
+                AS $$
+                    BEGIN
+                        NEW."updated_at" := now();
+                        RETURN NEW;
+                    END;
+                $$;
+                """);
+
+            migrationBuilder.Sql("""
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "plans";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "plan_options";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "orders";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "subscriptions";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "payments";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "subjects";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "subject_memberships";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "subject_ai_configurations";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "global_ai_configurations";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chapters";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "documents";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "document_comments";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "parsed_sections";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chunks";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chat_sessions";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chat_messages";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chat_message_generation_settings";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "chat_message_generation_metrics";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "citations";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "test_questions";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "experiments";
+                DROP TRIGGER IF EXISTS "UpdateTimestamp" ON "test_responses";
+                """);
+
+            migrationBuilder.Sql("""
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "plans"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "plan_options"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "orders"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "subscriptions"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "payments"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "subjects"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "subject_memberships"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "subject_ai_configurations"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
                 CREATE TRIGGER "update_timestamp"
                     BEFORE UPDATE ON "global_ai_configurations"
                     FOR EACH ROW
                     EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "chapters"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "documents"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "document_comments"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "parsed_sections"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "chunks"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "chat_sessions"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "chat_messages"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "citations"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "test_questions"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "experiments"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
+
+                CREATE TRIGGER "update_timestamp"
+                    BEFORE UPDATE ON "test_responses"
+                    FOR EACH ROW
+                    EXECUTE FUNCTION "update_timestamp"();
                 """);
+
+            /* ========================================================== */
         }
 
         /// <inheritdoc />

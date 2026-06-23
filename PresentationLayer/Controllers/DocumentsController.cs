@@ -13,6 +13,7 @@ using Presentation.Constants;
 using Presentation.DTOs;
 using Presentation.Extensions;
 using Presentation.Utils;
+using Presentation.ViewModels;
 
 namespace Presentation.Controllers;
 
@@ -169,6 +170,44 @@ public class DocumentsController(
             fileStream: System.IO.File.OpenRead(doc.FilePath),
             contentType: doc.ContentType,
             fileDownloadName: doc.OriginalFileName);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(Guid id, CancellationToken cxlTkn)
+    {
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+        if (doc == null)
+            return NotFound();
+
+        var vm = new DocumentEditVm
+        {
+            Id = doc.Id,
+            Title = doc.Title,
+            Description = doc.Description
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(DocumentEditVm vm, CancellationToken cxlTkn)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(vm);
+        }
+
+        var doc = await _documentService.GetByIdAsync(vm.Id, cancellationToken: cxlTkn);
+        if (doc == null)
+            return NotFound();
+
+        doc.Title = vm.Title;
+        doc.Description = vm.Description;
+
+        await _documentService.UpdateAsync(doc, cxlTkn);
+
+        return RedirectToPage("/Documents/Details", new { id = doc.Id });
     }
 
     /// <summary>

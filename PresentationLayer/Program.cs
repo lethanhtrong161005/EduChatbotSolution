@@ -92,11 +92,11 @@ var ollamaOpts = builder.Configuration.GetRequiredSection("Ollama").Get<OllamaOp
                  ?? throw new KeyNotFoundException("Ollama is not configured.");
 
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, OllamaApiClient>(
-    EmbeddingModelNames.BgeM3,
+    EmbeddingModelNames.BgeM3_Latest,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
 builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
-    ChatModelNames.Qwen3,
+    ChatModelNames.Qwen3_5,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
 // ── Background Services ──────────────────────────────────────────────

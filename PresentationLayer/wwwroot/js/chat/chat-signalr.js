@@ -2,6 +2,8 @@
 
     let connection = null;
 
+    let activeSessionId = null;
+
     async function start() {
 
         connection = new signalR.HubConnectionBuilder()
@@ -38,10 +40,15 @@
 
     async function switchSession(oldSessionId, newSessionId) {
 
-        if (oldSessionId)
-            await connection.invoke("LeaveSession", oldSessionId);
-
-        await connection.invoke("JoinSession", newSessionId);
+        if (activeSessionId)
+            await connection.invoke(
+                "SwitchSession",
+                activeSessionId,
+                activeSessionId = newSessionId);
+        else
+            await connection.invoke(
+                "JoinSession",
+                activeSessionId = newSessionId);
     }
 
     return {

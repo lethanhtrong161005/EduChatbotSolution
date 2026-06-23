@@ -6,13 +6,13 @@ public class GlobalAiConfiguration : CategoryLikeEntity
 {
     public string ChunkingStrategy { get; set; } = "FixedLength";
 
-    public string EmbeddingModel { get; set; } = EmbeddingModelNames.BgeM3;
+    public string EmbeddingModel { get; set; } = EmbeddingModelNames.BgeM3_Latest;
 
     public int TopK { get; set; } = 15;
 
     public double SimilarityThreshold { get; set; } = 0.6;
 
-    public string LlmModel { get; set; } = ChatModelNames.Qwen3;
+    public string LlmModel { get; set; } = ChatModelNames.Qwen3_5;
 
     public float Temperature { get; set; } = 0.3F;
 
