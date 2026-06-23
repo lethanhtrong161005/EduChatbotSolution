@@ -45,14 +45,16 @@
         font-size: 0.875rem;
         color: var(--color-text-secondary);
     }
-    .breadcrumb-nav a {
-        color: var(--color-text-secondary);
-        text-decoration: none;
-        transition: color var(--transition-fast);
-    }
-    .breadcrumb-nav a:hover {
-        color: var(--color-primary);
-    }
+
+        .breadcrumb-nav a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+            .breadcrumb-nav a:hover {
+                color: var(--color-primary);
+            }
 
     /* Grid Layout */
     .doc-grid-layout {
@@ -61,6 +63,7 @@
         gap: 2rem;
         margin-top: 1.5rem;
     }
+
     @@media (min-width: 992px) {
         .doc-grid-layout {
             grid-template-columns: minmax(0, 1fr) 350px;
@@ -117,6 +120,7 @@
         flex-direction: column;
         align-items: center;
     }
+
     .docx-page-sheet {
         background: white;
         width: 100%;
@@ -130,22 +134,26 @@
         line-height: 1.7;
         color: #2c3e50;
     }
-    .docx-page-sheet p.doc-p {
-        margin-bottom: 1.25rem;
-        text-align: justify;
-    }
+
+        .docx-page-sheet p.doc-p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+        }
+
     .docx-rendered-container {
         width: 100%;
     }
-    .docx-rendered-container table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1.5rem;
-    }
-    .docx-rendered-container th, .docx-rendered-container td {
-        border: 1px solid #d1d5db;
-        padding: 0.5rem 0.75rem;
-    }
+
+        .docx-rendered-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        .docx-rendered-container th, .docx-rendered-container td {
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 0.75rem;
+        }
 
     /* PPTX Slideshow outline styles */
     .pptx-slide-viewer {
@@ -154,11 +162,13 @@
         height: 700px;
         background: #1e293b;
     }
+
     @@media (min-width: 768px) {
         .pptx-slide-viewer {
             grid-template-columns: 180px minmax(0, 1fr);
         }
     }
+
     .slide-outline-sidebar {
         background: #0f172a;
         border-right: 1px solid #334155;
@@ -168,11 +178,13 @@
         flex-direction: row;
         gap: 0.75rem;
     }
+
     @@media (min-width: 768px) {
         .slide-outline-sidebar {
             flex-direction: column;
         }
     }
+
     .slide-thumb {
         background: #1e293b;
         border: 2px solid #475569;
@@ -191,15 +203,18 @@
         text-align: center;
         user-select: none;
     }
-    .slide-thumb:hover {
-        border-color: #64748b;
-        color: #f1f5f9;
-    }
-    .slide-thumb.active {
-        border-color: var(--accent-green);
-        color: white;
-        background: rgba(46, 204, 113, 0.1);
-    }
+
+        .slide-thumb:hover {
+            border-color: #64748b;
+            color: #f1f5f9;
+        }
+
+        .slide-thumb.active {
+            border-color: var(--accent-green);
+            color: white;
+            background: rgba(46, 204, 113, 0.1);
+        }
+
     .slide-canvas-area {
         display: flex;
         flex-direction: column;
@@ -207,6 +222,7 @@
         justify-content: space-between;
         position: relative;
     }
+
     .slide-box {
         flex: 1;
         background: #0f172a;
@@ -223,17 +239,19 @@
         position: relative;
         overflow: hidden;
     }
-    .slide-box::before {
-        content: '';
-        position: absolute;
-        width: 300px;
-        height: 300px;
-        background: rgba(46, 204, 113, 0.03);
-        border-radius: 50%;
-        top: -100px;
-        right: -100px;
-        pointer-events: none;
-    }
+
+        .slide-box::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(46, 204, 113, 0.03);
+            border-radius: 50%;
+            top: -100px;
+            right: -100px;
+            pointer-events: none;
+        }
+
     .slide-title {
         font-family: var(--font-outfit);
         font-size: 1.75rem;
@@ -243,18 +261,22 @@
         padding-bottom: 0.75rem;
         margin-bottom: 1.5rem;
     }
+
     .slide-body {
         font-size: 1.1rem;
         line-height: 1.6;
         color: #cbd5e1;
         overflow-y: auto;
     }
-    .slide-body ul {
-        padding-left: 1.25rem;
-    }
-    .slide-body li {
-        margin-bottom: 0.5rem;
-    }
+
+        .slide-body ul {
+            padding-left: 1.25rem;
+        }
+
+        .slide-body li {
+            margin-bottom: 0.5rem;
+        }
+
     .slide-footer-controls {
         display: flex;
         align-items: center;
@@ -263,6 +285,7 @@
         margin-top: 1.5rem;
         color: #94a3b8;
     }
+
     .slide-btn {
         background: #334155;
         border: none;
@@ -276,13 +299,15 @@
         justify-content: center;
         transition: background var(--transition-fast);
     }
-    .slide-btn:hover {
-        background: #475569;
-    }
-    .slide-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
+
+        .slide-btn:hover {
+            background: #475569;
+        }
+
+        .slide-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
 
     /* TXT Viewer Style */
     .txt-viewer-container {
@@ -291,6 +316,7 @@
         height: 700px;
         background: #fdfdfd;
     }
+
     .txt-search-bar {
         background: white;
         border-bottom: 1px solid var(--color-border-light);
@@ -299,12 +325,14 @@
         align-items: center;
         gap: 1rem;
     }
+
     .txt-search-input {
         border: none;
         outline: none;
         width: 100%;
         font-size: 0.9rem;
     }
+
     .txt-scroller {
         flex: 1;
         overflow: auto;
@@ -313,10 +341,12 @@
         font-size: 0.9rem;
         line-height: 1.5;
     }
+
     .text-line {
         display: flex;
         min-height: 1.5rem;
     }
+
     .line-number {
         width: 45px;
         text-align: right;
@@ -326,14 +356,17 @@
         border-right: 1px solid var(--color-border-light);
         margin-right: 15px;
     }
+
     .line-text {
         flex: 1;
         white-space: pre;
     }
-    .line-text.wrapped {
-        white-space: pre-wrap;
-        word-break: break-all;
-    }
+
+        .line-text.wrapped {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
     mark.search-highlight {
         background: #ffe082;
         color: #000;
@@ -348,6 +381,7 @@
         padding: 0.25rem;
         border-radius: var(--radius-md);
     }
+
     .tab-toggle-btn {
         background: none;
         border: none;
@@ -359,11 +393,12 @@
         color: var(--color-text-secondary);
         transition: all var(--transition-fast);
     }
-    .tab-toggle-btn.active {
-        background: white;
-        color: var(--color-text-primary);
-        box-shadow: var(--shadow-sm);
-    }
+
+        .tab-toggle-btn.active {
+            background: white;
+            color: var(--color-text-primary);
+            box-shadow: var(--shadow-sm);
+        }
 
     /* SIDEBAR METADATA */
     .sidebar-details-card {
@@ -375,6 +410,7 @@
         position: sticky;
         top: 24px;
     }
+
     .sidebar-details-title {
         font-size: 1.2rem;
         font-weight: 700;
@@ -383,12 +419,14 @@
         border-bottom: 1px solid var(--color-border-light);
         color: var(--color-text-primary);
     }
+
     .meta-row {
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
         margin-bottom: 1rem;
     }
+
     .meta-row-label {
         font-size: 0.75rem;
         text-transform: uppercase;
@@ -396,11 +434,13 @@
         color: var(--color-text-secondary);
         font-weight: 600;
     }
+
     .meta-row-val {
         font-size: 0.95rem;
         color: var(--color-text-primary);
         font-weight: 500;
     }
+
     .btn-action-primary {
         display: inline-flex;
         align-items: center;
@@ -417,10 +457,12 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-    .btn-action-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(46, 204, 113, 0.3);
-    }
+
+        .btn-action-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(46, 204, 113, 0.3);
+        }
+
     .btn-action-secondary {
         display: inline-flex;
         align-items: center;
@@ -435,10 +477,11 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-    .btn-action-secondary:hover {
-        background: var(--color-neutral-50);
-        border-color: var(--color-text-secondary);
-    }
+
+        .btn-action-secondary:hover {
+            background: var(--color-neutral-50);
+            border-color: var(--color-text-secondary);
+        }
 
     /* SLIDING CHUNK DRAWER OVERRIDES */
     .chunk-drawer-backdrop {
@@ -451,10 +494,11 @@
         visibility: hidden;
         transition: all 0.3s ease-in-out;
     }
-    .chunk-drawer-backdrop.open {
-        opacity: 1;
-        visibility: visible;
-    }
+
+        .chunk-drawer-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
 
     #chunkShowcase.chunk-drawer {
         position: fixed;
@@ -473,9 +517,11 @@
         border-radius: 0;
         border: none;
     }
-    #chunkShowcase.chunk-drawer.open {
-        transform: translateX(0);
-    }
+
+        #chunkShowcase.chunk-drawer.open {
+            transform: translateX(0);
+        }
+
     .chunk-drawer-header {
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--color-border-light);
@@ -483,11 +529,13 @@
         align-items: center;
         background: var(--color-neutral-50);
     }
-    .chunk-drawer-header h5 {
-        margin: 0;
-        font-weight: 700;
-        color: var(--color-text-primary);
-    }
+
+        .chunk-drawer-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+
     .chunk-drawer-body {
         flex: 1;
         overflow-y: auto;
@@ -507,6 +555,7 @@
         margin-top: 2rem;
         overflow: hidden;
     }
+
     .comments-header {
         border-bottom: 1px solid var(--color-border-light);
         padding: 1.25rem 1.75rem;
@@ -515,15 +564,18 @@
         gap: 0.75rem;
         background: var(--color-neutral-50);
     }
+
     .comments-title {
         margin: 0;
         font-weight: 700;
         font-size: 1.2rem;
         color: var(--color-text-primary);
     }
+
     .comments-body {
         padding: 1.5rem 1.75rem;
     }
+
     .comments-list-wrapper {
         display: flex;
         flex-direction: column;
@@ -533,10 +585,12 @@
         overflow-y: auto;
         padding-right: 0.5rem;
     }
+
     .comment-item {
         display: flex;
         gap: 1rem;
     }
+
     .avatar-circle {
         width: 42px;
         height: 42px;
@@ -550,11 +604,26 @@
         font-family: var(--font-outfit);
         box-shadow: var(--shadow-sm);
     }
-    .avatar-bg-0 { background: linear-gradient(135deg, #3498db, #2980b9); }
-    .avatar-bg-1 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-    .avatar-bg-2 { background: linear-gradient(135deg, #e67e22, #d35400); }
-    .avatar-bg-3 { background: linear-gradient(135deg, #1abc9c, #16a085); }
-    .avatar-bg-4 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+    .avatar-bg-0 {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+
+    .avatar-bg-1 {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    }
+
+    .avatar-bg-2 {
+        background: linear-gradient(135deg, #e67e22, #d35400);
+    }
+
+    .avatar-bg-3 {
+        background: linear-gradient(135deg, #1abc9c, #16a085);
+    }
+
+    .avatar-bg-4 {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
 
     .comment-bubble {
         flex: 1;
@@ -564,6 +633,7 @@
         padding: 0.85rem 1.15rem;
         box-shadow: 0 1px 3px rgba(0,0,0,0.01);
     }
+
     .comment-meta {
         display: flex;
         align-items: center;
@@ -572,15 +642,18 @@
         flex-wrap: wrap;
         gap: 0.5rem;
     }
+
     .commenter-name {
         font-weight: 600;
         color: var(--color-text-primary);
         font-size: 0.95rem;
     }
+
     .commenter-time {
         font-size: 0.775rem;
         color: var(--color-text-secondary);
     }
+
     .comment-badge-role {
         font-size: 0.65rem;
         font-weight: 700;
@@ -588,21 +661,25 @@
         border-radius: var(--radius-sm);
         text-transform: uppercase;
     }
+
     .badge-lecturer {
         background: rgba(46, 204, 113, 0.1);
         color: #27ae60;
         border: 1px solid rgba(46, 204, 113, 0.2);
     }
+
     .badge-admin {
         background: rgba(155, 89, 182, 0.1);
         color: #8e44ad;
         border: 1px solid rgba(155, 89, 182, 0.2);
     }
+
     .badge-student {
         background: rgba(52, 152, 219, 0.1);
         color: #2980b9;
         border: 1px solid rgba(52, 152, 219, 0.2);
     }
+
     .comment-text {
         font-size: 0.925rem;
         color: var(--color-neutral-800);
@@ -610,20 +687,24 @@
         line-height: 1.55;
         white-space: pre-wrap;
     }
+
     .comment-form-container {
         border-top: 1px solid var(--color-border-light);
         padding-top: 1.5rem;
     }
+
     .comment-input-area {
         border: 1px solid var(--color-border-neutral);
         border-radius: var(--radius-lg);
         overflow: hidden;
         transition: border-color var(--transition-base), box-shadow var(--transition-base);
     }
-    .comment-input-area:focus-within {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
-    }
+
+        .comment-input-area:focus-within {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+        }
+
     .comment-textarea {
         width: 100%;
         border: none;
@@ -633,6 +714,7 @@
         outline: none;
         min-height: 85px;
     }
+
     .comment-toolbar {
         background: var(--color-neutral-50);
         padding: 0.6rem 1.15rem;
@@ -640,11 +722,13 @@
         justify-content: flex-end;
         border-top: 1px solid var(--color-border-light);
     }
+
     .comments-empty-state {
         text-align: center;
         padding: 2.5rem 1rem;
         color: var(--color-text-secondary);
     }
+
     .empty-state-icon {
         font-size: 2.5rem;
         color: var(--color-neutral-300);
@@ -707,8 +791,8 @@
                         <span>Bộ xem tài liệu trực tuyến</span>
                     </div>
 
-                    <!-- View Mode Selector (docx, pptx, txt) -->
-                    @if (extensionClean is "docx" or "pptx" or "txt")
+                    <!-- View Mode Selector (pdf, docx, pptx, txt) -->
+                    @if (extensionClean is "pdf" or "docx" or "pptx" or "txt")
                     {
                         <div class="viewer-controls">
                             <div class="nav-toggle-tabs" id="view-mode-tabs">
@@ -730,24 +814,10 @@
                         <div id="pdf-viewer-section" class="w-100 h-100" style="flex: 1;">
                             <iframe src="/documents/display/@(Model.ViewModel.Id)" style="border: none; width: 100%; height: 750px;" title="PDF Viewer"></iframe>
                         </div>
-                    }
-                    <!-- DOCX VIEWER -->
-                    else if (extensionClean == "docx")
-                    {
-                        <div id="docx-formatted-viewer" class="docx-viewer-wrapper w-100">
-                            <div class="docx-page-sheet" id="docx-sheet">
-                                <div id="docx-render-target" class="docx-rendered-container">
-                                    <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                                        <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
-                                        <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div id="docx-text-viewer" class="txt-viewer-container w-100 d-none">
+                        <div id="pdf-text-viewer" class="txt-viewer-container w-100 d-none">
                             <div class="txt-scroller">
-                                <div class="docx-page-sheet">
+                                <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 2rem auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
                                     @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
                                     {
                                         var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
@@ -755,87 +825,126 @@
                                         {
                                             if (!string.IsNullOrWhiteSpace(block))
                                             {
-                                                <p class="doc-p">@block</p>
+                                                <p class="doc-p text-justify" style="line-height: 1.7; color: #2c3e50; margin-bottom: 1.25rem;">@block</p>
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        <div class="text-center py-5 text-muted">
+                                            <i class="fas fa-file-alt mb-3" style="font-size: 2rem; opacity: 0.5;"></i>
+                                            <p class="fst-italic mb-0">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        </div>
                                     }
                                 </div>
                             </div>
                         </div>
                     }
+                    <!-- DOCX VIEWER -->
+                    else if (extensionClean == "docx")
+                    {
+                    <div id="docx-formatted-viewer" class="docx-viewer-wrapper w-100">
+                        <div class="docx-page-sheet" id="docx-sheet">
+                            <div id="docx-render-target" class="docx-rendered-container">
+                                <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                                    <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
+                                    <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="docx-text-viewer" class="txt-viewer-container w-100 d-none">
+                        <div class="txt-scroller">
+                            <div class="docx-page-sheet">
+                                @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
+                                {
+                                    var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                    foreach (var block in blocks)
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(block))
+                                        {
+                                            <p class="doc-p">@block</p>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    }
                     <!-- PPTX VIEWER -->
                     else if (extensionClean == "pptx")
                     {
-                        <div id="pptx-formatted-viewer" class="pptx-slide-viewer w-100">
-                            <div class="slide-outline-sidebar" id="slides-thumbnail-sidebar">
-                                <!-- Populated by JS -->
+                    <div id="pptx-formatted-viewer" class="pptx-slide-viewer w-100">
+                        <div class="slide-outline-sidebar" id="slides-thumbnail-sidebar">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="slide-canvas-area">
+                            <div class="slide-box" id="slide-presentation-box">
+                                <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
+                                <div class="slide-body" id="active-slide-body">
+                                    <p class="text-muted">Đang tải nội dung slides...</p>
+                                </div>
                             </div>
-                            <div class="slide-canvas-area">
-                                <div class="slide-box" id="slide-presentation-box">
-                                    <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
-                                    <div class="slide-body" id="active-slide-body">
-                                        <p class="text-muted">Đang tải nội dung slides...</p>
-                                    </div>
-                                </div>
-                                <div class="slide-footer-controls">
-                                    <button class="slide-btn" id="btn-prev-slide" onclick="prevSlide()">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <span id="slide-progress-indicator">Slide 0 / 0</span>
-                                    <button class="slide-btn" id="btn-next-slide" onclick="nextSlide()">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-light ms-3" onclick="toggleFullscreenSlide()">
-                                        <i class="fas fa-expand"></i> Fullscreen
-                                    </button>
-                                </div>
+                            <div class="slide-footer-controls">
+                                <button class="slide-btn" id="btn-prev-slide" onclick="prevSlide()">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span id="slide-progress-indicator">Slide 0 / 0</span>
+                                <button class="slide-btn" id="btn-next-slide" onclick="nextSlide()">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-light ms-3" onclick="toggleFullscreenSlide()">
+                                    <i class="fas fa-expand"></i> Fullscreen
+                                </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
-                            <div class="txt-scroller">
-                                <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 0 auto;">
-                                    <pre style="white-space: pre-wrap; font-family: var(--font-inter); line-height: 1.6; border: none; background: transparent; padding: 0;">@Model.ViewModel.ExtractedText</pre>
-                                </div>
+                    <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
+                        <div class="txt-scroller">
+                            <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 0 auto;">
+                                <pre style="white-space: pre-wrap; font-family: var(--font-inter); line-height: 1.6; border: none; background: transparent; padding: 0;">@Model.ViewModel.ExtractedText</pre>
                             </div>
                         </div>
+                    </div>
                     }
                     <!-- TXT VIEWER -->
                     else if (extensionClean == "txt")
                     {
-                        <div id="txt-viewer-section" class="txt-viewer-container w-100">
-                            <div class="txt-search-bar">
-                                <i class="fas fa-search"></i>
-                                <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
-                                <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
-                            </div>
-                            <div class="txt-scroller">
-                                <div id="txt-lines-container">
-                                    <!-- Rendered line-by-line by JS -->
-                                    <div class="d-flex justify-content-center py-5">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
+                    <div id="txt-viewer-section" class="txt-viewer-container w-100">
+                        <div class="txt-search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
+                            <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
+                        </div>
+                        <div class="txt-scroller">
+                            <div id="txt-lines-container">
+                                <!-- Rendered line-by-line by JS -->
+                                <div class="d-flex justify-content-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
                     }
                     else
                     {
-                        <!-- FALLBACK CARD -->
-                        <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
-                            <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
-                            <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
-                            <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
-                            <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
-                                <i class="fas fa-download"></i> Tải xuống tài liệu gốc
-                            </a>
-                        </div>
+                    <!-- FALLBACK CARD -->
+                    <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
+                        <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
+                        <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
+                        <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
+                        <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
+                            <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                        </a>
+                    </div>
                     }
                 </div>
             </div>
@@ -935,7 +1044,13 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-4">
-                    <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary w-100">
+                    @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
+                    {
+                        <a href="/documents/edit/@Model.ViewModel.Id" class="btn-action-primary w-100" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="fas fa-edit"></i> Chỉnh sửa thông tin
+                        </a>
+                    }
+                    <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-secondary w-100" style="background: var(--color-surface); border: 1px solid var(--color-border-light); color: var(--color-text-primary); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                         <i class="fas fa-download"></i> Tải xuống tài liệu
                     </a>
                     <button type="button" class="btn-action-secondary w-100" onclick="toggleChunkDrawer(true)">
@@ -1000,238 +1115,247 @@
 
     // --- 1. View Mode Toggling ---
     function setViewMode(mode) {
-        const btnFormatted = document.getElementById("btn-formatted-view");
-        const btnText = document.getElementById("btn-text-view");
-        
-        const docxFormatted = document.getElementById("docx-formatted-viewer");
-        const docxText = document.getElementById("docx-text-viewer");
-        
-        const pptxFormatted = document.getElementById("pptx-formatted-viewer");
-        const pptxText = document.getElementById("pptx-text-viewer");
+    const btnFormatted = document.getElementById("btn-formatted-view");
+    const btnText = document.getElementById("btn-text-view");
 
-        if (mode === 'formatted') {
-            btnFormatted?.classList.add("active");
-            btnText?.classList.remove("active");
-            
-            docxFormatted?.classList.remove("d-none");
-            docxText?.classList.add("d-none");
-            
-            pptxFormatted?.classList.remove("d-none");
-            pptxText?.classList.add("d-none");
-        } else {
-            btnFormatted?.classList.remove("active");
-            btnText?.classList.add("active");
-            
-            docxFormatted?.classList.add("d-none");
-            docxText?.classList.remove("d-none");
-            
-            pptxFormatted?.classList.add("d-none");
-            pptxText?.classList.remove("d-none");
-        }
+    const pdfFormatted = document.getElementById("pdf-viewer-section");
+    const pdfText = document.getElementById("pdf-text-viewer");
+
+    const docxFormatted = document.getElementById("docx-formatted-viewer");
+    const docxText = document.getElementById("docx-text-viewer");
+
+    const pptxFormatted = document.getElementById("pptx-formatted-viewer");
+    const pptxText = document.getElementById("pptx-text-viewer");
+
+    if (mode === 'formatted') {
+    btnFormatted?.classList.add("active");
+    btnText?.classList.remove("active");
+
+    pdfFormatted?.classList.remove("d-none");
+    pdfText?.classList.add("d-none");
+
+    docxFormatted?.classList.remove("d-none");
+    docxText?.classList.add("d-none");
+
+    pptxFormatted?.classList.remove("d-none");
+    pptxText?.classList.add("d-none");
+    } else {
+    btnFormatted?.classList.remove("active");
+    btnText?.classList.add("active");
+
+    pdfFormatted?.classList.add("d-none");
+    pdfText?.classList.remove("d-none");
+
+    docxFormatted?.classList.add("d-none");
+    docxText?.classList.remove("d-none");
+
+    pptxFormatted?.classList.add("d-none");
+    pptxText?.classList.remove("d-none");
+    }
     }
 
     // --- 2. Chunk Drawer Toggling ---
     function toggleChunkDrawer(show) {
-        const drawer = document.getElementById("chunkShowcase");
-        const backdrop = document.getElementById("chunk-drawer-backdrop");
-        if (show) {
-            drawer.classList.add("open");
-            backdrop.classList.add("open");
-        } else {
-            drawer.classList.remove("open");
-            backdrop.classList.remove("open");
-        }
+    const drawer = document.getElementById("chunkShowcase");
+    const backdrop = document.getElementById("chunk-drawer-backdrop");
+    if (show) {
+    drawer.classList.add("open");
+    backdrop.classList.add("open");
+    } else {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("open");
+    }
     }
 
     // --- 3. Word Document Rendering (DOCX) ---
     if (docType === "DOCX") {
-        const renderContainer = document.getElementById("docx-render-target");
-        
-        fetch(docFilePath)
-            .then(res => {
-                if (!res.ok) throw new Error("File not found");
-                return res.arrayBuffer();
-            })
-            .then(arrayBuffer => {
-                renderContainer.innerHTML = ""; // Clear loader
-                docx.renderAsync(arrayBuffer, renderContainer)
-                    .catch(err => {
-                        console.error("docx-preview failed:", err);
-                        showDocxTextFallback();
-                    });
-            })
-            .catch(err => {
-                console.error("fetch failed for docx:", err);
-                showDocxTextFallback();
-            });
+    const renderContainer = document.getElementById("docx-render-target");
+
+    fetch(docFilePath)
+    .then(res => {
+    if (!res.ok) throw new Error("File not found");
+    return res.arrayBuffer();
+    })
+    .then(arrayBuffer => {
+    renderContainer.innerHTML = ""; // Clear loader
+    docx.renderAsync(arrayBuffer, renderContainer)
+    .catch(err => {
+    console.error("docx-preview failed:", err);
+    showDocxTextFallback();
+    });
+    })
+    .catch(err => {
+    console.error("fetch failed for docx:", err);
+    showDocxTextFallback();
+    });
     }
 
     function showDocxTextFallback() {
-        const renderContainer = document.getElementById("docx-render-target");
-        renderContainer.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i> Không thể hiển thị bản xem trước có định dạng. Hệ thống đã tự động chuyển sang chế độ hiển thị văn bản trần.
-            </div>
-        `;
-        setViewMode('text');
+    const renderContainer = document.getElementById("docx-render-target");
+    renderContainer.innerHTML = `
+    <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i> Không thể hiển thị bản xem trước có định dạng. Hệ thống đã tự động chuyển sang chế độ hiển thị văn bản trần.
+    </div>
+    `;
+    setViewMode('text');
     }
 
     // --- 4. PowerPoint Slide Presentation Viewer (PPTX) ---
     let currentSlideIdx = 0;
 
     if (docType === "PPTX") {
-        renderPPTXSlides();
+    renderPPTXSlides();
     }
 
     function renderPPTXSlides() {
-        const sidebar = document.getElementById("slides-thumbnail-sidebar");
-        if (!sidebar) return;
-        
-        sidebar.innerHTML = "";
-        if (!pptxSlides || pptxSlides.length === 0) {
-            sidebar.innerHTML = "<div class='text-muted' style='font-size:0.8rem;'>Không có slide nào.</div>";
-            document.getElementById("active-slide-title").textContent = "Nội dung trống";
-            document.getElementById("active-slide-body").innerHTML = "<p class='text-muted fst-italic'>Slide này không có nội dung văn bản.</p>";
-            document.getElementById("slide-progress-indicator").textContent = "Slide 0 / 0";
-            return;
-        }
+    const sidebar = document.getElementById("slides-thumbnail-sidebar");
+    if (!sidebar) return;
 
-        pptxSlides.forEach((slide, idx) => {
-            const thumb = document.createElement("div");
-            thumb.className = `slide-thumb ${idx === 0 ? 'active' : ''}`;
-            thumb.setAttribute("onclick", `goToSlide(${idx})`);
-            thumb.innerHTML = `<div>Slide ${idx + 1}</div><div style="font-size:0.6rem; opacity:0.7; font-weight:normal; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(slide.sectionTitle || 'Không có tiêu đề')}</div>`;
-            sidebar.appendChild(thumb);
-        });
-        
-        displaySlide(0);
+    sidebar.innerHTML = "";
+    if (!pptxSlides || pptxSlides.length === 0) {
+    sidebar.innerHTML = "<div class='text-muted' style='font-size:0.8rem;'>Không có slide nào.</div>";
+    document.getElementById("active-slide-title").textContent = "Nội dung trống";
+    document.getElementById("active-slide-body").innerHTML = "<p class='text-muted fst-italic'>Slide này không có nội dung văn bản.</p>";
+    document.getElementById("slide-progress-indicator").textContent = "Slide 0 / 0";
+    return;
+    }
+
+    pptxSlides.forEach((slide, idx) => {
+    const thumb = document.createElement("div");
+    thumb.className = `slide-thumb ${idx === 0 ? 'active' : ''}`;
+    thumb.setAttribute("onclick", `goToSlide(${idx})`);
+    thumb.innerHTML = `<div>Slide ${idx + 1}</div><div style="font-size:0.6rem; opacity:0.7; font-weight:normal; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(slide.sectionTitle || 'Không có tiêu đề')}</div>`;
+    sidebar.appendChild(thumb);
+    });
+
+    displaySlide(0);
     }
 
     function displaySlide(idx) {
-        if (!pptxSlides || pptxSlides.length === 0) return;
-        currentSlideIdx = idx;
-        
-        const thumbs = document.querySelectorAll(".slide-thumb");
-        thumbs.forEach((thumb, i) => {
-            if (i === idx) thumb.classList.add("active");
-            else thumb.classList.remove("active");
-        });
-        
-        const slide = pptxSlides[idx];
-        document.getElementById("active-slide-title").textContent = slide.sectionTitle || `Slide ${idx + 1}`;
-        
-        const bodyEl = document.getElementById("active-slide-body");
-        if (slide.text) {
-            const points = slide.text.split('\n');
-            let html = "<ul>";
-            points.forEach(point => {
-                const cleanPoint = point.trim().replace(/^[-*•]\s*/, '');
-                if (cleanPoint) {
-                    html += `<li>${escapeHtml(cleanPoint)}</li>`;
-                }
-            });
-            html += "</ul>";
-            bodyEl.innerHTML = html;
-        } else {
-            bodyEl.innerHTML = `<p class="text-muted fst-italic">Slide này không có nội dung văn bản trích xuất.</p>`;
-        }
-        
-        document.getElementById("slide-progress-indicator").textContent = `Slide ${idx + 1} / ${pptxSlides.length}`;
-        document.getElementById("btn-prev-slide").disabled = (idx === 0);
-        document.getElementById("btn-next-slide").disabled = (idx === pptxSlides.length - 1);
+    if (!pptxSlides || pptxSlides.length === 0) return;
+    currentSlideIdx = idx;
+
+    const thumbs = document.querySelectorAll(".slide-thumb");
+    thumbs.forEach((thumb, i) => {
+    if (i === idx) thumb.classList.add("active");
+    else thumb.classList.remove("active");
+    });
+
+    const slide = pptxSlides[idx];
+    document.getElementById("active-slide-title").textContent = slide.sectionTitle || `Slide ${idx + 1}`;
+
+    const bodyEl = document.getElementById("active-slide-body");
+    if (slide.text) {
+    const points = slide.text.split('\n');
+    let html = "<ul>";
+    points.forEach(point => {
+    const cleanPoint = point.trim().replace(/^[-*•]\s*/, '');
+    if (cleanPoint) {
+    html += `<li>${escapeHtml(cleanPoint)}</li>`;
+    }
+    });
+    html += "</ul>";
+    bodyEl.innerHTML = html;
+    } else {
+    bodyEl.innerHTML = `<p class="text-muted fst-italic">Slide này không có nội dung văn bản trích xuất.</p>`;
+    }
+
+    document.getElementById("slide-progress-indicator").textContent = `Slide ${idx + 1} / ${pptxSlides.length}`;
+    document.getElementById("btn-prev-slide").disabled = (idx === 0);
+    document.getElementById("btn-next-slide").disabled = (idx === pptxSlides.length - 1);
     }
 
     // Previous slides control
     function prevSlide() {
-        if (currentSlideIdx > 0) {
-            displaySlide(currentSlideIdx - 1);
-        }
+    if (currentSlideIdx > 0) {
+    displaySlide(currentSlideIdx - 1);
+    }
     }
 
     // Next slides control
     function nextSlide() {
-        if (pptxSlides && currentSlideIdx < pptxSlides.length - 1) {
-            displaySlide(currentSlideIdx + 1);
-        }
+    if (pptxSlides && currentSlideIdx < pptxSlides.length - 1) {
+    displaySlide(currentSlideIdx + 1);
+    }
     }
 
     function goToSlide(idx) {
-        displaySlide(idx);
+    displaySlide(idx);
     }
 
     function toggleFullscreenSlide() {
-        const slideBox = document.getElementById("slide-presentation-box");
-        if (!document.fullscreenElement) {
-            slideBox.requestFullscreen().catch(err => {
-                console.error("Fullscreen error:", err);
-            });
-        } else {
-            document.exitFullscreen();
-        }
+    const slideBox = document.getElementById("slide-presentation-box");
+    if (!document.fullscreenElement) {
+    slideBox.requestFullscreen().catch(err => {
+    console.error("Fullscreen error:", err);
+    });
+    } else {
+    document.exitFullscreen();
+    }
     }
 
     // --- 5. Plain Text Line-By-Line Renderer (TXT) ---
     if (docType === "TXT") {
-        const textLinesContainer = document.getElementById("txt-lines-container");
-        if (textLinesContainer) {
-            const lines = rawTextContent ? rawTextContent.split('\n') : ["Tài liệu không có nội dung văn bản."];
-            let html = "";
-            lines.forEach((line, idx) => {
-                html += `
-                    <div class="text-line">
-                        <span class="line-number">${idx + 1}</span>
-                        <span class="line-text">${escapeHtml(line)}</span>
-                    </div>
-                `;
-            });
-            textLinesContainer.innerHTML = html;
-        }
+    const textLinesContainer = document.getElementById("txt-lines-container");
+    if (textLinesContainer) {
+    const lines = rawTextContent ? rawTextContent.split('\n') : ["Tài liệu không có nội dung văn bản."];
+    let html = "";
+    lines.forEach((line, idx) => {
+    html += `
+    <div class="text-line">
+    <span class="line-number">${idx + 1}</span>
+    <span class="line-text">${escapeHtml(line)}</span>
+    </div>
+    `;
+    });
+    textLinesContainer.innerHTML = html;
+    }
     }
 
     function searchInTextViewer(query) {
-        const cleanQuery = query.trim();
-        const lineTexts = document.querySelectorAll(".line-text");
-        const countBadge = document.getElementById("txt-search-count");
-        
-        if (!cleanQuery) {
-            lineTexts.forEach(el => { el.innerHTML = escapeHtml(el.textContent); });
-            countBadge.classList.add("d-none");
-            return;
-        }
-        
-        const regex = new RegExp(`(${escapeRegExp(cleanQuery)})`, "gi");
-        let matches = 0;
-        
-        lineTexts.forEach(el => {
-            const originalText = el.textContent;
-            if (originalText.toLowerCase().includes(cleanQuery.toLowerCase())) {
-                matches += (originalText.toLowerCase().match(new RegExp(escapeRegExp(cleanQuery.toLowerCase()), "g")) || []).length;
-                el.innerHTML = escapeHtml(originalText).replace(regex, `<mark class="search-highlight">$1</mark>`);
-            } else {
-                el.innerHTML = escapeHtml(originalText);
-            }
-        });
-        
-        countBadge.textContent = `${matches} matches`;
-        countBadge.classList.remove("d-none");
+    const cleanQuery = query.trim();
+    const lineTexts = document.querySelectorAll(".line-text");
+    const countBadge = document.getElementById("txt-search-count");
+
+    if (!cleanQuery) {
+    lineTexts.forEach(el => { el.innerHTML = escapeHtml(el.textContent); });
+    countBadge.classList.add("d-none");
+    return;
+    }
+
+    const regex = new RegExp(`(${escapeRegExp(cleanQuery)})`, "gi");
+    let matches = 0;
+
+    lineTexts.forEach(el => {
+    const originalText = el.textContent;
+    if (originalText.toLowerCase().includes(cleanQuery.toLowerCase())) {
+    matches += (originalText.toLowerCase().match(new RegExp(escapeRegExp(cleanQuery.toLowerCase()), "g")) || []).length;
+    el.innerHTML = escapeHtml(originalText).replace(regex, `<mark class="search-highlight">$1</mark>`);
+    } else {
+    el.innerHTML = escapeHtml(originalText);
+    }
+    });
+
+    countBadge.textContent = `${matches} matches`;
+    countBadge.classList.remove("d-none");
     }
 
     // --- 6. Helper Functions ---
     function escapeHtml(text) {
-        if (!text) return "";
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
+    if (!text) return "";
+    const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
     }
 
     // Regex escape helper
     function escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 </script>
 

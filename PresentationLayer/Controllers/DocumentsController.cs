@@ -154,7 +154,7 @@ public class DocumentsController(
             return NotFound();
         }
 
-        if (doc.FileType == DocumentType.PDF)
+        if (doc.FileType == DocumentType.PDF || doc.FileType == DocumentType.DOCX || doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
         {
             var contentDisposition = ContentDispositionHeaderValue.Parse($"inline; filename={doc.OriginalFileName}");
 

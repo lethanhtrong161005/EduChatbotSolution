@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 const conn =
     new signalR.HubConnectionBuilder()
@@ -57,5 +57,12 @@ function updateBadge(update) {
     }
     if (embedDiv && update.embeddingModel) {
         embedDiv.textContent = update.embeddingModel;
+    }
+
+    // Automatically reload page to display extracted content when indexing is complete
+    if (StatusNames[update.status] === "Indexed") {
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
     }
 }

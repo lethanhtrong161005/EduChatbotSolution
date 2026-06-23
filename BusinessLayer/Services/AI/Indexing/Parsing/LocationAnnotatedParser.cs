@@ -169,11 +169,11 @@ public class LocationAnnotatedParser : IDocumentParser
     private async Task<ParsedDocument> ParsePptxAsync(string path, CancellationToken cxlTkn = default)
     {
         var parsedDoc = new ParsedDocument { Sections = [] };
-        using var ppt = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(path, false);
+        using var ppt = PresentationDocument.Open(path, false);
         var presentationPart = ppt.PresentationPart;
         if (presentationPart == null) return parsedDoc;
 
-        var slideIdList = presentationPart.Presentation.SlideIdList;
+        var slideIdList = presentationPart.Presentation?.SlideIdList;
         if (slideIdList == null) return parsedDoc;
 
         int slideIndex = 1;
@@ -182,7 +182,7 @@ public class LocationAnnotatedParser : IDocumentParser
         {
             cxlTkn.ThrowIfCancellationRequested();
             var slidePart = presentationPart.GetPartById(slideIdObj.RelationshipId!) as SlidePart;
-            if (slidePart == null) continue;
+            if (slidePart?.Slide == null) continue;
 
             var slideText = new StringBuilder();
             var slideTitle = $"Slide {slideIndex}";

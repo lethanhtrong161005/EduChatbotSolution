@@ -1,0 +1,169 @@
+@model Presentation.ViewModels.DocumentEditVm
+
+@{
+    ViewData["Title"] = "Chỉnh sửa tài liệu - " + Model.Title;
+}
+
+<!-- Google Fonts & Layout Styles -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/colors.css" />
+<link rel="stylesheet" href="~/css/document-details.css" />
+
+<style>
+    :root {
+        --font-outfit: 'Outfit', sans-serif;
+        --font-inter: 'Inter', sans-serif;
+    }
+
+    body {
+        font-family: var(--font-inter);
+    }
+
+    h1, h2, h3, h4, h5, h6, .brand-name, .font-display {
+        font-family: var(--font-outfit);
+    }
+
+    .edit-page-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .edit-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        padding: 2.5rem;
+    }
+
+    .edit-header {
+        border-bottom: 1px solid var(--color-border-light);
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .edit-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .edit-icon {
+        background: rgba(var(--color-primary-rgb), 0.1);
+        color: var(--color-primary);
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .form-group-custom {
+        margin-bottom: 1.75rem;
+    }
+
+    .form-label-custom {
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-control-custom {
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.975rem;
+        transition: all var(--transition-fast);
+        color: var(--color-text-primary);
+    }
+
+    .form-control-custom:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.1);
+        outline: none;
+    }
+
+    .text-danger-custom {
+        font-size: 0.85rem;
+        color: #e74c3c;
+        margin-top: 0.35rem;
+        display: block;
+        font-weight: 500;
+    }
+
+    .btn-action-area {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 1rem;
+        border-top: 1px solid var(--color-border-light);
+        padding-top: 1.5rem;
+        margin-top: 2.5rem;
+    }
+</style>
+
+<div class="edit-page-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
+        <a asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
+        <a asp-controller="Documents" asp-action="Library">Tài liệu</a>
+        <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
+        <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id">Chi tiết</a>
+        <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
+        <span class="text-muted">Chỉnh sửa</span>
+    </nav>
+
+    <div class="edit-card">
+        <div class="edit-header">
+            <div class="edit-title">
+                <div class="edit-icon">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <span>Chỉnh sửa tài liệu học tập</span>
+            </div>
+        </div>
+
+        <form asp-controller="Documents" asp-action="Edit" method="post" autocomplete="off">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <!-- Tiêu đề -->
+            <div class="form-group-custom d-flex flex-column">
+                <label asp-for="Title" class="form-label-custom">Tiêu đề tài liệu</label>
+                <input asp-for="Title" class="form-control-custom" placeholder="Nhập tiêu đề hiển thị..." required />
+                <span asp-validation-for="Title" class="text-danger-custom"></span>
+            </div>
+
+            <!-- Mô tả -->
+            <div class="form-group-custom d-flex flex-column">
+                <label asp-for="Description" class="form-label-custom">Mô tả chi tiết</label>
+                <textarea asp-for="Description" class="form-control-custom" rows="5" placeholder="Nhập mô tả tóm tắt nội dung tài liệu..."></textarea>
+                <span asp-validation-for="Description" class="text-danger-custom"></span>
+            </div>
+
+            <!-- Nút điều hướng -->
+            <div class="btn-action-area">
+                <a asp-controller="Documents" asp-action="Details" asp-route-id="@Model.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
+                    <i class="fas fa-times me-1"></i> Hủy bỏ
+                </a>
+                <button type="submit" class="btn-action-primary py-2 px-4">
+                    <i class="fas fa-save me-1"></i> Lưu thay đổi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
