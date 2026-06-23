@@ -21,6 +21,26 @@ public class ChatController(
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IMapper _mapper = mapper;
 
+    [HttpGet("subjects")]
+    public async Task<IActionResult> GetSubjectHeaders(CancellationToken cxlTkn)
+    {
+        Guid userId;
+        try
+        {
+            userId = User.GetUserId();
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+
+        var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
+
+        var res = _mapper.Map<List<SubjectHeaderDto>>(subjects);
+
+        return Ok(res);
+    }
+
     [HttpGet("sessions")]
     public async Task<IActionResult> GetSessionHeaders(CancellationToken cxlTkn)
     {

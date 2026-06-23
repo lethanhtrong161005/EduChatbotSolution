@@ -12,12 +12,7 @@ public class Citation : NaturalEntity
     /// <summary>Gets or sets the foreign key to the specific <see cref="Entities.Chunk"/>.</summary>
     public Guid ChunkId { get; set; }
 
-    public int OccurrenceIndex { get; set; }
-
     public int CitationIndex { get; set; }
-
-    /// <summary>Gets or sets the quoted text from the chunk (nullable).</summary>
-    public string? QuotedText { get; set; }
 
     public double SimilarityScore { get; set; }
 
@@ -29,4 +24,6 @@ public class Citation : NaturalEntity
 
     /// <summary>Gets or sets the source chunk.</summary>
     public virtual Chunk Chunk { get; set; } = null!;
+
+    public virtual ICollection<CitationOccurrence> CitationOccurrences { get; set; } = [];
 }

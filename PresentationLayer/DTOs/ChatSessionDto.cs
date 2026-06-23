@@ -6,6 +6,8 @@ public class ChatSessionDto
 {
     public Guid Id { get; set; }
 
+    public int? SubjectId { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public DateTime LastMessageAt { get; set; }

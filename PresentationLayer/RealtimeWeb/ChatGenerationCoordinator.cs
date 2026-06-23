@@ -53,7 +53,7 @@ public class ChatGenerationCoordinator(
                 .Select(e => new ChatHistoryMessage
                 {
                     ChatRole = e.ChatRole,
-                    Content = e.Content,
+                    Content = e.RawContent,
                 })
                 .ToList();
 
@@ -99,6 +99,7 @@ public class ChatGenerationCoordinator(
             var resolvedChatMessage = await _chatPersistenceService.CompleteAssistantMessageAsync(
                    assistantMessageId,
                    result.Answer,
+                   result.RawAnswer,
                    result.ChunkRetrievals,
                    result.ChunkRetrievalsInContext,
                    result.ChunkUsages,

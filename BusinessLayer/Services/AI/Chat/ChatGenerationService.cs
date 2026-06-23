@@ -51,20 +51,14 @@ public class ChatGenerationService(
 
         var rawAnswer = rawAnswerSb.ToString();
 
-        var extractedCitations = await ExtractCitationsAsync(
-            request,
-            rawAnswer,
-            chunkRetrievalsInContext,
-            cxlTkn);
-
         var (processedAnswer, chunkUsages) = ProcessAnswer(
             rawAnswer,
-            chunkRetrievalsInContext,
-            extractedCitations ?? []);
+            chunkRetrievalsInContext);
 
         return new ChatGenerationResult
         {
             Answer = processedAnswer,
+            RawAnswer = rawAnswer,
             ChunkRetrievals = chunkRetrievals,
             ChunkRetrievalsInContext = chunkRetrievalsInContext,
             ChunkUsages = chunkUsages,
@@ -148,6 +142,53 @@ public class ChatGenerationService(
         }
     }
 
+    private static (string ProcessAnswer, List<ChunkUsage> ChunkUsages) ProcessAnswer(
+        string answer,
+        List<ChunkRetrieval> chunkRetrievalsInContext)
+    {
+        var chunkUsages = new List<ChunkUsage>();
+
+        var indexMap = new Dictionary<int, int>();
+
+        var processedAnswer = CitationRegex.Replace(answer, match =>
+            {
+                if (!int.TryParse(match.Groups[1].Value, out var chunkRetrievalIndex))
+                    return string.Empty;
+
+                if (chunkRetrievalIndex < 1
+                    || chunkRetrievalIndex > chunkRetrievalsInContext.Count)
+                {
+                    return string.Empty;
+                }
+
+                var nextCitationIndex = indexMap.Count + 1;
+
+                if (indexMap.TryAdd(chunkRetrievalIndex, nextCitationIndex))
+                {
+                    var usedChunkRetrieval = chunkRetrievalsInContext[chunkRetrievalIndex - 1];
+
+                    // TODO: Get citation occurrences w/ actual quotes.
+                    chunkUsages.Add(new ChunkUsage
+                    {
+                        ChunkId = usedChunkRetrieval.ChunkId,
+                        CitationIndex = nextCitationIndex,
+                        SimilarityScore = usedChunkRetrieval.SimilarityScore,
+                    });
+                }
+
+                var citationIndex = indexMap[chunkRetrievalIndex];
+
+                return RenderCitationMarkup(citationIndex);
+            });
+
+        var cleanedAnswer = processedAnswer.Trim();
+
+        return (cleanedAnswer, chunkUsages);
+
+        static string RenderCitationMarkup(int citationIndex)
+            => $@"[[{citationIndex}]]";
+    }
+
     private async Task<List<CitationExtractionItem>?> ExtractCitationsAsync(
         ChatGenerationRequest request,
         string rawAnswer,
@@ -199,62 +240,6 @@ public class ChatGenerationService(
 
             return sb.ToString();
         }
-    }
-
-    private static (string ProcessAnswer, List<ChunkUsage> ChunkUsages) ProcessAnswer(
-        string answer,
-        List<ChunkRetrieval> chunkRetrievalsInContext,
-        List<CitationExtractionItem> citationExtractions)
-    {
-        var chunkUsages = new List<ChunkUsage>();
-
-        var indexMap = new Dictionary<int, int>();
-
-        var extractionLookup = citationExtractions
-            .Where(e => e.Valid)
-            .ToDictionary(e => (e.OccurrenceId, e.ChunkIndex));
-
-        var processedAnswer = CitationRegex.Replace(answer, match =>
-            {
-                if (!int.TryParse(match.Groups[1].Value, out var chunkRetrievalIndex))
-                    return string.Empty;
-
-                if (chunkRetrievalIndex < 1
-                    || chunkRetrievalIndex > chunkRetrievalsInContext.Count)
-                {
-                    return string.Empty;
-                }
-
-                indexMap.TryAdd(chunkRetrievalIndex, indexMap.Count + 1);
-
-                var occurrenceIndex = chunkUsages.Count + 1;
-                var citationIndex = indexMap[chunkRetrievalIndex];
-
-                var usedChunkRetrieval = chunkRetrievalsInContext[chunkRetrievalIndex - 1];
-
-                _ = extractionLookup.TryGetValue(
-                    (occurrenceIndex, chunkRetrievalIndex),
-                    out var citationExtractionItem);
-
-                chunkUsages.Add(new ChunkUsage
-                {
-                    ChunkId = usedChunkRetrieval.ChunkId,
-                    OccurrenceIndex = occurrenceIndex,
-                    CitationIndex = citationIndex,
-                    QuotedText = citationExtractionItem?.SupportingQuote,
-                    SimilarityScore = usedChunkRetrieval.SimilarityScore,
-                });
-
-                return RenderCitationMarkup(citationIndex);
-            });
-
-        var cleanedAnswer = processedAnswer.Trim();
-
-        return (cleanedAnswer, chunkUsages);
-
-        static string RenderCitationMarkup(int citationIndex) => $"""
-            <sup class="message-inline-citation" data-citation-index="{citationIndex}">[{citationIndex}]</sup>
-            """;
     }
 
     private static string BuildPrompt(

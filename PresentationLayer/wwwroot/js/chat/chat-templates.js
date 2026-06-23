@@ -7,6 +7,24 @@
             .html();
     }
 
+    function renderSidebarSubjectList(subjects) {
+
+        return subjects.map(x => `
+            <div class="subject-item w-full text-left px-3 py-3"
+                 data-subject-id="${x.id}">
+
+                <div class="subject-code font-medium">
+                    ${x.code}
+                </div>
+
+                <div class="subject-name text-xs text-muted">
+                    ${x.name}
+                </div>
+
+            </div>
+        `);
+    }
+
     function renderSidebarSessionList(sessions) {
 
         return sessions.map(x => `
@@ -23,7 +41,7 @@
         `);
     }
 
-    function renderNewSession(subjects) {
+    function renderLandingSession(subjectHeaders) {
 
         return `
         <div class="flex h-full items-center justify-center">
@@ -48,7 +66,7 @@
 
                 <div class="mt-10">
 
-                    ${renderChatMessageInput(subjects)}
+                    ${renderChatMessageInput(subjectHeaders)}
 
                 </div>
 
@@ -80,9 +98,9 @@
         `;
     }
 
-    function renderChatMessageInput(subjects) {
+    function renderChatMessageInput(subjectHeaders) {
 
-        const subjectOptions = subjects
+        const subjectOptions = subjectHeaders
             ?.map(x => `
                 <button
                     type="button"
@@ -261,15 +279,24 @@
         }
     }
 
+    const citationRegex = /\[\[(\d+)\]\]/gm;
+
+    function renderInlineCitationMarker(content) {
+
+        return content.replaceAll(
+            citationRegex,
+            `<sup class="message-inline-citation" data-citation-index="$1">[$1]</sup>`);
+    }
+
     function renderAssistantMessageUtilityBar(message) {
 
         const responseCount = message.responseCount ?? 1;
         const responseIndex = message.responseIndex ?? 0;
 
         return `
-        <div
-            class="mt-3 flex items-center gap-1
-                   text-muted text-sm">
+            <div
+                class="mt-3 flex items-center gap-1
+                       text-muted text-sm">
 
             ${responseCount > 1
                 ? `
@@ -303,7 +330,8 @@
 
                     </div>
                 `
-                : ""}
+                : ""
+            }
 
             <button
                 class="message-copy-btn
@@ -339,7 +367,7 @@
             </button>
 
         </div>
-        `;
+            `;
     }
 
     function renderSourceCard(citation) {
@@ -350,11 +378,11 @@
                 : "";
 
         return `
-    <section
-        class="source-card rounded-xl border border-border bg-card overflow-hidden"
-        data-id="${citation.id}"
-        data-client-id="${citation._clientId}"
-        data-citation-index="${citation.citationIndex}" >
+            <section
+                class="source-card rounded-xl border border-border bg-card overflow-hidden"
+                data-id="${citation.id}"
+                data-client-id="${citation._clientId}"
+                data-citation-index="${citation.citationIndex}">
 
         <div
             class="p-4 border-b border-border">
@@ -408,8 +436,8 @@
                 : ""}
 
             ${citation._snippet
-                ? `
-                    <div class="mt-3 text-sm whitespace-pre-wrap">${escapeHtml(citation.quotedText) + trailing}</div>
+            ? `
+                    <div class="mt-3 text-sm whitespace-pre-wrap">${escapeHtml(citation._snippet) + trailing}</div>
                 `
                 : ""}
 
@@ -442,7 +470,7 @@
                 </button>
 
             </div>
-        `;
+            `;
     }
 
     function renderFileLibraryRow(file) {
@@ -470,16 +498,18 @@
                 </div>
 
             </button>
-        `;
+            `;
     }
 
     return {
+        renderSidebarSubjectList,
         renderSidebarSessionList,
-        renderNewSession,
+        renderLandingSession,
         renderExistingSession,
         renderUserMessage,
         renderAssistantMessage,
         renderAssistantMessageContent,
+        renderInlineCitationMarker,
         renderSourceCard,
         renderAttachmentChip,
         renderFileLibraryRow

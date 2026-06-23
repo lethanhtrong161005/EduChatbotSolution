@@ -44,7 +44,7 @@
                        class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition">
 
                         <div class="text-2xl">
-                            ??
+                            🎓
                         </div>
 
                         <div>
@@ -68,7 +68,7 @@
                 <div class="p-4 border-b border-border space-y-2">
 
                     <button id="btn-new-chat"
-                            class="w-full rounded-xl bg-brand px-4 py-3 text-white font-medium cursor-pointer hover:bg-brand-dark transition">
+                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
 
                         New Chat
 
@@ -94,41 +94,16 @@
 
                 <div class="border-b border-border">
 
-                    <button id="btn-toggle-subjects"
-                            class="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
+                    <div class="px-4 py-3 text-sm font-semibold text-muted">
 
-                        <span class="font-medium">
+                        Subject Scope
 
-                            Subjects
+                    </div>
 
-                        </span>
+                    <div id="subject-list"
+                         class="px-2 last:pb-2">
 
-                        <span id="subjects-chevron">
-
-                            ?
-
-                        </span>
-
-                    </button>
-
-                    <div id="subjects-list"
-                         class="px-2 pb-2">
-
-                        @foreach (var subject in Model.ViewModel.Subjects)
-                        {
-                            <button class="subject-option w-full text-left rounded-xl px-3 py-3 cursor-pointer hover:bg-sidebar-hover transition"
-                                    data-subject-id="@subject.Id">
-
-                                <div class="font-medium subject-code">
-                                    @subject.Code
-                                </div>
-
-                                <div class="text-xs text-muted subject-name">
-                                    @subject.Name
-                                </div>
-
-                            </button>
-                        }
+                        <!-- Rendered by JS : renderSidebarSubjectList() -->
 
                     </div>
 
@@ -146,7 +121,7 @@
 
                     <div id="session-list">
 
-                        <!-- JS renderSidebarSessionList() -->
+                        <!-- Rendered by JS : renderSidebarSessionList() -->
 
                     </div>
 
@@ -308,7 +283,7 @@
                 <button id="btn-file-library-close"
                         class="h-9 w-9 rounded-lg cursor-pointer cursor-pointer hover:bg-surface-hover transition">
 
-                    ?
+                    ✕
 
                 </button>
 

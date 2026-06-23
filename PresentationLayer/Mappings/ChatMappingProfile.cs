@@ -11,7 +11,7 @@ public class ChatMappingProfile : Profile
     public ChatMappingProfile()
     {
         /* Page shell */
-        CreateMap<Subject, SubjectSelectionVm>();
+        CreateMap<Subject, SubjectHeaderDto>();
 
         CreateMap<ChatSessionHeader, SessionHeaderDto>()
             .ForMember(dest => dest.Title, opts => opts.MapFrom(src => !string.IsNullOrWhiteSpace(src.Title) ? src.Title : $"Conversation {src.Id}"));

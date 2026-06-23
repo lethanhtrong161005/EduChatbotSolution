@@ -60,7 +60,6 @@ public class IndexModel(
         ViewModel = new ChatPageVm
         {
             ActiveSessionId = id,
-            Subjects = _mapper.Map<List<SubjectSelectionVm>>(subjects),
         };
 
         return Page();

@@ -131,6 +131,7 @@ public class ChatPersistenceService(
                 ChatSessionId = sessionId,
                 ChatRole = ChatRole.User,
                 Content = content,
+                RawContent = content,
                 SentAt = DateTime.UtcNow,
                 Status = MessageStatus.Completed,
             });
@@ -165,6 +166,7 @@ public class ChatPersistenceService(
     public async Task<ResolvedChatMessage> CompleteAssistantMessageAsync(
         Guid messageId,
         string content,
+        string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
         IReadOnlyList<ChunkRetrieval> chunkRetrievalsInContext,
         IReadOnlyList<ChunkUsage> chunkUsages,
@@ -181,6 +183,7 @@ public class ChatPersistenceService(
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         message.Content = content;
+        message.RawContent = rawContent;
         message.Status = MessageStatus.Completed;
 
         message.GenerationSettings = new ChatMessageGenerationSettings
@@ -222,9 +225,7 @@ public class ChatPersistenceService(
                     c => new Citation
                     {
                         ChunkId = c.ChunkId,
-                        OccurrenceIndex = c.OccurrenceIndex,
                         CitationIndex = c.CitationIndex,
-                        QuotedText = c.QuotedText,
                         SimilarityScore = c.SimilarityScore,
                         LocationInDocument = c.LocationInDocument,
                     })];
@@ -273,9 +274,7 @@ public class ChatPersistenceService(
                 return new ResolvedCitation
                 {
                     ChunkId = chunkUsage.ChunkId,
-                    OccurrenceIndex = chunkUsage.OccurrenceIndex,
                     CitationIndex = chunkUsage.CitationIndex,
-                    QuotedText = chunkUsage.QuotedText,
                     SimilarityScore = chunkUsage.SimilarityScore,
                     LocationInDocument = BuildLocation(),
                     ChunkIndex = chunk.ChunkIndex,

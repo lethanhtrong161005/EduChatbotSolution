@@ -2270,6 +2270,16 @@ body {
   .zoom-out {
     --tw-exit-scale: 0;
   }
+  .last\:mb-2 {
+    &:last-child {
+      margin-bottom: calc(var(--spacing) * 2);
+    }
+  }
+  .last\:pb-2 {
+    &:last-child {
+      padding-bottom: calc(var(--spacing) * 2);
+    }
+  }
   .hover\:bg-brand-dark {
     &:hover {
       @media (hover: hover) {

@@ -67,6 +67,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     /// <summary>Gets or sets the citations set.</summary>
     public DbSet<Citation> Citations { get; set; }
 
+    public DbSet<CitationOccurrence> CitationOccurrences { get; set; }
+
     // ── Research & Evaluation ────────────────────────────────
     /// <summary>Gets or sets the test questions set.</summary>
     public DbSet<TestQuestion> TestQuestions { get; set; }
@@ -120,6 +122,7 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<ChatMessageGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Citation>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<CitationOccurrence>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestQuestion>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Experiment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");

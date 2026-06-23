@@ -14,6 +14,8 @@ public class ChatMessage : NaturalEntity
     /// <summary>Gets or sets the message text content.</summary>
     public string Content { get; set; } = string.Empty;
 
+    public string RawContent { get; set; } = string.Empty;
+
     /// <summary>Gets or sets when the message was sent.</summary>
     public DateTime SentAt { get; set; }
 

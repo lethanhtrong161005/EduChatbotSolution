@@ -29,6 +29,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<ChatMessageGenerationSettings>? _chatMessageGenerationSettings;
     GenericRepository<ChatMessageGenerationMetrics>? _chatMessageGenerationMetrics;
     GenericRepository<Citation>? _citations;
+    GenericRepository<CitationOccurrence>? _citationOccurrences;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
     GenericRepository<TestResponse>? _testResponses;
@@ -71,6 +72,8 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics => _chatMessageGenerationMetrics ??= new GenericRepository<ChatMessageGenerationMetrics>(context);
     /// <inheritdoc/>
     public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(context);
+    /// <inheritdoc/>
+    public GenericRepository<CitationOccurrence> CitationOccurrences => _citationOccurrences ??= new GenericRepository<CitationOccurrence>(context);
     /// <inheritdoc/>
     public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(context);
     /// <inheritdoc/>

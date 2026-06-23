@@ -65,6 +65,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Citation"/> entities.</summary>
     GenericRepository<Citation> Citations { get; }
 
+    GenericRepository<CitationOccurrence> CitationOccurrences { get; }
+
     // ── Research & Evaluation ────────────────────────────────
     /// <summary>Gets the repository for <see cref="TestQuestion"/> entities.</summary>
     GenericRepository<TestQuestion> TestQuestions { get; }

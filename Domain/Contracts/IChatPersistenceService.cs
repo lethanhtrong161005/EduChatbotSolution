@@ -46,6 +46,7 @@ public interface IChatPersistenceService
     Task<ResolvedChatMessage> CompleteAssistantMessageAsync(
         Guid messageId,
         string content,
+        string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
         IReadOnlyList<ChunkRetrieval> chunkRetrievalsInContext,
         IReadOnlyList<ChunkUsage> chunkUsages,

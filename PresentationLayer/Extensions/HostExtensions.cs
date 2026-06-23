@@ -901,7 +901,6 @@ public static class HostExtensions
                     ChatMessageId = message.Id,
                     ChunkId = chunk.Id,
                     CitationIndex = citationIndex,
-                    QuotedText = chunk.ChunkText[..Math.Min(80, chunk.ChunkText.Length)],
                     SimilarityScore = similarity,
                     LocationInDocument =
                         $"Page: {chunk.PageNumber ?? 1}" +
