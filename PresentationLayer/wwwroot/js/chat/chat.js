@@ -595,7 +595,8 @@
 
         const subjectHeaderDtos =
             await $.getJSON({
-                url: `/chat/subjects`,
+                url: `/chat?handler=GetSubjectHeaders`,
+                method: "GET",
             });
 
         subjectHeaders =
@@ -617,7 +618,8 @@
 
         const sessionHeaderDtos =
             await $.getJSON({
-                url: `/chat/sessions`,
+                url: `/chat?handler=GetSessionHeaders`,
+                method: "GET",
             });
 
         sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
@@ -698,7 +700,7 @@
 
         const dto =
             await $.getJSON({
-                url: `/chat/session/${sessionId}`,
+                url: `/chat?handler=GetSession&id=${sessionId}`,
             });
 
         if (concurrencyToken !== reqToken)
@@ -946,7 +948,7 @@
 
         try {
             genChatRes = await $.ajax({
-                url: "/chat/generate",
+                url: "/chat?handler=Generate",
                 method: "POST",
                 data: {
                     sessionId: activeSession.id,
@@ -995,7 +997,7 @@
 
         const response =
             await $.ajax({
-                url: "/chat/session",
+                url: "/chat?handler=CreateSession",
                 method: "POST",
                 data: {
                     subjectId,

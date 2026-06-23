@@ -16,7 +16,7 @@
             try {
                 const response =
                     await fetch(
-                        `/payment/status/${paymentId}`);
+                        `/payment/processing-payment?handler=Status&id=${paymentId}`);
 
                 if (!response.ok)
                     return;

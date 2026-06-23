@@ -6,6 +6,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Presentation.DTOs;
 using Presentation.ViewModels;
 using System.Security.Claims;
 
@@ -13,6 +14,7 @@ namespace Presentation.Pages.Documents;
 
 /// <summary>
 /// Displays document details and handles comments for a document.
+/// Provides chunk preview API via handlers.
 /// </summary>
 [Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DetailsModel(
@@ -20,6 +22,8 @@ public class DetailsModel(
     IUnitOfWork unitOfWork,
     IMapper mapper) : PageModel
 {
+    private const int PageSize = 10;
+
     private readonly IDocumentService _documentService = documentService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMapper _mapper = mapper;
@@ -170,5 +174,30 @@ public class DetailsModel(
         await _documentService.AddCommentAsync(targetDocumentId, userId, content);
 
         return RedirectToPage(new { id = targetDocumentId });
+    }
+
+    /// <summary>
+    /// Returns a paginated preview of indexed chunks for a document.
+    /// </summary>
+    /// <param name="documentId">The document identifier.</param>
+    /// <param name="pageIndex">The one-based page index requested by the client.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnGetGetChunksAsync([FromQuery] Guid documentId, [FromQuery] int pageIndex, CancellationToken cxlTkn)
+    {
+        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
+            documentId,
+            PageSize,
+            pageIndex,
+            cxlTkn);
+
+        var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
+        var pageDto = new ChunkPreviewPageDto
+        {
+            Chunks = chunkDtos,
+            PageIndex = chunks.PageIndex,
+            TotalPages = chunks.TotalPages,
+        };
+
+        return new JsonResult(pageDto);
     }
 }

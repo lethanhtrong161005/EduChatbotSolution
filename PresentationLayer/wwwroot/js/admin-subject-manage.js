@@ -128,7 +128,7 @@ async function submitCreateSubject() {
 
     setLoading('btnCreateSubjectSubmit', true);
     try {
-        const res = await fetch('/admin/subjects/create', {
+        const res = await fetch('/admin/subject-manage?handler=CreateSubject', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -176,7 +176,7 @@ async function submitUpdateSubject() {
 
     setLoading('btnUpdateSubjectSubmit', true);
     try {
-        const res = await fetch(`/admin/subjects/update/${id}`, {
+        const res = await fetch(`/admin/subject-manage?handler=UpdateSubject&id=${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ async function submitDeleteSubject() {
 
     setLoading('btnDeleteSubjectSubmit', true);
     try {
-        const res = await fetch(`/admin/subjects/delete/${id}`, {
+        const res = await fetch(`/admin/subject-manage?handler=DeleteSubject&id=${id}`, {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery()
@@ -255,7 +255,7 @@ async function loadChapters(subjectId) {
     listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280;"><i class="fas fa-spinner fa-spin"></i> Loading chapters list...</div>';
 
     try {
-        const res = await fetch(`/admin/subjects/${subjectId}/chapters`);
+        const res = await fetch(`/admin/subject-manage?handler=GetChapters&subjectId=${subjectId}`);
         if (!res.ok) throw new Error('Failed to fetch chapters');
         const chapters = await res.json();
 
@@ -308,7 +308,7 @@ async function submitCreateChapter() {
 
     setLoading('btnCreateChapter', true);
     try {
-        const res = await fetch('/admin/chapters/create', {
+        const res = await fetch('/admin/subject-manage?handler=CreateChapter', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -374,7 +374,7 @@ async function saveEditChapter(id) {
     }
 
     try {
-        const res = await fetch(`/admin/chapters/update/${id}`, {
+        const res = await fetch(`/admin/subject-manage?handler=UpdateChapter&id=${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -400,7 +400,7 @@ async function deleteChapter(id) {
     const subjectId = document.getElementById('chapter-sub-id').value;
 
     try {
-        const res = await fetch(`/admin/chapters/delete/${id}`, {
+        const res = await fetch(`/admin/subject-manage?handler=DeleteChapter&id=${id}`, {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery()
@@ -446,7 +446,7 @@ async function loadMembers(subjectId) {
     listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280;"><i class="fas fa-spinner fa-spin"></i> Loading members list...</div>';
 
     try {
-        const res = await fetch(`/admin/subjects/${subjectId}/members`);
+        const res = await fetch(`/admin/subject-manage?handler=GetMembers&subjectId=${subjectId}`);
         if (!res.ok) throw new Error('Failed to fetch members');
         const members = await res.json();
 
@@ -503,7 +503,7 @@ async function submitAssignMember() {
 
     setLoading('btnAssignMember', true);
     try {
-        const res = await fetch(`/admin/subjects/${subjectId}/members/assign`, {
+        const res = await fetch(`/admin/subject-manage?handler=AssignMember&subjectId=${subjectId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -533,7 +533,7 @@ async function removeMember(userId) {
     const subjectId = document.getElementById('member-sub-id').value;
 
     try {
-        const res = await fetch(`/admin/subjects/${subjectId}/members/remove/${userId}`, {
+        const res = await fetch(`/admin/subject-manage?handler=RemoveMember&subjectId=${subjectId}&userId=${userId}`, {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery()
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             searchDebounceTimeout = setTimeout(async () => {
                 try {
-                    const res = await fetch(`/admin/subjects/${subjectId}/eligible-users?role=${role}&search=${encodeURIComponent(search)}`);
+                    const res = await fetch(`/admin/subject-manage?handler=GetEligibleUsers&subjectId=${subjectId}&role=${role}&search=${encodeURIComponent(search)}`);
                     if (!res.ok) throw new Error('Search failed');
                     const users = await res.json();
                     

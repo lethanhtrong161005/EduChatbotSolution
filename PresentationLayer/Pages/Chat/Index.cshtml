@@ -1,4 +1,4 @@
-@page "{id:guid?}"
+@page "{id:guid?}/{handler?}"
 @model Presentation.Pages.Chat.IndexModel
 @{
     ViewData["Title"] = "AI Assistant";
@@ -341,7 +341,7 @@
 
     <script>
         window.chatPage = {
-        activeSessionId: '@Model.ViewModel.ActiveSessionId',
+            activeSessionId: '@Model.ViewModel.ActiveSessionId',
         };
     </script>
 

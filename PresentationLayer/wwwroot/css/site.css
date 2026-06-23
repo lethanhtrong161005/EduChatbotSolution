@@ -246,11 +246,11 @@ body {
         animation-delay: 0.8s;
     }
 
-    .assistant-thinking span:nth-child(5n+3) {
+    .assistant-thinking span:nth-child(5n+4) {
         animation-delay: 1.2s;
     }
 
-    .assistant-thinking span:nth-child(5n+3) {
+    .assistant-thinking span:nth-child(5n+5) {
         animation-delay: 1.6s;
     }
 

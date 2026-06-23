@@ -106,7 +106,7 @@
         uploadPanelOverlay.classList.remove("d-none");
 
         const response = await fetch(
-            `/documents/can-upload?subjectId=${subjectId}`);
+            `/documents/library?handler=CanUpload&subjectId=${subjectId}`);
 
         const { canUpload } = await response.json();
 
@@ -132,7 +132,7 @@
             "<option value=''>Loading...</option>";
 
         const response = await fetch(
-            `/documents/get-chapters?subjectId=${subjectId}`);
+            `/documents/library?handler=GetChapters&subjectId=${subjectId}`);
 
         const chapters = await response.json();
 
@@ -161,7 +161,7 @@
         fileTableBody.innerHTML = loadingRow;
 
         const response = await fetch(
-            `/documents/get-files?subjectId=${subjectId}`);
+            `/documents/library?handler=GetFiles&subjectId=${subjectId}`);
 
         currentFiles = await response.json();
 
@@ -478,7 +478,7 @@ Are you sure you wish to upload them?
             const xhr = new XMLHttpRequest();
             xhr.open(
                 "POST",
-                "/documents/upload");
+                "/documents/library?handler=Upload");
 
             xhr.upload.addEventListener(
                 "progress",

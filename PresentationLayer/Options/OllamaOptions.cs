@@ -1,4 +1,4 @@
-﻿namespace Presentation.Settings;
+﻿namespace Presentation.Options;
 
 public sealed class OllamaOptions
 {

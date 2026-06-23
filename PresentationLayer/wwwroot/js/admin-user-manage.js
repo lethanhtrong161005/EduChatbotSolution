@@ -145,7 +145,7 @@ async function submitCreate() {
 
     setLoading('btnCreateSubmit', true);
     try {
-        const res = await fetch('/admin/users/create', {
+        const res = await fetch('/admin/user-manage?handler=CreateUser', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -211,8 +211,8 @@ async function submitUpdate() {
 
     setLoading('btnEditSubmit', true);
     try {
-        const res = await fetch(`/admin/users/${userId}`, {
-            method: 'PUT',
+        const res = await fetch(`/admin/user-manage?handler=UpdateUser&id=${userId}`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery()
@@ -248,8 +248,8 @@ async function submitDelete() {
 
     setLoading('btnDeleteSubmit', true);
     try {
-        const res = await fetch(`/admin/users/${userId}`, {
-            method: 'DELETE',
+        const res = await fetch(`/admin/user-manage?handler=DeleteUser&id=${userId}`, {
+            method: 'POST',
             headers: { 'RequestVerificationToken': getAntiForgery() }
         });
         const data = await res.json();
@@ -285,7 +285,7 @@ async function submitDisable() {
 
     setLoading('btnDisableSubmit', true);
     try {
-        const res = await fetch(`/admin/users/${userId}/disable`, {
+        const res = await fetch(`/admin/user-manage?handler=DisableUser&id=${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -326,7 +326,7 @@ async function submitReactivate() {
 
     setLoading('btnReactivateSubmit', true);
     try {
-        const res = await fetch(`/admin/users/${userId}/reactivate`, {
+        const res = await fetch(`/admin/user-manage?handler=ReactivateUser&id=${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

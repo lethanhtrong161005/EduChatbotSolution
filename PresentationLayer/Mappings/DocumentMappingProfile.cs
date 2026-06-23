@@ -18,6 +18,8 @@ public class DocumentMappingProfile : Profile
             .ForMember(dest => dest.Status, opts => opts.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.UploadedBy, opts => opts.MapFrom(src => src.Uploader.FullName));
 
+        CreateMap<Document, DocumentEditVm>();
+
         CreateMap<Document, DocumentDetailsVm>()
             .ForMember(dest => dest.ChapterName, opts => opts.MapFrom(src => src.Chapter.Name))
             .ForMember(dest => dest.SubjectId, opts => opts.MapFrom(src => src.Chapter.SubjectId))

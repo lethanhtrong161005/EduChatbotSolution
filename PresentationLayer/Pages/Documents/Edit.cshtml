@@ -1,4 +1,4 @@
-@page "{id:guid}"
+@page "{id:guid}/{handler?}"
 @model Presentation.Pages.Documents.EditModel
 
 @{
@@ -123,9 +123,9 @@
     <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
         <a asp-page="/Home/Index">Trang chủ</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-page="Library">Tài liệu</a>
+        <a asp-page="/Documents/Library">Tài liệu</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-page="Details" asp-route-id="@Model.ViewModel.Id">Chi tiết</a>
+        <a asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id">Chi tiết</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
         <span class="text-muted">Chỉnh sửa</span>
     </nav>
@@ -160,7 +160,7 @@
 
             <!-- Nút điều hướng -->
             <div class="btn-action-area">
-                <a asp-page="Details" asp-route-id="@Model.ViewModel.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
+                <a asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id" class="btn-action-secondary py-2 px-4 text-decoration-none">
                     <i class="fas fa-times me-1"></i> Hủy bỏ
                 </a>
                 <button type="submit" class="btn-action-primary py-2 px-4">

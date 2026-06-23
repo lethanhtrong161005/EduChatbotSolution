@@ -36,7 +36,7 @@ document.addEventListener(
         async function loadChunks(documentId, pageIndex = 1) {
 
             const response = await fetch(
-                `/documents/chunks?documentId=${documentId}&pageIndex=${pageIndex}`);
+                `/documents/details/${documentId}?handler=GetChunks&pageIndex=${pageIndex}`);
 
             const page =
                 await response.json();
