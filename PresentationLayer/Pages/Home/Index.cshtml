@@ -1,13 +1,14 @@
 @page
 @model Presentation.Pages.Home.IndexModel
-@using System.Security.Claims
 @{
     ViewData["Title"] = "Dashboard";
 
-    var userName = User.FindFirstValue(ClaimTypes.Name) ?? "User";
-    var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-    var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
+    var userName = Model.FullName;
+    var userEmail = Model.Email;
+    var userRole = Model.Role;
     var initial = userName.Length > 0 ? userName[0].ToString().ToUpperInvariant() : "U";
+    var isAdmin = User.IsInRole("Admin");
+    var isLecturer = User.IsInRole("Lecturer");
 }
 
 <style>
@@ -300,15 +301,30 @@
             </div>
         </article>
 
-        <article class="dashboard-card metric-card">
-            <div class="metric-icon secondary">
-                <i class="fas fa-file-alt"></i>
-            </div>
-            <div>
-                <div class="metric-value">0</div>
-                <div class="metric-label">Documents</div>
-            </div>
-        </article>
+        @if (isLecturer || isAdmin)
+        {
+            <a href="/Documents/Library" class="dashboard-card metric-card" style="text-decoration: none; color: inherit; cursor: pointer; transition: transform 0.2s;">
+                <div class="metric-icon secondary">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div>
+                    <div class="metric-value">0</div>
+                    <div class="metric-label">Documents (Manage)</div>
+                </div>
+            </a>
+        }
+        else
+        {
+            <article class="dashboard-card metric-card">
+                <div class="metric-icon secondary">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div>
+                    <div class="metric-value">0</div>
+                    <div class="metric-label">Documents</div>
+                </div>
+            </article>
+        }
 
         <article class="dashboard-card metric-card">
             <div class="metric-icon neutral">
@@ -321,41 +337,6 @@
         </article>
     </div>
 
-    <article class="dashboard-card profile-card">
-        <h2 class="profile-title">
-            <i class="fas fa-user-circle"></i>
-            Your Profile
-        </h2>
 
-        <div class="profile-list">
-            <div class="profile-row">
-                <div class="profile-icon"><i class="fas fa-user"></i></div>
-                <div>
-                    <div class="profile-label">Full Name</div>
-                    <div class="profile-value">@userName</div>
-                </div>
-            </div>
-
-            <div class="profile-row">
-                <div class="profile-icon"><i class="fas fa-envelope"></i></div>
-                <div>
-                    <div class="profile-label">Email</div>
-                    <div class="profile-value">@userEmail</div>
-                </div>
-            </div>
-
-            <div class="profile-row">
-                <div class="profile-icon"><i class="fas fa-shield-alt"></i></div>
-                <div>
-                    <div class="profile-label">Role</div>
-                    <div class="profile-value">
-                        <span class="role-badge">
-                            <i class="fas fa-check-circle"></i>
-                            @userRole
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </article>
 </section>
+

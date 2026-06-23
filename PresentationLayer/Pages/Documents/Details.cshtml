@@ -22,6 +22,8 @@
         --accent-green: #2ecc71;
         --accent-green-dark: #27ae60;
         --accent-green-light: #e8f8f0;
+        --gradient-primary: linear-gradient(135deg, #2ecc71, #27ae60);
+        --shadow-glow: 0 0 15px rgba(46, 204, 113, 0.2);
     }
 
     body {
@@ -72,10 +74,10 @@
 
     /* Primary Viewer Section */
     .viewer-card {
-        background: white;
+        background: var(--color-card-bg);
         border-radius: var(--radius-xl);
         border: 1px solid var(--color-border-light);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -105,7 +107,7 @@
     .viewer-content {
         flex: 1;
         position: relative;
-        background: #f9fafb;
+        background: var(--color-surface);
         display: flex;
         flex-direction: column;
     }
@@ -114,7 +116,7 @@
     .docx-viewer-wrapper {
         height: 750px;
         overflow-y: auto;
-        background: #f3f4f6;
+        background: var(--color-bg-neutral);
         padding: 2rem;
         display: flex;
         flex-direction: column;
@@ -122,17 +124,17 @@
     }
 
     .docx-page-sheet {
-        background: white;
+        background: var(--color-surface);
         width: 100%;
         max-width: 800px;
         min-height: 800px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--shadow-md);
         border: 1px solid var(--color-border-light);
-        border-radius: 4px;
+        border-radius: var(--radius-md);
         padding: 3rem 4rem;
         font-size: 1.05rem;
         line-height: 1.7;
-        color: #2c3e50;
+        color: var(--color-text-primary);
     }
 
         .docx-page-sheet p.doc-p {
@@ -143,24 +145,22 @@
     .docx-rendered-container {
         width: 100%;
     }
-
-        .docx-rendered-container table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5rem;
-        }
-
-        .docx-rendered-container th, .docx-rendered-container td {
-            border: 1px solid #d1d5db;
-            padding: 0.5rem 0.75rem;
-        }
+    .docx-rendered-container table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+    }
+    .docx-rendered-container th, .docx-rendered-container td {
+        border: 1px solid var(--color-border-neutral);
+        padding: 0.5rem 0.75rem;
+    }
 
     /* PPTX Slideshow outline styles */
     .pptx-slide-viewer {
         display: grid;
         grid-template-columns: 1fr;
         height: 700px;
-        background: #1e293b;
+        background: var(--color-surface-alt);
     }
 
     @@media (min-width: 768px) {
@@ -170,8 +170,8 @@
     }
 
     .slide-outline-sidebar {
-        background: #0f172a;
-        border-right: 1px solid #334155;
+        background: var(--color-bg-neutral);
+        border-right: 1px solid var(--color-border-light);
         overflow-y: auto;
         padding: 1rem;
         display: flex;
@@ -186,11 +186,11 @@
     }
 
     .slide-thumb {
-        background: #1e293b;
-        border: 2px solid #475569;
+        background: var(--color-surface);
+        border: 2px solid var(--color-border-light);
         border-radius: var(--radius-sm);
         padding: 0.75rem;
-        color: #94a3b8;
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all var(--transition-fast);
         aspect-ratio: 16/9;
@@ -203,18 +203,16 @@
         text-align: center;
         user-select: none;
     }
-
-        .slide-thumb:hover {
-            border-color: #64748b;
-            color: #f1f5f9;
-        }
-
-        .slide-thumb.active {
-            border-color: var(--accent-green);
-            color: white;
-            background: rgba(46, 204, 113, 0.1);
-        }
-
+    .slide-thumb:hover {
+        border-color: var(--color-border-dark);
+        color: var(--color-text-primary);
+    }
+    .slide-thumb.active {
+        border-color: var(--accent-green);
+        color: var(--color-primary);
+        background: rgba(46, 204, 113, 0.1);
+        box-shadow: var(--shadow-glow);
+    }
     .slide-canvas-area {
         display: flex;
         flex-direction: column;
@@ -225,17 +223,17 @@
 
     .slide-box {
         flex: 1;
-        background: #0f172a;
-        border: 1px solid #334155;
+        background: var(--color-bg-dark);
+        border: 1px solid var(--color-border-light);
         border-radius: var(--radius-lg);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        box-shadow: var(--shadow-lg);
         aspect-ratio: 16/9;
         max-width: 800px;
         margin: auto;
         padding: 2.5rem;
         display: flex;
         flex-direction: column;
-        color: #f8fafc;
+        color: var(--color-text-light);
         position: relative;
         overflow: hidden;
     }
@@ -265,7 +263,7 @@
     .slide-body {
         font-size: 1.1rem;
         line-height: 1.6;
-        color: #cbd5e1;
+        color: rgba(255,255,255,0.8);
         overflow-y: auto;
     }
 
@@ -283,13 +281,13 @@
         justify-content: center;
         gap: 1.5rem;
         margin-top: 1.5rem;
-        color: #94a3b8;
+        color: var(--color-text-secondary);
     }
 
     .slide-btn {
-        background: #334155;
-        border: none;
-        color: white;
+        background: var(--color-surface-hover);
+        border: 1px solid var(--color-border-light);
+        color: var(--color-text-primary);
         width: 38px;
         height: 38px;
         border-radius: 50%;
@@ -297,28 +295,27 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background var(--transition-fast);
+        transition: background var(--transition-fast), border-color var(--transition-fast);
     }
-
-        .slide-btn:hover {
-            background: #475569;
-        }
-
-        .slide-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
+    .slide-btn:hover {
+        background: var(--color-surface);
+        border-color: var(--color-border-neutral);
+    }
+    .slide-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
 
     /* TXT Viewer Style */
     .txt-viewer-container {
         display: flex;
         flex-direction: column;
         height: 700px;
-        background: #fdfdfd;
+        background: var(--color-surface);
     }
 
     .txt-search-bar {
-        background: white;
+        background: var(--color-surface);
         border-bottom: 1px solid var(--color-border-light);
         padding: 0.5rem 1.5rem;
         display: flex;
@@ -331,6 +328,8 @@
         outline: none;
         width: 100%;
         font-size: 0.9rem;
+        background: transparent;
+        color: var(--color-text-primary);
     }
 
     .txt-scroller {
@@ -351,7 +350,7 @@
         width: 45px;
         text-align: right;
         padding-right: 15px;
-        color: var(--color-neutral-400);
+        color: var(--color-text-secondary);
         user-select: none;
         border-right: 1px solid var(--color-border-light);
         margin-right: 15px;
@@ -360,6 +359,7 @@
     .line-text {
         flex: 1;
         white-space: pre;
+        color: var(--color-text-primary);
     }
 
         .line-text.wrapped {
@@ -377,35 +377,42 @@
     /* Tab switcher style */
     .nav-toggle-tabs {
         display: inline-flex;
-        background: var(--color-neutral-200);
+        background: var(--color-surface-alt);
         padding: 0.25rem;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border-light);
     }
 
     .tab-toggle-btn {
         background: none;
         border: none;
-        padding: 0.35rem 1rem;
+        padding: 0.45rem 1.2rem;
         font-size: 0.85rem;
         font-weight: 600;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         cursor: pointer;
         color: var(--color-text-secondary);
-        transition: all var(--transition-fast);
+        transition: all var(--transition-base);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
     }
-
-        .tab-toggle-btn.active {
-            background: white;
-            color: var(--color-text-primary);
-            box-shadow: var(--shadow-sm);
-        }
+    .tab-toggle-btn:hover {
+        color: var(--color-text-primary);
+    }
+    .tab-toggle-btn.active {
+        background: var(--color-surface);
+        color: var(--color-primary);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--color-border-light);
+    }
 
     /* SIDEBAR METADATA */
     .sidebar-details-card {
-        background: white;
+        background: var(--color-card-bg);
         border-radius: var(--radius-xl);
         border: 1px solid var(--color-border-light);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
         padding: 1.5rem;
         position: sticky;
         top: 24px;
@@ -457,18 +464,16 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-
-        .btn-action-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(46, 204, 113, 0.3);
-        }
-
+    .btn-action-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
+    }
     .btn-action-secondary {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
-        background: white;
+        background: var(--color-surface);
         border: 1px solid var(--color-border-neutral);
         color: var(--color-text-primary);
         border-radius: var(--radius-lg);
@@ -477,17 +482,17 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-
-        .btn-action-secondary:hover {
-            background: var(--color-neutral-50);
-            border-color: var(--color-text-secondary);
-        }
+    .btn-action-secondary:hover {
+        background: var(--color-surface-hover);
+        border-color: var(--color-border-dark);
+        color: var(--color-primary);
+    }
 
     /* SLIDING CHUNK DRAWER OVERRIDES */
     .chunk-drawer-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.5);
         backdrop-filter: blur(4px);
         z-index: 1040;
         opacity: 0;
@@ -507,15 +512,15 @@
         bottom: 0;
         width: 650px;
         max-width: 90vw;
-        background: white;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+        background: var(--color-card-bg);
+        border-left: 1px solid var(--color-border-light);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.25);
         z-index: 1050;
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
         border-radius: 0;
-        border: none;
     }
 
         #chunkShowcase.chunk-drawer.open {
@@ -527,20 +532,30 @@
         border-bottom: 1px solid var(--color-border-light);
         display: flex;
         align-items: center;
-        background: var(--color-neutral-50);
+        justify-content: space-between;
+        background: var(--color-card-header);
     }
-
-        .chunk-drawer-header h5 {
-            margin: 0;
-            font-weight: 700;
-            color: var(--color-text-primary);
-        }
-
+    .chunk-drawer-header h5 {
+        margin: 0;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    .btn-close-drawer {
+        background: none;
+        border: none;
+        color: var(--color-text-secondary);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: color var(--transition-fast);
+    }
+    .btn-close-drawer:hover {
+        color: var(--color-error);
+    }
     .chunk-drawer-body {
         flex: 1;
         overflow-y: auto;
         padding: 1.5rem;
-        background: #f8fafc;
+        background: var(--color-surface-alt);
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -548,10 +563,10 @@
 
     /* COMMENTS SECTION REDESIGN */
     .comments-section-card {
-        background: white;
+        background: var(--color-card-bg);
         border-radius: var(--radius-xl);
         border: 1px solid var(--color-border-light);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
         margin-top: 2rem;
         overflow: hidden;
     }
@@ -562,7 +577,7 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        background: var(--color-neutral-50);
+        background: var(--color-card-header);
     }
 
     .comments-title {
@@ -627,7 +642,7 @@
 
     .comment-bubble {
         flex: 1;
-        background: #f8fafc;
+        background: var(--color-surface-alt);
         border: 1px solid var(--color-border-light);
         border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
         padding: 0.85rem 1.15rem;
@@ -679,10 +694,14 @@
         color: #2980b9;
         border: 1px solid rgba(52, 152, 219, 0.2);
     }
-
+    .badge-chief {
+        background: rgba(230, 126, 34, 0.1);
+        color: #e67e22;
+        border: 1px solid rgba(230, 126, 34, 0.2);
+    }
     .comment-text {
         font-size: 0.925rem;
-        color: var(--color-neutral-800);
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.55;
         white-space: pre-wrap;
@@ -694,6 +713,7 @@
     }
 
     .comment-input-area {
+        background: var(--color-input-bg);
         border: 1px solid var(--color-border-neutral);
         border-radius: var(--radius-lg);
         overflow: hidden;
@@ -713,10 +733,12 @@
         font-size: 0.95rem;
         outline: none;
         min-height: 85px;
+        background: transparent;
+        color: var(--color-text-primary);
     }
 
     .comment-toolbar {
-        background: var(--color-neutral-50);
+        background: var(--color-surface-alt);
         padding: 0.6rem 1.15rem;
         display: flex;
         justify-content: flex-end;
@@ -731,7 +753,8 @@
 
     .empty-state-icon {
         font-size: 2.5rem;
-        color: var(--color-neutral-300);
+        color: var(--color-text-secondary);
+        opacity: 0.5;
         margin-bottom: 0.75rem;
     }
 </style>
@@ -791,17 +814,27 @@
                         <span>Bộ xem tài liệu trực tuyến</span>
                     </div>
 
-                    <!-- View Mode Selector (pdf, docx, pptx, txt) -->
-                    @if (extensionClean is "pdf" or "docx" or "pptx" or "txt")
+                    <!-- View Mode Selector (docx, pptx, txt, or pdf when physical file is missing) -->
+                    @if (extensionClean is "docx" or "pptx" or "txt" || extensionClean == "pdf")
                     {
+                        var showBoth = (extensionClean == "pptx") || (Model.IsPhysicalFileAvailable);
                         <div class="viewer-controls">
                             <div class="nav-toggle-tabs" id="view-mode-tabs">
-                                <button class="tab-toggle-btn active" id="btn-formatted-view" onclick="setViewMode('formatted')">
-                                    <i class="fas fa-file-alt me-1"></i> Định dạng gốc
-                                </button>
-                                <button class="tab-toggle-btn" id="btn-text-view" onclick="setViewMode('text')">
-                                    <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
-                                </button>
+                                @if (showBoth)
+                                {
+                                    <button class="tab-toggle-btn active" id="btn-formatted-view" onclick="setViewMode('formatted')">
+                                        <i class="fas fa-file-alt me-1"></i> Định dạng gốc
+                                    </button>
+                                    <button class="tab-toggle-btn" id="btn-text-view" onclick="setViewMode('text')">
+                                        <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="tab-toggle-btn active" id="btn-text-view" onclick="setViewMode('text')">
+                                        <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -811,99 +844,161 @@
                     <!-- PDF VIEWER -->
                     @if (extensionClean == "pdf")
                     {
-                        <div id="pdf-viewer-section" class="w-100 h-100" style="flex: 1;">
-                            <iframe src="/documents/display/@(Model.ViewModel.Id)" style="border: none; width: 100%; height: 750px;" title="PDF Viewer"></iframe>
-                        </div>
-
-                        <div id="pdf-text-viewer" class="txt-viewer-container w-100 d-none">
-                            <div class="txt-scroller">
-                                <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 2rem auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                                    @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
-                                    {
-                                        var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
-                                        foreach (var block in blocks)
+                        @if (Model.IsPhysicalFileAvailable)
+                        {
+                            <div id="pdf-viewer-section" class="w-100 h-100" style="flex: 1;">
+                                <iframe src="/documents/display/@(Model.ViewModel.Id)" style="border: none; width: 100%; height: 750px;" title="PDF Viewer"></iframe>
+                            </div>
+                            <div id="pdf-text-viewer" class="txt-viewer-container w-100 d-none">
+                                <div class="txt-scroller">
+                                    <div class="docx-page-sheet" style="margin: 0 auto;">
+                                        @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
                                         {
-                                            if (!string.IsNullOrWhiteSpace(block))
+                                            var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                            foreach (var block in blocks)
                                             {
-                                                <p class="doc-p text-justify" style="line-height: 1.7; color: #2c3e50; margin-bottom: 1.25rem;">@block</p>
+                                                if (!string.IsNullOrWhiteSpace(block))
+                                                {
+                                                    <p class="doc-p">@block</p>
+                                                }
                                             }
                                         }
-                                    }
-                                    else
-                                    {
-                                        <div class="text-center py-5 text-muted">
-                                            <i class="fas fa-file-alt mb-3" style="font-size: 2rem; opacity: 0.5;"></i>
-                                            <p class="fst-italic mb-0">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
-                                        </div>
-                                    }
+                                        else
+                                        {
+                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        }
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <div id="pdf-text-viewer" class="txt-viewer-container w-100">
+                                <div class="alert alert-warning m-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                </div>
+                                <div class="txt-scroller">
+                                    <div class="docx-page-sheet" style="margin: 0 auto;">
+                                        @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
+                                        {
+                                            var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                            foreach (var block in blocks)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(block))
+                                                {
+                                                    <p class="doc-p">@block</p>
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     }
-                    <!-- DOCX VIEWER -->
                     else if (extensionClean == "docx")
                     {
-                    <div id="docx-formatted-viewer" class="docx-viewer-wrapper w-100">
-                        <div class="docx-page-sheet" id="docx-sheet">
-                            <div id="docx-render-target" class="docx-rendered-container">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                                    <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
-                                    <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
+                        <!-- DOCX VIEWER -->
+                        @if (Model.IsPhysicalFileAvailable)
+                        {
+                            <div id="docx-formatted-viewer" class="docx-viewer-wrapper w-100">
+                                <div class="docx-page-sheet" id="docx-sheet">
+                                    <div id="docx-render-target" class="docx-rendered-container">
+                                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                                            <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
+                                            <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div id="docx-text-viewer" class="txt-viewer-container w-100 d-none">
-                        <div class="txt-scroller">
-                            <div class="docx-page-sheet">
-                                @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
-                                {
-                                    var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
-                                    foreach (var block in blocks)
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(block))
+                            <div id="docx-text-viewer" class="txt-viewer-container w-100 d-none">
+                                <div class="txt-scroller">
+                                    <div class="docx-page-sheet">
+                                        @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
                                         {
-                                            <p class="doc-p">@block</p>
+                                            var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                            foreach (var block in blocks)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(block))
+                                                {
+                                                    <p class="doc-p">@block</p>
+                                                }
+                                            }
                                         }
-                                    }
-                                }
-                                else
-                                {
-                                    <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
-                                }
+                                        else
+                                        {
+                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        }
+                        else
+                        {
+                            <div id="docx-text-viewer" class="txt-viewer-container w-100">
+                                <div class="alert alert-warning m-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                </div>
+                                <div class="txt-scroller">
+                                    <div class="docx-page-sheet">
+                                        @if (!string.IsNullOrEmpty(Model.ViewModel.ExtractedText))
+                                        {
+                                            var blocks = Model.ViewModel.ExtractedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.None);
+                                            foreach (var block in blocks)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(block))
+                                                {
+                                                    <p class="doc-p">@block</p>
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     }
-                    <!-- PPTX VIEWER -->
                     else if (extensionClean == "pptx")
                     {
-                    <div id="pptx-formatted-viewer" class="pptx-slide-viewer w-100">
-                        <div class="slide-outline-sidebar" id="slides-thumbnail-sidebar">
-                            <!-- Populated by JS -->
-                        </div>
-                        <div class="slide-canvas-area">
-                            <div class="slide-box" id="slide-presentation-box">
-                                <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
-                                <div class="slide-body" id="active-slide-body">
-                                    <p class="text-muted">Đang tải nội dung slides...</p>
+                        <!-- PPTX VIEWER -->
+                        <div id="pptx-formatted-viewer" class="pptx-slide-viewer w-100">
+                            <div class="slide-outline-sidebar" id="slides-thumbnail-sidebar">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="slide-canvas-area">
+                                @if (!Model.IsPhysicalFileAvailable)
+                                {
+                                    <div class="alert alert-warning mx-auto mb-3" style="max-width: 800px; width: 100%;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                    </div>
+                                }
+                                <div class="slide-box" id="slide-presentation-box">
+                                    <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
+                                    <div class="slide-body" id="active-slide-body">
+                                        <p class="text-muted">Đang tải nội dung slides...</p>
+                                    </div>
+                                </div>
+                                <div class="slide-footer-controls">
+                                    <button class="slide-btn" id="btn-prev-slide" onclick="prevSlide()">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <span id="slide-progress-indicator">Slide 0 / 0</span>
+                                    <button class="slide-btn" id="btn-next-slide" onclick="nextSlide()">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-light ms-3" onclick="toggleFullscreenSlide()">
+                                        <i class="fas fa-expand"></i> Fullscreen
+                                    </button>
                                 </div>
                             </div>
-                            <div class="slide-footer-controls">
-                                <button class="slide-btn" id="btn-prev-slide" onclick="prevSlide()">
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                <span id="slide-progress-indicator">Slide 0 / 0</span>
-                                <button class="slide-btn" id="btn-next-slide" onclick="nextSlide()">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-light ms-3" onclick="toggleFullscreenSlide()">
-                                    <i class="fas fa-expand"></i> Fullscreen
-                                </button>
-                            </div>
                         </div>
-                    </div>
 
                     <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
                         <div class="txt-scroller">
@@ -913,38 +1008,53 @@
                         </div>
                     </div>
                     }
-                    <!-- TXT VIEWER -->
                     else if (extensionClean == "txt")
                     {
-                    <div id="txt-viewer-section" class="txt-viewer-container w-100">
-                        <div class="txt-search-bar">
-                            <i class="fas fa-search"></i>
-                            <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
-                            <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
-                        </div>
-                        <div class="txt-scroller">
-                            <div id="txt-lines-container">
-                                <!-- Rendered line-by-line by JS -->
-                                <div class="d-flex justify-content-center py-5">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                        <!-- TXT VIEWER -->
+                        <div id="txt-viewer-section" class="txt-viewer-container w-100">
+                            @if (!Model.IsPhysicalFileAvailable)
+                            {
+                                <div class="alert alert-warning m-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                </div>
+                            }
+                            <div class="txt-search-bar">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
+                                <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
+                            </div>
+                            <div class="txt-scroller">
+                                <div id="txt-lines-container">
+                                    <!-- Rendered line-by-line by JS -->
+                                    <div class="d-flex justify-content-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     }
                     else
                     {
-                    <!-- FALLBACK CARD -->
-                    <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
-                        <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
-                        <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
-                        <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
-                        <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
-                            <i class="fas fa-download"></i> Tải xuống tài liệu gốc
-                        </a>
-                    </div>
+                        <!-- FALLBACK CARD -->
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
+                            <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
+                            <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
+                            <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
+                            @if (Model.IsPhysicalFileAvailable)
+                            {
+                                <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
+                                    <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn-action-primary mt-3" style="opacity: 0.5; cursor: not-allowed;" disabled title="Không tìm thấy tệp vật lý trên máy chủ">
+                                    <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                                </button>
+                            }
+                        </div>
                     }
                 </div>
             </div>
@@ -966,23 +1076,56 @@
                                 commentIndex++;
                                 <div class="comment-item">
                                     <div class="avatar-wrapper">
-                                        <div class="avatar-circle @avatarBg" title="@comment.User.FullName">
-                                            @(comment.User.FullName.Length > 0 ? comment.User.FullName[0].ToString().ToUpper() : "U")
+                                        <div class="avatar-circle @avatarBg" title="@(comment.User?.FullName ?? "User")">
+                                            @((comment.User?.FullName != null && comment.User.FullName.Length > 0) ? comment.User.FullName[0].ToString().ToUpper() : "U")
                                         </div>
                                     </div>
                                     <div class="comment-bubble">
                                         <div class="comment-meta">
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="commenter-name">@comment.User.FullName</span>
-                                                <!-- If uploader, add a badge -->
-                                                @if (comment.User.UserName == "admin" || comment.User.Email == Model.ViewModel.UploadedBy)
-                                                {
-                                                    <span class="comment-badge-role badge-lecturer">Giảng viên</span>
+                                                <span class="commenter-name">@(comment.User?.FullName ?? "Người dùng ẩn danh")</span>
+                                                <!-- Dynamic commenter role based on subject membership -->
+                                                @{
+                                                    var userRoleText = "Student";
+                                                    var badgeClass = "badge-student";
+
+                                                    if (comment.User != null)
+                                                    {
+                                                        if (comment.User.UserName == "admin")
+                                                        {
+                                                            userRoleText = "Admin";
+                                                            badgeClass = "badge-admin";
+                                                        }
+                                                        else
+                                                        {
+                                                            var membership = comment.User.SubjectMemberships?.FirstOrDefault(m => m.SubjectId == Model.ViewModel.SubjectId);
+                                                            if (membership != null)
+                                                            {
+                                                                if (membership.Role == Domain.Entities.MembershipRole.Chief)
+                                                                {
+                                                                    userRoleText = "Subject Leader";
+                                                                    badgeClass = "badge-chief";
+                                                                }
+                                                                else if (membership.Role == Domain.Entities.MembershipRole.Lecturer)
+                                                                {
+                                                                    userRoleText = "Lecturer";
+                                                                    badgeClass = "badge-lecturer";
+                                                                }
+                                                                else
+                                                                {
+                                                                    userRoleText = "Student";
+                                                                    badgeClass = "badge-student";
+                                                                }
+                                                            }
+                                                            else if (comment.User.Email == Model.ViewModel.UploadedBy)
+                                                            {
+                                                                userRoleText = "Lecturer";
+                                                                badgeClass = "badge-lecturer";
+                                                            }
+                                                        }
+                                                    }
                                                 }
-                                                else
-                                                {
-                                                    <span class="comment-badge-role badge-student">Học viên</span>
-                                                }
+                                                <span class="comment-badge-role @badgeClass">@userRoleText</span>
                                             </div>
                                             <span class="commenter-time">
                                                 <i class="far fa-clock me-1"></i> @comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")
@@ -1005,7 +1148,7 @@
 
                     <!-- Add Comment Form -->
                     <div class="comment-form-container">
-                        <form asp-page="/Documents/Details" asp-page-handler="AddComment" method="post">
+                        <form asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id" asp-page-handler="AddComment" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="documentId" value="@Model.ViewModel.Id" />
                             <div class="comment-input-area">
@@ -1044,6 +1187,18 @@
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-4">
+                    @if (Model.IsPhysicalFileAvailable)
+                    {
+                        <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary w-100">
+                            <i class="fas fa-download"></i> Tải xuống tài liệu
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn-action-primary w-100" style="opacity: 0.5; cursor: not-allowed;" disabled title="Không tìm thấy tệp vật lý trên máy chủ">
+                            <i class="fas fa-download"></i> Tải xuống tài liệu
+                        </button>
+                    }
                     @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
                     {
                         <a href="/documents/edit/@Model.ViewModel.Id" class="btn-action-primary w-100" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
@@ -1127,31 +1282,34 @@
     const pptxFormatted = document.getElementById("pptx-formatted-viewer");
     const pptxText = document.getElementById("pptx-text-viewer");
 
-    if (mode === 'formatted') {
-    btnFormatted?.classList.add("active");
-    btnText?.classList.remove("active");
+        const pdfFormatted = document.getElementById("pdf-viewer-section");
+        const pdfText = document.getElementById("pdf-text-viewer");
 
-    pdfFormatted?.classList.remove("d-none");
-    pdfText?.classList.add("d-none");
+        if (mode === 'formatted') {
+            btnFormatted?.classList.add("active");
+            btnText?.classList.remove("active");
+            
+            docxFormatted?.classList.remove("d-none");
+            docxText?.classList.add("d-none");
+            
+            pptxFormatted?.classList.remove("d-none");
+            pptxText?.classList.add("d-none");
 
-    docxFormatted?.classList.remove("d-none");
-    docxText?.classList.add("d-none");
+            pdfFormatted?.classList.remove("d-none");
+            pdfText?.classList.add("d-none");
+        } else {
+            btnFormatted?.classList.remove("active");
+            btnText?.classList.add("active");
+            
+            docxFormatted?.classList.add("d-none");
+            docxText?.classList.remove("d-none");
+            
+            pptxFormatted?.classList.add("d-none");
+            pptxText?.classList.remove("d-none");
 
-    pptxFormatted?.classList.remove("d-none");
-    pptxText?.classList.add("d-none");
-    } else {
-    btnFormatted?.classList.remove("active");
-    btnText?.classList.add("active");
-
-    pdfFormatted?.classList.add("d-none");
-    pdfText?.classList.remove("d-none");
-
-    docxFormatted?.classList.add("d-none");
-    docxText?.classList.remove("d-none");
-
-    pptxFormatted?.classList.add("d-none");
-    pptxText?.classList.remove("d-none");
-    }
+            pdfFormatted?.classList.add("d-none");
+            pdfText?.classList.remove("d-none");
+        }
     }
 
     // --- 2. Chunk Drawer Toggling ---

@@ -35,9 +35,9 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = builder.Environment.IsDevelopment() ? "Docker" : "Tailscale";
-var connStr = builder.Configuration.GetConnectionString(connStrName)
-                  ?? throw new KeyNotFoundException("Connection string not configured.");
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+              ?? builder.Configuration.GetConnectionString(builder.Environment.IsDevelopment() ? "Docker" : "Tailscale")
+              ?? throw new KeyNotFoundException("Connection string not configured.");
 
 builder.Services.AddDbContext<EduChatAiDbContext>(opts =>
 {

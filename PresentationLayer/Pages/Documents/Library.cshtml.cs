@@ -9,9 +9,9 @@ using Presentation.ViewModels;
 namespace Presentation.Pages.Documents;
 
 /// <summary>
-/// Displays the document library for lecturers and administrators.
+/// Displays the document library for students, lecturers, and administrators.
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class LibraryModel(
     ISubjectService subjectService,
     IMapper mapper) : PageModel

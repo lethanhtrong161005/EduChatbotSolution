@@ -33,6 +33,9 @@
             <li class="nav-item"><a class="nav-link text-dark @NavBar.PlansNavClass(Context)" id="plans" asp-page="/Subscriptions/SelectPlan">Plans</a></li>
         }
         <li class="nav-item">
+            <a class="nav-link text-dark @NavBar.ProfileNavClass(Context)" id="profile" asp-page="/Account/Profile">Profile</a>
+        </li>
+        <li class="nav-item">
             <form class="form-inline" method="post" asp-page="/Account/Logout" asp-route-return-url="@Context.Request.Path">
                 <button type="submit" class="nav-link btn btn-link text-dark" style="line-height: normal !important;">Log out</button>
             </form>

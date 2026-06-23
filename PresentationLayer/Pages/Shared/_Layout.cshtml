@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -35,7 +35,7 @@
              HEADER / NAVBAR
              ========================================== -->
         <header>
-            <nav class="navbar navbar-expand-lg navbar-educhat">
+            <nav class="navbar navbar-expand-lg navbar-light navbar-educhat">
                 <div class="container-fluid px-4">
 
                     <a class="navbar-brand" asp-area="" asp-page="/Home/Index">
@@ -123,7 +123,7 @@
                     </div>
 
                     <div class="text-muted small">
-                        � @DateTime.UtcNow.Year EduChatAI
+                        © @DateTime.UtcNow.Year EduChatAI
                     </div>
 
                 </div>
@@ -140,3 +140,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

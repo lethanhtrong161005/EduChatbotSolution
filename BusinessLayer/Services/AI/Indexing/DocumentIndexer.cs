@@ -1,4 +1,4 @@
-﻿using DataAccess.UnitOfWork;
+using DataAccess.UnitOfWork;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
@@ -58,7 +58,6 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
-            throw;
         }
     }
 
@@ -124,7 +123,6 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
-            throw;
         }
     }
 
@@ -198,7 +196,6 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
-            throw;
         }
     }
 

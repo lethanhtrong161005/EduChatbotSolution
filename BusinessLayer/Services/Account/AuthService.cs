@@ -361,9 +361,13 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
 
         var claims = (await _userManager.GetClaimsAsync(user)).ToList();
 
-        // Guarantee Name claim required by the antiforgery system
-        if (!claims.Any(c => c.Type == ClaimTypes.Name))
-            claims.Add(new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? "user"));
+        // Guarantee Name claim contains the user's FullName
+        var existingNameClaim = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        if (existingNameClaim != null)
+        {
+            claims.Remove(existingNameClaim);
+        }
+        claims.Add(new Claim(ClaimTypes.Name, user.FullName));
 
         if (!claims.Any(c => c.Type == ClaimTypes.NameIdentifier))
             claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));

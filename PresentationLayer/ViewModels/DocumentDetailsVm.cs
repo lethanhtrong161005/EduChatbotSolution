@@ -8,6 +8,8 @@ public class DocumentDetailsVm
 
     public string ChapterName { get; set; } = string.Empty;
 
+    public int SubjectId { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public string? Description { get; set; } = string.Empty;

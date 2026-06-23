@@ -1,4 +1,5 @@
 using AutoMapper;
+using DataAccess.UnitOfWork;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
@@ -13,18 +14,25 @@ namespace Presentation.Pages.Documents;
 /// <summary>
 /// Displays document details and handles comments for a document.
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DetailsModel(
     IDocumentService documentService,
+    IUnitOfWork unitOfWork,
     IMapper mapper) : PageModel
 {
     private readonly IDocumentService _documentService = documentService;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
     /// Gets the document details view model rendered by the page.
     /// </summary>
     public DocumentDetailsVm ViewModel { get; private set; } = new();
+
+    /// <summary>
+    /// Gets whether the physical file exists on this local server.
+    /// </summary>
+    public bool IsPhysicalFileAvailable { get; private set; } = true;
 
     /// <summary>
     /// Loads document metadata, chunks, and comments.
@@ -43,10 +51,33 @@ public class DetailsModel(
                 nameof(Document.Chunks),
                 nameof(Document.Comments),
                 nameof(Document.Comments) + "." + nameof(DocumentComment.User),
+                nameof(Document.Comments) + "." + nameof(DocumentComment.User) + "." + nameof(ApplicationUser.SubjectMemberships),
                 nameof(Document.ParsedSections),
             ], cxlTkn);
         if (doc == null)
             return NotFound();
+
+        IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && System.IO.File.Exists(doc.FilePath);
+
+        // Verify if the user has permission to access this document
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var userId))
+        {
+            return Challenge();
+        }
+
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            var isMember = await _unitOfWork.SubjectMemberships.ExistsAsync(
+                filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId,
+                cancellationToken: cxlTkn);
+
+            if (!isMember)
+            {
+                return Forbid();
+            }
+        }
 
         var vm = _mapper.Map<DocumentDetailsVm>(doc);
 
@@ -102,11 +133,34 @@ public class DetailsModel(
             return RedirectToPage(new { id = targetDocumentId });
         }
 
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (Guid.TryParse(userIdString, out var userId))
+        var doc = await _documentService.GetByIdAsync(
+            targetDocumentId,
+            includeProperties: [nameof(Document.Chapter)]);
+
+        if (doc == null)
         {
-            await _documentService.AddCommentAsync(targetDocumentId, userId, content);
+            return NotFound();
         }
+
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var userId))
+        {
+            return Challenge();
+        }
+
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            var isMember = await _unitOfWork.SubjectMemberships.ExistsAsync(
+                filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId);
+
+            if (!isMember)
+            {
+                return Forbid();
+            }
+        }
+
+        await _documentService.AddCommentAsync(targetDocumentId, userId, content);
 
         return RedirectToPage(new { id = targetDocumentId });
     }

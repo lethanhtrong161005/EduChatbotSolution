@@ -1,0 +1,523 @@
+@page
+@model Presentation.Pages.Account.ProfileModel
+@{
+    ViewData["Title"] = "User Profile";
+}
+
+<link rel="stylesheet" href="~/css/colors.css" />
+<link rel="stylesheet" href="~/css/status-badge.css" />
+
+<style>
+    .profile-page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding-bottom: 2rem;
+    }
+
+    .profile-hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--spacing-8);
+        padding: var(--spacing-10);
+        margin-bottom: var(--spacing-8);
+        background: var(--gradient-primary);
+        border-radius: var(--radius-xl);
+        color: var(--color-text-light);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .profile-hero-content h1 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.025em;
+    }
+
+    .profile-hero-content p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+
+    .profile-hero-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 2.25rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        box-shadow: var(--shadow-md);
+    }
+
+    /* Tabs Styling */
+    .profile-nav-tabs {
+        border-bottom: 2px solid var(--color-border-light);
+        margin-bottom: 2rem;
+        gap: 1.5rem;
+    }
+
+    .profile-nav-tabs .nav-link {
+        border: none;
+        background: none;
+        color: var(--color-text-secondary);
+        font-weight: 600;
+        font-size: 1.05rem;
+        padding: 0.75rem 0.25rem;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .profile-nav-tabs .nav-link:hover {
+        color: var(--color-primary);
+    }
+
+    .profile-nav-tabs .nav-link.active {
+        color: var(--color-primary);
+        background: none;
+    }
+
+    .profile-nav-tabs .nav-link.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--color-primary);
+        border-radius: 2px;
+    }
+
+    /* Cards & Layout */
+    .profile-card {
+        background: var(--color-bg-card, #1f2937);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-8);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 2rem;
+    }
+
+    .card-title-custom {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .info-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted, #9ca3af);
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+    }
+
+    /* Memberships / Table Styles */
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .profile-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .profile-table th {
+        padding: 1rem;
+        border-bottom: 2px solid var(--color-border-light);
+        font-weight: 700;
+        color: var(--color-text-secondary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .profile-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--color-border-light);
+        color: var(--color-text-primary);
+        font-size: 0.95rem;
+        vertical-align: middle;
+    }
+
+    .profile-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .profile-table tr:hover td {
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .role-badge-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .role-chief {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .role-lecturer {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .role-student {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+
+    .status-badge-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-warning {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--color-text-muted);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 1.1rem;
+        margin: 0;
+    }
+</style>
+
+<div class="profile-page">
+
+    <!-- Hero Profile Section -->
+    <div class="profile-hero">
+        <div class="profile-hero-content">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-light text-dark font-weight-bold">
+                    <i class="fas fa-id-card me-1"></i> Account Profile
+                </span>
+            </div>
+            <h1 id="profileTitle">@Model.UserDetails.FullName</h1>
+            <p>Manage your account settings, memberships, and learning materials.</p>
+        </div>
+        <div class="profile-hero-avatar" aria-hidden="true">
+            @{
+                var initials = Model.UserDetails.FullName.Length > 0 ? Model.UserDetails.FullName[0].ToString().ToUpperInvariant() : "U";
+            }
+            @initials
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav profile-nav-tabs" id="profileTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab" aria-controls="info-pane" aria-selected="true">
+                <i class="fas fa-user-cog me-2"></i>User Info
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership-pane" type="button" role="tab" aria-controls="membership-pane" aria-selected="false">
+                <i class="fas fa-graduation-cap me-2"></i>Memberships (@Model.Memberships.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-pane" type="button" role="tab" aria-controls="docs-pane" aria-selected="false">
+                <i class="fas fa-folder-open me-2"></i>My Documents (@Model.MyDocuments.Count)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="profileTabsContent">
+
+        <!-- Tab 1: User Info -->
+        <div class="tab-pane fade show active" id="info-pane" role="tabpanel" aria-labelledby="info-tab">
+            <div class="profile-card">
+                <h2 class="card-title-custom">
+                    <i class="fas fa-info-circle text-primary"></i> Personal Details
+                </h2>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div class="info-label">Full Name</div>
+                            <div class="info-value">@Model.UserDetails.FullName</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <div class="info-label">Email Address</div>
+                            <div class="info-value">@Model.UserDetails.Email</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-user-tag"></i>
+                        </div>
+                        <div>
+                            <div class="info-label">Username</div>
+                            <div class="info-value">@Model.UserDetails.UserName</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div>
+                            <div class="info-label">Phone Number</div>
+                            <div class="info-value">@(string.IsNullOrEmpty(Model.UserDetails.PhoneNumber) ? "Not Provided" : Model.UserDetails.PhoneNumber)</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <div class="info-label">Primary Role</div>
+                            <div class="info-value">
+                                @{
+                                    var roleBadgeClass = Model.Role switch
+                                    {
+                                        "Admin" => "role-chief",
+                                        "Lecturer" => "role-lecturer",
+                                        _ => "role-student"
+                                    };
+                                }
+                                <span class="role-badge-custom @roleBadgeClass">
+                                    <i class="fas @(Model.Role == "Student" ? "fa-user-graduate" : "fa-user-tie") me-1"></i>
+                                    @Model.Role
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Membership -->
+        <div class="tab-pane fade" id="membership-pane" role="tabpanel" aria-labelledby="membership-tab">
+            <div class="profile-card">
+                <h2 class="card-title-custom">
+                    <i class="fas fa-university text-primary"></i> Assigned Course Memberships
+                </h2>
+
+                @if (Model.Memberships.Any())
+                {
+                    <div class="table-container">
+                        <table class="profile-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject Code</th>
+                                    <th>Subject Name</th>
+                                    <th>Assigned Role</th>
+                                    <th>Date Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var member in Model.Memberships)
+                                {
+                                    var roleClass = member.Role switch
+                                    {
+                                        Domain.Entities.MembershipRole.Chief => "role-chief",
+                                        Domain.Entities.MembershipRole.Lecturer => "role-lecturer",
+                                        _ => "role-student"
+                                    };
+                                    <tr>
+                                        <td><strong>@member.Subject.Code</strong></td>
+                                        <td>@member.Subject.Name</td>
+                                        <td>
+                                            <span class="role-badge-custom @roleClass">
+                                                <i class="fas @(member.Role == Domain.Entities.MembershipRole.Student ? "fa-user-graduate" : "fa-user-tie") me-1"></i>
+                                                @member.Role
+                                            </span>
+                                        </td>
+                                        <td>@member.AssignedAt.ToString("dd/MM/yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-book-reader"></i>
+                        <p>You are not currently enrolled or assigned to any subjects.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Tab 3: My Documents -->
+        <div class="tab-pane fade" id="docs-pane" role="tabpanel" aria-labelledby="docs-tab">
+            <div class="profile-card">
+                <h2 class="card-title-custom">
+                    <i class="fas fa-copy text-primary"></i> Uploaded Course Documents
+                </h2>
+
+                @if (Model.MyDocuments.Any())
+                {
+                    <div class="table-container">
+                        <table class="profile-table">
+                            <thead>
+                                <tr>
+                                    <th>Document Title</th>
+                                    <th>Subject & Chapter</th>
+                                    <th>File Details</th>
+                                    <th>Uploaded At</th>
+                                    <th>Status</th>
+                                    <th>Assignment Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doc in Model.MyDocuments)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="/Documents/Details?id=@doc.Id" class="text-primary font-weight-bold text-decoration-none">
+                                                @doc.Title
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary me-1">@doc.SubjectCode</span>
+                                            <span class="text-muted small">@doc.ChapterName</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-dark">@doc.FileType</span>
+                                            <span class="text-muted small ms-1">
+                                                @(doc.FileSize.HasValue ? $"{(doc.FileSize.Value / 1024.0):N1} KB" : "N/A")
+                                            </span>
+                                        </td>
+                                        <td>@doc.UploadedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            @{
+                                                var statusBadgeClass = doc.Status switch
+                                                {
+                                                    Domain.Entities.DocumentStatus.Indexed => "status-badge-indexed",
+                                                    Domain.Entities.DocumentStatus.Failed => "status-badge-failed",
+                                                    Domain.Entities.DocumentStatus.Uploaded => "status-badge-uploaded",
+                                                    _ => "status-badge-indexing"
+                                                };
+                                            }
+                                            <span class="status-badge @statusBadgeClass">
+                                                @doc.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (doc.IsNoLongerAssigned)
+                                            {
+                                                <span class="status-badge-custom status-warning" title="Warning: You are no longer assigned to this subject.">
+                                                    <i class="fas fa-exclamation-triangle"></i> Not Assigned
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge-custom status-active">
+                                                    <i class="fas fa-check-circle"></i> Assigned
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>You have not uploaded any documents yet.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+
+</div>

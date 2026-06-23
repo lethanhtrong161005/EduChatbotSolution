@@ -19,12 +19,15 @@
             </p>
         </div>
 
-        <button id="showUploadBtn"
-                class="btn-upload">
+        @if (User.IsInRole("Admin") || User.IsInRole("Lecturer"))
+        {
+            <button id="showUploadBtn"
+                    class="btn-upload">
 
-            <i class="fas fa-cloud-upload-alt"></i>
-            Upload Documents
-        </button>
+                <i class="fas fa-cloud-upload-alt"></i>
+                Upload Documents
+            </button>
+        }
 
     </div>
     <div class="filters-card">

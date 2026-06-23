@@ -49,6 +49,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=100.109.127.96;Port=5432;Database=rag_chatbot_db;Username=postgres;Password=Sansnope281121;Include Error Detail=true
       - OpenAI__ApiKey=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       - Redis__ConnectionString=redis:6379
+      - Ollama__Endpoint=http://ollama:11434
     depends_on:
       - db
       - redis

@@ -21,7 +21,7 @@ namespace Presentation.Controllers;
 /// Exposes document JSON, upload, download, and display endpoints.
 /// Razor Pages handle document library and detail screens.
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 [Route("documents")]
 public class DocumentsController(
     ISubjectService subjectService,
@@ -110,6 +110,30 @@ public class DocumentsController(
             return BadRequest(new { Error = "Either subject or chapter ID must be provided." });
         }
 
+        var resolvedSubjectId = subjectId;
+        if (chapterId.HasValue)
+        {
+            var chapter = await _chapterService.GetByIdAsync(chapterId.Value, cxlTkn);
+            if (chapter != null)
+            {
+                resolvedSubjectId = chapter.SubjectId;
+            }
+        }
+
+        if (resolvedSubjectId.HasValue)
+        {
+            var userId = User.GetUserId();
+            var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+            if (!isAdmin)
+            {
+                var isMember = await _subjectService.HasAccessAsync(resolvedSubjectId.Value, userId, cxlTkn);
+                if (!isMember)
+                {
+                    return Forbid();
+                }
+            }
+        }
+
         var docs = chapterId.HasValue
             ? await _documentService.GetByChapterAsync(chapterId.Value, cxlTkn)
             : await _documentService.GetBySubjectAsync(subjectId!.Value, cxlTkn);
@@ -126,11 +150,30 @@ public class DocumentsController(
     [HttpGet("download/{id:guid}")]
     public async Task<IActionResult> Download(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+        var doc = await _documentService.GetByIdAsync(
+            id,
+            includeProperties: [nameof(Document.Chapter)],
+            cancellationToken: cxlTkn);
 
         if (doc == null)
         {
             return NotFound();
+        }
+
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            var isMember = await _subjectService.HasAccessAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (!isMember)
+            {
+                return Forbid();
+            }
+        }
+
+        if (!System.IO.File.Exists(doc.FilePath))
+        {
+            return NotFound("The physical file was not found on this local server. It might have been uploaded from another machine in your Tailscale network.");
         }
 
         return File(
@@ -148,14 +191,33 @@ public class DocumentsController(
     [HttpGet("display/{id:guid}")]
     public async Task<IActionResult> Display(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+        var doc = await _documentService.GetByIdAsync(
+            id,
+            includeProperties: [nameof(Document.Chapter)],
+            cancellationToken: cxlTkn);
 
         if (doc == null)
         {
             return NotFound();
         }
 
-        if (doc.FileType == DocumentType.PDF || doc.FileType == DocumentType.DOCX || doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            var isMember = await _subjectService.HasAccessAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (!isMember)
+            {
+                return Forbid();
+            }
+        }
+
+        if (!System.IO.File.Exists(doc.FilePath))
+        {
+            return NotFound("The physical file was not found on this local server. It might have been uploaded from another machine in your Tailscale network.");
+        }
+
+        if (doc.FileType == DocumentType.PDF)
         {
             var contentDisposition = ContentDispositionHeaderValue.Parse($"inline; filename={doc.OriginalFileName}");
 
@@ -216,14 +278,31 @@ public class DocumentsController(
     /// <param name="id">The document identifier.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     /// <returns>An OK result or not-found result.</returns>
+    [Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
     [HttpDelete("delete/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+        var doc = await _documentService.GetByIdAsync(
+            id,
+            includeProperties: [nameof(Document.Chapter)],
+            cancellationToken: cxlTkn);
 
         if (doc == null)
         {
             return NotFound();
+        }
+
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            // Only the uploader or a lecturer assigned to the subject can delete
+            var isUploader = doc.UploaderId == userId;
+            var isMember = await _subjectService.HasAccessAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (!isUploader && !isMember)
+            {
+                return Forbid();
+            }
         }
 
         HangfireHelper.CancelJobs(doc.Id,
@@ -239,7 +318,8 @@ public class DocumentsController(
         return Ok();
     }
 
-    [HttpPost]
+    [Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+    [HttpPost("upload")]
     [RequestSizeLimit(100L * 1024 * 1024)]
     public async Task<IActionResult> Upload(int chapterId, List<IFormFile> files, CancellationToken cxlTkn)
     {
@@ -278,9 +358,10 @@ public class DocumentsController(
             Directory.CreateDirectory(tempDir);
 
             var fullPath = Path.Combine(tempDir, storageName);
-            await using var fs = System.IO.File.Create(fullPath);
-
-            await file.CopyToAsync(fs, cxlTkn);
+            await using (var fs = System.IO.File.Create(fullPath))
+            {
+                await file.CopyToAsync(fs, cxlTkn);
+            }
 
             var mime = MimeGuesser.GuessFileType(fullPath);
             if (mime is { MimeType: "inode/x-empty", Extension: "bin" })
@@ -349,6 +430,27 @@ public class DocumentsController(
     [HttpGet("chunks")]
     public async Task<IActionResult> Chunks(Guid documentId, int pageIndex, CancellationToken cxlTkn)
     {
+        var doc = await _documentService.GetByIdAsync(
+            documentId,
+            includeProperties: [nameof(Document.Chapter)],
+            cancellationToken: cxlTkn);
+
+        if (doc == null)
+        {
+            return NotFound();
+        }
+
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+        if (!isAdmin)
+        {
+            var isMember = await _subjectService.HasAccessAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (!isMember)
+            {
+                return Forbid();
+            }
+        }
+
         var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
             documentId,
             PageSize,
