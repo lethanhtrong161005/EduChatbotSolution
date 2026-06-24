@@ -339,8 +339,10 @@
 
     </div>
 
+    @Html.AntiForgeryToken();
+
     <script>
-        window.chatPage = {
+        window.ChatPage = {
             activeSessionId: '@Model.ViewModel.ActiveSessionId',
         };
     </script>

@@ -4,8 +4,11 @@ using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Presentation.Extensions;
+using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Documents;
@@ -17,10 +20,12 @@ namespace Presentation.Pages.Documents;
 public class EditModel(
     IDocumentService documentService,
     ISubjectService subjectService,
+    IHubContext<RealtimeHub, IRealtimeClient> hub,
     IMapper mapper) : PageModel
 {
     private readonly IDocumentService _documentService = documentService;
     private readonly ISubjectService _subjectService = subjectService;
+    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
@@ -28,6 +33,11 @@ public class EditModel(
     /// </summary>
     [BindProperty]
     public DocumentEditVm ViewModel { get; set; } = new();
+
+    public int SubjectId { get; set; }
+
+    [FromForm]
+    public string CallerSignalRConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads document data into the edit form.
@@ -55,14 +65,9 @@ public class EditModel(
             return Forbid();
         }
 
-        ViewModel = new DocumentEditVm
-        {
-            Id = doc.Id,
-            Title = doc.Title,
-            Description = doc.Description
-        };
-
         ViewModel = _mapper.Map<DocumentEditVm>(doc);
+        SubjectId = doc.Chapter.Id;
+
         return Page();
     }
 
@@ -79,24 +84,39 @@ public class EditModel(
             return Page();
         }
 
-        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+        var doc = await _documentService.GetByIdAsync(
+            id,
+            includeProperties: [nameof(Document.Chapter)],
+            cancellationToken: cxlTkn);
+
         if (doc == null)
-        {
             return NotFound();
-        }
 
         var userId = User.GetUserId();
         var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
 
         if (!isChief)
-        {
             return Forbid();
-        }
 
         doc.Title = ViewModel.Title;
         doc.Description = ViewModel.Description;
 
         await _documentService.UpdateAsync(doc, cxlTkn);
+
+        var groups = ResourceRelations.DocumentGroups.ToList();
+        groups.Remove(HubGroups.Resource("document-edit"));
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "document",
+            Action = "deleted",
+            ResourceId = doc.Id.ToString(),
+            AlternateResourceId = [doc.Chapter.SubjectId.ToString(), doc.UploaderId.ToString()],
+            ResourceName = doc.Title,
+        };
+        await _hub.Clients.Groups(groups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(HubGroups.Resource("document-edit"), CallerSignalRConnectionId).ResourceChanged(upd);
+
         return RedirectToPage("/Documents/Details", new { id = doc.Id });
     }
 }

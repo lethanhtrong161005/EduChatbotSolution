@@ -66,3 +66,29 @@ function updateBadge(update) {
         }, 1500);
     }
 }
+
+const resConn =
+    new signalR.HubConnectionBuilder()
+        .withUrl(`/realtime`)
+        .withAutomaticReconnect()
+        .build();
+
+resConn.on(
+    "ResourceChanged",
+    function (resUpd) {
+        switch (resUpd.resourceType) {
+            case "document":
+            case "user":
+            case "subject_membership":
+            case "comment":
+                $(document).trigger("resource:changed", resUpd);
+                break;
+        }
+    }
+);
+
+resConn
+    .start()
+    .then(() => resConn.invoke("JoinPage", "document-library", null))
+    .then(() => window.connId = resConn.connectionId)
+    .catch(console.error);

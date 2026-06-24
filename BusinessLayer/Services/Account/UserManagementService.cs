@@ -1,9 +1,11 @@
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace Business.Services.Account;
@@ -27,6 +29,42 @@ public class UserManagementService(
     private readonly string _contactEmail = configuration["Email:SenderEmail"] ?? "support@educhatai.com";
 
     // ── READ ─────────────────────────────────────────────────────
+
+    public async Task<UserManagementItemDto> GetUserAsync(Expression<Func<ApplicationUser, bool>> filter)
+    {
+        var query = _userManager.Users.AsNoTracking();
+
+        query = query.Where(filter);
+
+        var result = await query.ToListAsync();
+
+        var user = result.FirstOrDefault()
+                   ?? throw new EntityNotFoundException("No user matched the provided ID.");
+
+        return new UserManagementItemDto
+        (
+            user.Id,
+            user.FullName,
+            user.Email ?? string.Empty,
+            await GetUserPrimaryRole(user),
+            user.IsActive,
+            user.DeletedAt.HasValue,
+            user.UpdatedAt,
+            user.DeletedAt
+        );
+    }
+
+    private async Task<string> GetUserPrimaryRole(ApplicationUser user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+
+        if (roles.Contains(nameof(UserRole.Admin)))
+            return nameof(UserRole.Admin);
+        else if (roles.Contains(nameof(UserRole.Lecturer)))
+            return nameof(UserRole.Lecturer);
+        else
+            return nameof(UserRole.Student);
+    }
 
     /// <summary>
     /// Returns a paginated list of all users filtered by optional name, email, and role.
@@ -116,31 +154,31 @@ public class UserManagementService(
     /// <param name="dto">Creation data: full name, email, password, and role.</param>
     /// <returns>Success/error tuple. <c>Error</c> is null on success.</returns>
     /// <exception cref="ArgumentNullException">Thrown when required fields are missing.</exception>
-    public async Task<(bool Success, string? Error)> CreateUserAsync(CreateUserDto dto)
+    public async Task<(bool Success, ApplicationUser? user, string? Error)> CreateUserAsync(CreateUserDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
         // 0. Validate required fields
         if (string.IsNullOrWhiteSpace(dto.Email))
-            return (false, "Email is required.");
+            return (false, null, "Email is required.");
         if (string.IsNullOrWhiteSpace(dto.FullName))
-            return (false, "Full name is required.");
+            return (false, null, "Full name is required.");
         if (string.IsNullOrWhiteSpace(dto.Password))
-            return (false, "Password is required.");
+            return (false, null, "Password is required.");
         if (string.IsNullOrWhiteSpace(dto.Role))
-            return (false, "Role is required.");
+            return (false, null, "Role is required.");
 
         // 1. Check email uniqueness
         if (await _userManager.FindByEmailAsync(dto.Email) is not null)
-            return (false, "An account with this email address already exists.");
+            return (false, null, "An account with this email address already exists.");
 
         // 1b. Check username uniqueness (username = email normalized)
         if (await _userManager.FindByNameAsync(dto.Email) is not null)
-            return (false, "An account with this email address already exists (username conflict).");
+            return (false, null, "An account with this email address already exists (username conflict).");
 
         // 2. Validate role exists in DB
         if (!await _roleManager.RoleExistsAsync(dto.Role))
-            return (false, $"Role '{dto.Role}' does not exist.");
+            return (false, null, $"Role '{dto.Role}' does not exist.");
 
         // 3. Create active user in database immediately; admin-created accounts are trusted.
         var user = new ApplicationUser
@@ -157,12 +195,12 @@ public class UserManagementService(
 
         var createResult = await _userManager.CreateAsync(user);
         if (!createResult.Succeeded)
-            return (false, createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.");
+            return (false, null, createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.");
 
         // 4. Assign role
         var roleResult = await _userManager.AddToRoleAsync(user, dto.Role);
         if (!roleResult.Succeeded)
-            return (false, roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign role.");
+            return (false, null, roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign role.");
 
         // 5. Add identity claims
         await _userManager.AddClaimsAsync(user,
@@ -181,10 +219,10 @@ public class UserManagementService(
         catch (Exception ex)
         {
             await _userManager.DeleteAsync(user);
-            return (false, $"Failed to send account credentials email: {ex.Message}");
+            return (false, null, $"Failed to send account credentials email: {ex.Message}");
         }
 
-        return (true, null);
+        return (true, user, null);
     }
 
     // ── UPDATE ────────────────────────────────────────────────────
@@ -195,18 +233,18 @@ public class UserManagementService(
     /// </summary>
     /// <param name="dto">Update data with the current <c>UpdatedAt</c> timestamp from the UI.</param>
     /// <returns>Success/error tuple. Returns a 409-style error on concurrency conflict.</returns>
-    public async Task<(bool Success, string? Error)> UpdateUserAsync(UpdateUserDto dto)
+    public async Task<(bool Success, ApplicationUser? user, string? Error)> UpdateUserAsync(UpdateUserDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
         // 1. Load user
         var user = await _userManager.FindByIdAsync(dto.UserId.ToString());
         if (user is null)
-            return (false, "User not found.");
+            return (false, null, "User not found.");
 
         // 2. Optimistic concurrency check
         if (user.UpdatedAt != dto.UpdatedAt)
-            return (false, "This record was modified by another administrator. Please refresh and try again.");
+            return (false, null, "This record was modified by another administrator. Please refresh and try again.");
 
         // 3. Detect email change
         var emailChanged = !string.Equals(user.Email, dto.Email, StringComparison.OrdinalIgnoreCase);
@@ -215,7 +253,7 @@ public class UserManagementService(
             // Check new email not already in use
             var existing = await _userManager.FindByEmailAsync(dto.Email);
             if (existing is not null && existing.Id != user.Id)
-                return (false, "The new email address is already in use by another account.");
+                return (false, null, "The new email address is already in use by another account.");
 
             // Update email and set EmailConfirmed = false (will be confirmed after verification)
             user.Email = dto.Email;
@@ -247,7 +285,7 @@ public class UserManagementService(
         // 6. Save all changes to database
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            return (false, result.Errors.FirstOrDefault()?.Description ?? "Failed to update user.");
+            return (false, null, result.Errors.FirstOrDefault()?.Description ?? "Failed to update user.");
 
         // 7. If email changed, send verification email (async, non-blocking)
         if (emailChanged)
@@ -267,7 +305,7 @@ public class UserManagementService(
             });
         }
 
-        return (true, null);
+        return (true, user, null);
     }
 
     // ── SOFT DELETE ───────────────────────────────────────────────
@@ -278,14 +316,14 @@ public class UserManagementService(
     /// </summary>
     /// <param name="userId">The user's database ID.</param>
     /// <returns>Success/error tuple.</returns>
-    public async Task<(bool Success, string? Error)> SoftDeleteUserAsync(Guid userId)
+    public async Task<(bool Success, ApplicationUser? user, string? Error)> SoftDeleteUserAsync(Guid userId)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
-            return (false, "User not found.");
+            return (false, null, "User not found.");
 
         if (user.DeletedAt.HasValue)
-            return (false, "This account has already been deleted.");
+            return (false, null, "This account has already been deleted.");
 
         // 1. Soft-delete
         user.DeletedAt = DateTimeOffset.UtcNow;
@@ -293,7 +331,7 @@ public class UserManagementService(
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            return (false, result.Errors.FirstOrDefault()?.Description ?? "Failed to delete user.");
+            return (false, null, result.Errors.FirstOrDefault()?.Description ?? "Failed to delete user.");
 
         // 2. Send notification email (fire-and-forget on failure — do not block deletion)
         try
@@ -306,7 +344,7 @@ public class UserManagementService(
             // Email failure is non-critical; deletion is already committed
         }
 
-        return (true, null);
+        return (true, user, null);
     }
 
     // ── DISABLE ───────────────────────────────────────────────────
@@ -318,18 +356,18 @@ public class UserManagementService(
     /// <param name="userId">The user's database ID.</param>
     /// <param name="updatedAt">The <c>UpdatedAt</c> timestamp from the client for concurrency checking.</param>
     /// <returns>Success/error tuple.</returns>
-    public async Task<(bool Success, string? Error)> DisableUserAsync(Guid userId, DateTimeOffset updatedAt)
+    public async Task<(bool Success, ApplicationUser? user, string? Error)> DisableUserAsync(Guid userId, DateTimeOffset updatedAt)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
-            return (false, "User not found.");
+            return (false, null, "User not found.");
 
         // 1. Optimistic concurrency check
         if (user.UpdatedAt != updatedAt)
-            return (false, "This record was modified by another administrator. Please refresh and try again.");
+            return (false, null, "This record was modified by another administrator. Please refresh and try again.");
 
         if (!user.IsActive)
-            return (false, "The account is already disabled.");
+            return (false, null, "The account is already disabled.");
 
         // 2. Disable
         user.IsActive = false;
@@ -337,7 +375,7 @@ public class UserManagementService(
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            return (false, result.Errors.FirstOrDefault()?.Description ?? "Failed to disable account.");
+            return (false, null, result.Errors.FirstOrDefault()?.Description ?? "Failed to disable account.");
 
         // 3. Send notification email
         try
@@ -350,7 +388,7 @@ public class UserManagementService(
             // Email failure is non-critical
         }
 
-        return (true, null);
+        return (true, user, null);
     }
 
     // ── REACTIVATE ────────────────────────────────────────────────
@@ -361,21 +399,21 @@ public class UserManagementService(
     /// <param name="userId">The user's database ID.</param>
     /// <param name="updatedAt">The <c>UpdatedAt</c> timestamp from the client for concurrency checking.</param>
     /// <returns>Success/error tuple.</returns>
-    public async Task<(bool Success, string? Error)> ReactivateUserAsync(Guid userId, DateTimeOffset updatedAt)
+    public async Task<(bool Success, ApplicationUser? user, string? Error)> ReactivateUserAsync(Guid userId, DateTimeOffset updatedAt)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null)
-            return (false, "User not found.");
+            return (false, null, "User not found.");
 
         // 1. Optimistic concurrency check
         if (user.UpdatedAt != updatedAt)
-            return (false, "This record was modified by another administrator. Please refresh and try again.");
+            return (false, null, "This record was modified by another administrator. Please refresh and try again.");
 
         if (user.IsActive)
-            return (false, "The account is already active.");
+            return (false, null, "The account is already active.");
 
         if (user.DeletedAt.HasValue)
-            return (false, "Cannot reactivate a deleted account.");
+            return (false, null, "Cannot reactivate a deleted account.");
 
         // 2. Reactivate
         user.IsActive = true;
@@ -383,8 +421,8 @@ public class UserManagementService(
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            return (false, result.Errors.FirstOrDefault()?.Description ?? "Failed to reactivate account.");
+            return (false, null, result.Errors.FirstOrDefault()?.Description ?? "Failed to reactivate account.");
 
-        return (true, null);
+        return (true, user, null);
     }
 }

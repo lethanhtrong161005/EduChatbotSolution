@@ -3,6 +3,8 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
+using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Admin;
@@ -12,14 +14,53 @@ namespace Presentation.Pages.Admin;
 /// Handles page display and AJAX subject/chapter/member management endpoints.
 /// </summary>
 [Authorize(Roles = "Admin")]
-public class SubjectManageModel(ISubjectService subjectService) : PageModel
+public class SubjectManageModel(
+    ISubjectService subjectService,
+    IHubContext<RealtimeHub, IRealtimeClient> hub
+    ) : PageModel
 {
     private readonly ISubjectService _subjectService = subjectService;
+    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
 
     /// <summary>
     /// Gets the subject management view model rendered by the page.
     /// </summary>
     public AdminSubjectListVm ViewModel { get; private set; } = new();
+
+    [FromHeader]
+    public string CallerSignalRConnectionId { get; set; } = string.Empty;
+
+    private static List<string> OtherSubjectGroups
+    {
+        get
+        {
+            var groups = ResourceRelations.SubjectGroups.ToList();
+            groups.Remove(ThisGroup);
+            return groups;
+        }
+    }
+
+    private static List<string> OtherChapterGroups
+    {
+        get
+        {
+            var groups = ResourceRelations.ChapterGroups.ToList();
+            groups.Remove(ThisGroup);
+            return groups;
+        }
+    }
+
+    private static List<string> OtherMembershipGroups
+    {
+        get
+        {
+            var groups = ResourceRelations.MembershipGroups.ToList();
+            groups.Remove(ThisGroup);
+            return groups;
+        }
+    }
+
+    private static string ThisGroup => HubGroups.Resource("subject-manage");
 
     /// <summary>
     /// Loads subjects for the subject management page.
@@ -54,6 +95,17 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
         try
         {
             var subject = await _subjectService.CreateSubjectAsync(vm.SubjectCode, vm.SubjectName, vm.Description);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "subject",
+                Action = "created",
+                ResourceId = subject.Id.ToString(),
+                ResourceName = subject.Name,
+            };
+            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true, subject });
         }
         catch (Domain.Exceptions.BadRequestException ex)
@@ -69,7 +121,7 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
     /// <summary>
     /// Updates a subject.
     /// </summary>
-    public async Task<IActionResult> OnPostUpdateSubjectAsync([FromQuery] int id, [FromBody] AdminUpdateSubjectVm vm)
+    public async Task<IActionResult> OnPutUpdateSubjectAsync([FromQuery] int id, [FromBody] AdminUpdateSubjectVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid input data." });
@@ -79,6 +131,17 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
         try
         {
             var subject = await _subjectService.UpdateSubjectAsync(vm.Id, vm.SubjectCode, vm.SubjectName, vm.Description);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "subject",
+                Action = "updated",
+                ResourceId = subject.Id.ToString(),
+                ResourceName = subject.Name,
+            };
+            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true, subject });
         }
         catch (Domain.Exceptions.BadRequestException ex)
@@ -94,11 +157,24 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
     /// <summary>
     /// Deletes a subject.
     /// </summary>
-    public async Task<IActionResult> OnPostDeleteSubjectAsync([FromQuery] int id)
+    public async Task<IActionResult> OnDeleteDeleteSubjectAsync([FromQuery] int id)
     {
         try
         {
+            var subject = await _subjectService.GetSubjectByIdAsync(id);
+            if (subject == null) return NotFound();
             await _subjectService.DeleteSubjectAsync(id);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "subject",
+                Action = "deleted",
+                ResourceId = id.ToString(),
+                ResourceName = subject.Name,
+            };
+            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true });
         }
         catch (Exception ex)
@@ -134,6 +210,18 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
         try
         {
             var chapter = await _subjectService.CreateChapterAsync(vm.SubjectId, vm.ChapterName, vm.ChapterNumber);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "chapter",
+                Action = "created",
+                ResourceId = chapter.Id.ToString(),
+                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
+                ResourceName = chapter.Name,
+            };
+            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true, chapter });
         }
         catch (Domain.Exceptions.BadRequestException ex)
@@ -149,7 +237,7 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
     /// <summary>
     /// Updates a chapter.
     /// </summary>
-    public async Task<IActionResult> OnPostUpdateChapterAsync([FromQuery] int id, [FromBody] AdminUpdateChapterVm vm)
+    public async Task<IActionResult> OnPutUpdateChapterAsync([FromQuery] int id, [FromBody] AdminUpdateChapterVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid input data." });
@@ -159,6 +247,18 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
         try
         {
             var chapter = await _subjectService.UpdateChapterAsync(vm.Id, vm.ChapterName, vm.ChapterNumber);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "chapter",
+                Action = "updated",
+                ResourceId = chapter.Id.ToString(),
+                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
+                ResourceName = chapter.Name,
+            };
+            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true, chapter });
         }
         catch (Domain.Exceptions.BadRequestException ex)
@@ -174,11 +274,26 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
     /// <summary>
     /// Deletes a chapter.
     /// </summary>
-    public async Task<IActionResult> OnPostDeleteChapterAsync([FromQuery] int id)
+    public async Task<IActionResult> OnDeleteDeleteChapterAsync([FromQuery] int id)
     {
         try
         {
+            var chapter = await _subjectService.GetChapterByIdAsync(id);
+            if (chapter == null) return NotFound();
+
             await _subjectService.DeleteChapterAsync(id);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "chapter",
+                Action = "deleted",
+                ResourceId = id.ToString(),
+                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
+                ResourceName = chapter.Name,
+            };
+            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true });
         }
         catch (Exception ex)
@@ -246,7 +361,19 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
 
         try
         {
-            await _subjectService.AssignMemberAsync(subjectId, vm.UserId, membershipRole);
+            var membership = await _subjectService.AssignMemberAsync(subjectId, vm.UserId, membershipRole);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "subject_membership",
+                Action = "created",
+                ResourceId = membership.Id.ToString(),
+                AlternateResourceId = [membership.SubjectId.ToString(), membership.UserId.ToString()],
+                ResourceName = $"{membership.Subject.Name} = {membership.User.FullName}",
+            };
+            await _hub.Clients.Groups(OtherMembershipGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true });
         }
         catch (Domain.Exceptions.BadRequestException ex)
@@ -262,11 +389,23 @@ public class SubjectManageModel(ISubjectService subjectService) : PageModel
     /// <summary>
     /// Removes a user from a subject.
     /// </summary>
-    public async Task<IActionResult> OnPostRemoveMemberAsync([FromQuery] int subjectId, [FromQuery] Guid userId)
+    public async Task<IActionResult> OnDeleteRemoveMemberAsync([FromQuery] int subjectId, [FromQuery] Guid userId)
     {
         try
         {
-            await _subjectService.RemoveMemberAsync(subjectId, userId);
+            var membership = await _subjectService.RemoveMemberAsync(subjectId, userId);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "subject_membership",
+                Action = "deleted",
+                ResourceId = membership.Id.ToString(),
+                AlternateResourceId = [membership.SubjectId.ToString(), membership.UserId.ToString()],
+                ResourceName = $"{membership.Subject.Name} = {membership.User.FullName}",
+            };
+            await _hub.Clients.Groups(OtherMembershipGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
             return new JsonResult(new { success = true });
         }
         catch (Exception ex)

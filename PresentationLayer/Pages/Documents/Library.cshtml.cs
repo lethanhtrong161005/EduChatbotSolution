@@ -9,9 +9,11 @@ using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Presentation.Constants;
 using Presentation.DTOs;
 using Presentation.Extensions;
+using Presentation.RealtimeWeb;
 using Presentation.Utils;
 using Presentation.ViewModels;
 
@@ -27,6 +29,7 @@ public class LibraryModel(
     ISubjectService subjectService,
     IChapterService chapterService,
     IDocumentService documentService,
+    IHubContext<RealtimeHub, IRealtimeClient> hub,
     IMapper mapper) : PageModel
 {
     private const int PageSize = 10;
@@ -52,12 +55,28 @@ public class LibraryModel(
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
     private readonly IDocumentService _documentService = documentService;
+    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
     /// Gets the document library view model rendered by the page.
     /// </summary>
     public DocumentLibraryVm ViewModel { get; private set; } = new();
+
+    [FromHeader]
+    public string CallerSignalRConnectionId { get; set; } = string.Empty;
+
+    private static List<string> OtherDocumentGroups
+    {
+        get
+        {
+            var groups = ResourceRelations.DocumentGroups.ToList();
+            groups.Remove(ThisGroup);
+            return groups;
+        }
+    }
+
+    private static string ThisGroup => HubGroups.Resource("document-library");
 
     /// <summary>
     /// Loads subjects available to the current user.
@@ -73,6 +92,14 @@ public class LibraryModel(
         {
             Subjects = _mapper.Map<List<SubjectLookupVm>>(accessibleSubjects),
         };
+    }
+
+    public async Task<IActionResult> OnGetGetSubjectsAsync([FromQuery] int subjectId, CancellationToken cxlTkn)
+    {
+        var userId = User.GetUserId();
+        var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
+
+        return new JsonResult(_mapper.Map<List<SubjectLookupVm>>(accessibleSubjects));
     }
 
     /// <summary>
@@ -117,31 +144,6 @@ public class LibraryModel(
             : await _documentService.GetBySubjectAsync(subjectId!.Value, cxlTkn);
 
         return new JsonResult(_mapper.Map<List<DocumentFileDto>>(docs));
-    }
-
-    /// <summary>
-    /// Deletes a document, cancels indexing jobs, and removes the stored file.
-    /// </summary>
-    /// <param name="id">The document identifier.</param>
-    /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnPostDeleteAsync([FromQuery] Guid id, CancellationToken cxlTkn)
-    {
-        var doc = await _documentService.GetByIdAsync(id, null!, cxlTkn);
-
-        if (doc == null)
-            return NotFound();
-
-        HangfireHelper.CancelJobs(doc.Id,
-        [
-            nameof(DocumentIndexer.ParseAsync),
-            nameof(DocumentIndexer.ChunkAsync),
-            nameof(DocumentIndexer.EmbedAsync)
-        ]);
-
-        await _documentService.DeleteAsync(doc.Id, cxlTkn);
-        System.IO.File.Delete(doc.FilePath);
-
-        return new JsonResult(new { success = true });
     }
 
     /// <summary>
@@ -215,6 +217,20 @@ public class LibraryModel(
 
         foreach (var doc in newDocs)
         {
+            var upd = new ResourceUpdate
+            {
+                ResourceType = "document",
+                Action = "deleted",
+                ResourceId = doc.Id.ToString(),
+                AlternateResourceId = [null, doc.UploaderId.ToString()],
+                ResourceName = doc.Title,
+            };
+            await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
+            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+        }
+
+        foreach (var doc in newDocs)
+        {
             var parseJobId = BackgroundJob.Enqueue<IDocumentIndexer>(
                 HangfireConstants.LowPriorityQueue,
                 e => e.ParseAsync(doc.Id));
@@ -232,5 +248,42 @@ public class LibraryModel(
 
         var result = _mapper.Map<List<DocumentFileDto>>(newDocs);
         return new JsonResult(result);
+    }
+
+    /// <summary>
+    /// Deletes a document, cancels indexing jobs, and removes the stored file.
+    /// </summary>
+    /// <param name="id">The document identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnDeleteAsync(Guid id, CancellationToken cxlTkn)
+    {
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
+
+        if (doc == null)
+            return NotFound();
+
+        HangfireHelper.CancelJobs(doc.Id,
+        [
+            nameof(DocumentIndexer.ParseAsync),
+            nameof(DocumentIndexer.ChunkAsync),
+            nameof(DocumentIndexer.EmbedAsync)
+        ]);
+
+        await _documentService.DeleteAsync(doc.Id, cxlTkn);
+
+        System.IO.File.Delete(doc.FilePath);
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "document",
+            Action = "deleted",
+            ResourceId = doc.Id.ToString(),
+            AlternateResourceId = [null, doc.UploaderId.ToString()],
+            ResourceName = doc.Title,
+        };
+        await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        return new JsonResult(new { success = true });
     }
 }

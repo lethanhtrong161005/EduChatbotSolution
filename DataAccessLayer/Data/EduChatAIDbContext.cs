@@ -128,11 +128,15 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
 
         modelBuilder.Entity<Plan>()
-            .HasIndex(p => p.Tier)
+            .HasIndex(e => e.Tier)
             .IsUnique();
 
         modelBuilder.Entity<PlanOption>()
             .HasIndex(e => new { e.PlanId, e.DurationDays })
+            .IsUnique();
+
+        modelBuilder.Entity<Chapter>()
+            .HasIndex(e => new { e.SubjectId, e.ChapterNumber })
             .IsUnique();
 
         modelBuilder.Entity<SubjectAiConfiguration>()

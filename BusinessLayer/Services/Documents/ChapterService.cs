@@ -45,6 +45,7 @@ public class ChapterService(IUnitOfWork unitOfWork) : IChapterService
     {
         return await _unitOfWork.Chapters.GetAsync(
             filter: e => e.SubjectId == subjectId,
+            orderBy: q => q.OrderBy(e => e.ChapterNumber == null).ThenBy(e => e.ChapterNumber), // Order nulls last
             cancellationToken: cxlTkn);
     }
 }

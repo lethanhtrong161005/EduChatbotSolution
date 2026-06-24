@@ -132,7 +132,8 @@ async function submitCreateSubject() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ subjectCode: code, subjectName: name, description: desc })
         });
@@ -180,7 +181,8 @@ async function submitUpdateSubject() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ id, subjectCode: code, subjectName: name, description: desc })
         });
@@ -214,7 +216,8 @@ async function submitDeleteSubject() {
         const res = await fetch(`/admin/subject-manage?handler=DeleteSubject&id=${id}`, {
             method: 'DELETE',
             headers: {
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -243,7 +246,7 @@ async function openChapterModal(subjectId, subjectName) {
     document.getElementById('new-chapter-num').value = '';
     document.getElementById('new-chapter-name').value = '';
     hideAlert('chapterAlert');
-    
+
     await loadChapters(subjectId);
     openModal('chapterModal');
 }
@@ -271,10 +274,10 @@ async function loadChapters(subjectId) {
             <div class="chapter-item" data-chapter-id="${c.id}">
                 <div class="chapter-details">
                     <span class="chapter-num-badge">Chapter ${c.chapterNumber}</span>
-                    <span class="chapter-name-text">${escapeHtml(c.chapterName)}</span>
+                    <span class="chapter-name-text">${escapeHtml(c.name)}</span>
                 </div>
                 <div class="chapter-item-actions">
-                    <button class="chapter-action-btn edit-btn" onclick="startEditChapter('${c.id}', ${c.chapterNumber}, '${escapeHtml(c.chapterName)}')" title="Edit chapter">
+                    <button class="chapter-action-btn edit-btn" onclick="startEditChapter('${c.id}', ${c.chapterNumber}, '${escapeHtml(c.name)}')" title="Edit chapter">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="chapter-action-btn delete-btn" onclick="deleteChapter('${c.id}')" title="Delete chapter">
@@ -312,7 +315,8 @@ async function submitCreateChapter() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ subjectId, chapterName: name, chapterNumber: number })
         });
@@ -339,8 +343,8 @@ function startEditChapter(id, currentNum, currentName) {
 
     row.innerHTML = `
         <div class="chapter-edit-row" style="display: flex; align-items: center; width: 100%;">
-            <input type="number" class="form-control edit-num-input" value="${currentNum}" style="width: 70px; margin-right: 8px;" min="1" />
-            <input type="text" class="form-control edit-name-input" value="${escapeHtml(currentName)}" style="flex: 1; margin-right: 8px;" />
+            <input name="chapter-number" type="number" class="form-control edit-num-input" value="${currentNum}" style="width: 70px; margin-right: 8px;" min="1" />
+            <input name="chapter-name" type="text" class="form-control edit-name-input" value="${escapeHtml(currentName)}" style="flex: 1; margin-right: 8px;" />
             <button class="chapter-action-btn save-btn" onclick="saveEditChapter('${id}')" style="color: #10b981; font-size: 16px; margin-right: 8px;" title="Save"><i class="fas fa-check"></i></button>
             <button class="chapter-action-btn cancel-btn" onclick="cancelEditChapter('${id}', ${currentNum}, '${escapeHtml(currentName)}')" style="color: #ef4444; font-size: 16px;" title="Cancel"><i class="fas fa-times"></i></button>
         </div>
@@ -378,7 +382,8 @@ async function saveEditChapter(id) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ id, chapterName: name, chapterNumber: number })
         });
@@ -403,7 +408,8 @@ async function deleteChapter(id) {
         const res = await fetch(`/admin/subject-manage?handler=DeleteChapter&id=${id}`, {
             method: 'DELETE',
             headers: {
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -424,7 +430,7 @@ async function deleteChapter(id) {
 async function openMemberModal(subjectId, subjectName) {
     document.getElementById('member-sub-id').value = subjectId;
     document.getElementById('member-subject-name').textContent = subjectName;
-    
+
     // Clear assign form
     const searchInput = document.getElementById('member-search-input');
     if (searchInput) {
@@ -507,7 +513,8 @@ async function submitAssignMember() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ userId, role })
         });
@@ -536,7 +543,8 @@ async function removeMember(userId) {
         const res = await fetch(`/admin/subject-manage?handler=RemoveMember&subjectId=${subjectId}&userId=${userId}`, {
             method: 'DELETE',
             headers: {
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -560,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionsEl = document.getElementById('searchSuggestions');
 
     if (searchInput && suggestionsEl) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             clearTimeout(searchDebounceTimeout);
             const search = this.value.trim();
             const subjectId = document.getElementById('member-sub-id').value;
@@ -578,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const res = await fetch(`/admin/subject-manage?handler=GetEligibleUsers&subjectId=${subjectId}&role=${role}&search=${encodeURIComponent(search)}`);
                     if (!res.ok) throw new Error('Search failed');
                     const users = await res.json();
-                    
+
                     if (users.length === 0) {
                         suggestionsEl.innerHTML = '<div class="autocomplete-item empty">No matching users found</div>';
                         suggestionsEl.hidden = false;
@@ -595,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Click event for suggestions
                     suggestionsEl.querySelectorAll('.autocomplete-item').forEach(item => {
                         if (item.classList.contains('empty')) return;
-                        item.addEventListener('click', function() {
+                        item.addEventListener('click', function () {
                             searchInput.value = `${this.getAttribute('data-user-name')} (${this.getAttribute('data-user-email')})`;
                             searchInput.setAttribute('data-selected-user-id', this.getAttribute('data-user-id'));
                             suggestionsEl.hidden = true;
@@ -619,3 +627,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// ── SIGNALR EVENT HANDLERS ───────────────────────────────
+
+const resConn =
+    new signalR.HubConnectionBuilder()
+        .withUrl(`/realtime`)
+        .withAutomaticReconnect()
+        .build();
+
+resConn.on(
+    "ResourceChanged",
+    async function (resUpd) {
+        switch (resUpd.resourceType) {
+            case "subject":
+                showToast('info', `${resUpd.resourceName ? "Subject [" + resUpd.resourceName + "] has" : "Subjects have"} been updated.`);
+                setTimeout(() => location.reload(), 1500);
+                break;
+            case "chapter":
+                showToast('info', `${resUpd.resourceName ? "Chapter [" + resUpd.resourceName + "] has" : "Chapters have"} been updated.`);
+                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length === 2 && resUpd.alternateResourceId[0] === document.getElementById('chapter-sub-id').value)
+                    await loadChapters(resUpd.alternateResourceId[0]);
+                break;
+            case "subject_membership":
+                showToast('info', `${resUpd.resourceName ? "Membership [" + resUpd.resourceName + "] has" : "Memberships have"} been updated.`);
+                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length === 2 && resUpd.alternateResourceId[0] === document.getElementById('member-sub-id').value)
+                    await loadMembers(resUpd.alternateResourceId[0]);
+                break;
+        }
+    }
+);
+
+resConn
+    .start()
+    .then(() => resConn.invoke("JoinPage", "subject-manage", null))
+    .then(() => window.connId = resConn.connectionId)
+    .catch(console.error);

@@ -35,7 +35,7 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+var connStr = builder.Configuration.GetConnectionString("Docker")
               ?? builder.Configuration.GetConnectionString(builder.Environment.IsDevelopment() ? "Docker" : "Tailscale")
               ?? throw new KeyNotFoundException("Connection string not configured.");
 
@@ -230,5 +230,6 @@ app.MapRazorPages();
 
 app.MapHub<DocumentHub>("/documents/status");
 app.MapHub<AiChatHub>("/chat/answer");
+app.MapHub<RealtimeHub>("/realtime");
 
 app.Run();

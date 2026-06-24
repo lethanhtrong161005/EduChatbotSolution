@@ -1,4 +1,5 @@
 @page "{id:guid}/{handler?}"
+@using System.Security.Claims
 @model Presentation.Pages.Documents.EditModel
 
 @{
@@ -88,16 +89,16 @@
         color: var(--color-text-primary);
     }
 
-    .form-control-custom::placeholder {
-        color: var(--color-text-secondary);
-        opacity: 0.7;
-    }
+        .form-control-custom::placeholder {
+            color: var(--color-text-secondary);
+            opacity: 0.7;
+        }
 
-    .form-control-custom:focus {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.15);
-        outline: none;
-    }
+        .form-control-custom:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.15);
+            outline: none;
+        }
 
     .text-danger-custom {
         font-size: 0.85rem;
@@ -172,5 +173,18 @@
 </div>
 
 @section Scripts {
+
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+        window.DocumentEditPage = {
+            documentId: '@Model.ViewModel.Id',
+            subjectId: '@Model.SubjectId',
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)'
+        };
+    </script>
+
+    <script src="~/js/documents/document-edit-signalr.js"></script>
 }

@@ -49,8 +49,6 @@ public class IndexModel(
             return Unauthorized();
         }
 
-        var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-
         if (id.HasValue)
         {
             var session = await _chatPersistenceService.GetSessionByIdAsync(id.Value, cxlTkn);

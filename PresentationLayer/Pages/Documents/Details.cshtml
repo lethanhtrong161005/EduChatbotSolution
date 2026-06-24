@@ -1,4 +1,5 @@
 @page "{id:guid}/{handler?}"
+@using System.Security.Claims
 @model Presentation.Pages.Documents.DetailsModel
 @{
     ViewData["Title"] = Model.ViewModel.Title;
@@ -145,15 +146,17 @@
     .docx-rendered-container {
         width: 100%;
     }
-    .docx-rendered-container table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1.5rem;
-    }
-    .docx-rendered-container th, .docx-rendered-container td {
-        border: 1px solid var(--color-border-neutral);
-        padding: 0.5rem 0.75rem;
-    }
+
+        .docx-rendered-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        .docx-rendered-container th, .docx-rendered-container td {
+            border: 1px solid var(--color-border-neutral);
+            padding: 0.5rem 0.75rem;
+        }
 
     /* PPTX Slideshow outline styles */
     .pptx-slide-viewer {
@@ -203,16 +206,19 @@
         text-align: center;
         user-select: none;
     }
-    .slide-thumb:hover {
-        border-color: var(--color-border-dark);
-        color: var(--color-text-primary);
-    }
-    .slide-thumb.active {
-        border-color: var(--accent-green);
-        color: var(--color-primary);
-        background: rgba(46, 204, 113, 0.1);
-        box-shadow: var(--shadow-glow);
-    }
+
+        .slide-thumb:hover {
+            border-color: var(--color-border-dark);
+            color: var(--color-text-primary);
+        }
+
+        .slide-thumb.active {
+            border-color: var(--accent-green);
+            color: var(--color-primary);
+            background: rgba(46, 204, 113, 0.1);
+            box-shadow: var(--shadow-glow);
+        }
+
     .slide-canvas-area {
         display: flex;
         flex-direction: column;
@@ -297,14 +303,16 @@
         justify-content: center;
         transition: background var(--transition-fast), border-color var(--transition-fast);
     }
-    .slide-btn:hover {
-        background: var(--color-surface);
-        border-color: var(--color-border-neutral);
-    }
-    .slide-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
+
+        .slide-btn:hover {
+            background: var(--color-surface);
+            border-color: var(--color-border-neutral);
+        }
+
+        .slide-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
 
     /* TXT Viewer Style */
     .txt-viewer-container {
@@ -397,15 +405,17 @@
         align-items: center;
         gap: 0.35rem;
     }
-    .tab-toggle-btn:hover {
-        color: var(--color-text-primary);
-    }
-    .tab-toggle-btn.active {
-        background: var(--color-surface);
-        color: var(--color-primary);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--color-border-light);
-    }
+
+        .tab-toggle-btn:hover {
+            color: var(--color-text-primary);
+        }
+
+        .tab-toggle-btn.active {
+            background: var(--color-surface);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border-light);
+        }
 
     /* SIDEBAR METADATA */
     .sidebar-details-card {
@@ -464,10 +474,12 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-    .btn-action-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
-    }
+
+        .btn-action-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
+        }
+
     .btn-action-secondary {
         display: inline-flex;
         align-items: center;
@@ -482,11 +494,12 @@
         cursor: pointer;
         transition: all var(--transition-base);
     }
-    .btn-action-secondary:hover {
-        background: var(--color-surface-hover);
-        border-color: var(--color-border-dark);
-        color: var(--color-primary);
-    }
+
+        .btn-action-secondary:hover {
+            background: var(--color-surface-hover);
+            border-color: var(--color-border-dark);
+            color: var(--color-primary);
+        }
 
     /* SLIDING CHUNK DRAWER OVERRIDES */
     .chunk-drawer-backdrop {
@@ -535,11 +548,13 @@
         justify-content: space-between;
         background: var(--color-card-header);
     }
-    .chunk-drawer-header h5 {
-        margin: 0;
-        font-weight: 700;
-        color: var(--color-text-primary);
-    }
+
+        .chunk-drawer-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+
     .btn-close-drawer {
         background: none;
         border: none;
@@ -548,9 +563,11 @@
         cursor: pointer;
         transition: color var(--transition-fast);
     }
-    .btn-close-drawer:hover {
-        color: var(--color-error);
-    }
+
+        .btn-close-drawer:hover {
+            color: var(--color-error);
+        }
+
     .chunk-drawer-body {
         flex: 1;
         overflow-y: auto;
@@ -694,11 +711,13 @@
         color: #2980b9;
         border: 1px solid rgba(52, 152, 219, 0.2);
     }
+
     .badge-chief {
         background: rgba(230, 126, 34, 0.1);
         color: #e67e22;
         border: 1px solid rgba(230, 126, 34, 0.2);
     }
+
     .comment-text {
         font-size: 0.925rem;
         color: var(--color-text-primary);
@@ -1000,13 +1019,13 @@
                             </div>
                         </div>
 
-                    <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
-                        <div class="txt-scroller">
-                            <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 0 auto;">
-                                <pre style="white-space: pre-wrap; font-family: var(--font-inter); line-height: 1.6; border: none; background: transparent; padding: 0;">@Model.ViewModel.ExtractedText</pre>
+                        <div id="pptx-text-viewer" class="txt-viewer-container w-100 d-none">
+                            <div class="txt-scroller">
+                                <div class="bg-white p-4 border rounded" style="max-width: 800px; margin: 0 auto;">
+                                    <pre style="white-space: pre-wrap; font-family: var(--font-inter); line-height: 1.6; border: none; background: transparent; padding: 0;">@Model.ViewModel.ExtractedText</pre>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     }
                     else if (extensionClean == "txt")
                     {
@@ -1286,34 +1305,34 @@
     const pptxFormatted = document.getElementById("pptx-formatted-viewer");
     const pptxText = document.getElementById("pptx-text-viewer");
 
-        const pdfFormatted = document.getElementById("pdf-viewer-section");
-        const pdfText = document.getElementById("pdf-text-viewer");
+    const pdfFormatted = document.getElementById("pdf-viewer-section");
+    const pdfText = document.getElementById("pdf-text-viewer");
 
-        if (mode === 'formatted') {
-            btnFormatted?.classList.add("active");
-            btnText?.classList.remove("active");
-            
-            docxFormatted?.classList.remove("d-none");
-            docxText?.classList.add("d-none");
-            
-            pptxFormatted?.classList.remove("d-none");
-            pptxText?.classList.add("d-none");
+    if (mode === 'formatted') {
+    btnFormatted?.classList.add("active");
+    btnText?.classList.remove("active");
 
-            pdfFormatted?.classList.remove("d-none");
-            pdfText?.classList.add("d-none");
-        } else {
-            btnFormatted?.classList.remove("active");
-            btnText?.classList.add("active");
-            
-            docxFormatted?.classList.add("d-none");
-            docxText?.classList.remove("d-none");
-            
-            pptxFormatted?.classList.add("d-none");
-            pptxText?.classList.remove("d-none");
+    docxFormatted?.classList.remove("d-none");
+    docxText?.classList.add("d-none");
 
-            pdfFormatted?.classList.add("d-none");
-            pdfText?.classList.remove("d-none");
-        }
+    pptxFormatted?.classList.remove("d-none");
+    pptxText?.classList.add("d-none");
+
+    pdfFormatted?.classList.remove("d-none");
+    pdfText?.classList.add("d-none");
+    } else {
+    btnFormatted?.classList.remove("active");
+    btnText?.classList.add("active");
+
+    docxFormatted?.classList.add("d-none");
+    docxText?.classList.remove("d-none");
+
+    pptxFormatted?.classList.add("d-none");
+    pptxText?.classList.remove("d-none");
+
+    pdfFormatted?.classList.add("d-none");
+    pdfText?.classList.remove("d-none");
+    }
     }
 
     // --- 2. Chunk Drawer Toggling ---
@@ -1529,6 +1548,15 @@
 @section Scripts {
 
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+        window.DocumentDetailsPage = {
+            documentId: '@Model.ViewModel.Id',
+            subjectId: '@Model.ViewModel.SubjectId',
+            uploaderId: '@Model.ViewModel.UploaderId',
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)'
+        };
+    </script>
 
     <script src="~/js/status-badge.js"></script>
     <script src="~/js/document-details.js"></script>

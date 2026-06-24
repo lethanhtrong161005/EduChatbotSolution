@@ -33,19 +33,14 @@
         `;
 
     let currentFiles = [];
-    let subjectReqTimestamp = 0;
-
-    chapterSelect.addEventListener(
-        "change",
-        refreshTable);
-
-    searchInput.addEventListener(
-        "input",
-        refreshTable);
+    let currentConcurrencyToken = 0;
 
     function refreshTable() {
-        if (!subjectSelect.value)
+
+        if (!subjectSelect.value) {
+            clearTable();
             return;
+        }
 
         const chapterId =
             parseInt(chapterSelect.value);
@@ -71,46 +66,65 @@
         displayFiles(files);
     }
 
+    function clearTable() {
+
+        currentFiles = [];
+
+        fileTableBody.innerHTML = initRow;
+
+        chapterSelect.innerHTML =
+            "<option value=''>Select Chapter</option>";
+
+        chapterSelect.disabled = true;
+
+        showUploadBtn.classList.add("d-none");
+        uploadPanel.classList.add("d-none");
+    }
+
     subjectSelect.addEventListener(
-        "change",
-        async function () {
+        "input",
+        loadLibrary);
 
-            let subjectId = this.value;
-            if (!subjectId) {
+    chapterSelect.addEventListener(
+        "input",
+        refreshTable);
 
-                currentFiles = [];
+    searchInput.addEventListener(
+        "input",
+        refreshTable);
 
-                fileTableBody.innerHTML = initRow;
+    async function loadLibrary() {
 
-                chapterSelect.innerHTML =
-                    "<option value=''>Select chapter</option>";
+        let subjectId = subjectSelect.value;
 
-                chapterSelect.disabled = true;
+        if (!subjectId) {
+            clearTable();
+            return;
+        };
 
-                showUploadBtn.classList.add("d-none");
-                uploadPanel.classList.add("d-none");
+        const conTkn = ++currentConcurrencyToken;
 
-                return;
-            };
+        await getCanUpload(subjectId, conTkn);
+        await loadChapters(subjectId, conTkn);
+        await loadDocuments(subjectId, conTkn)
 
-            const reqTs = ++subjectReqTimestamp;
+        refreshTable();
+    }
 
-            getCanUpload(subjectId, reqTs);
-            loadChapters(subjectId, reqTs);
-            loadFilesOfSubject(subjectId, reqTs)
-                .then(refreshTable);
-        });
-
-    async function getCanUpload(subjectId, reqTs) {
+    async function getCanUpload(subjectId, conTkn) {
 
         uploadPanelOverlay.classList.remove("d-none");
 
-        const response = await fetch(
-            `/documents/library?handler=CanUpload&subjectId=${subjectId}`);
+        const response = await fetch(`/documents/library?handler=CanUpload&subjectId=${subjectId}`, {
+            method: "GET",
+            headers: {
+                "CallerSignalRConnectionId": connId,
+            }
+        });
 
         const { canUpload } = await response.json();
 
-        if (reqTs != subjectReqTimestamp)
+        if (conTkn != currentConcurrencyToken)
             return;
 
         if (canUpload) {
@@ -124,20 +138,28 @@
         uploadPanelOverlay.classList.add("d-none");
     }
 
-    async function loadChapters(subjectId, reqTs) {
+    async function loadChapters(subjectId, conTkn) {
+
+        const cachedId = chapterSelect.value;
 
         chapterSelect.disabled = true;
 
         chapterSelect.innerHTML =
             "<option value=''>Loading...</option>";
 
-        const response = await fetch(
-            `/documents/library?handler=GetChapters&subjectId=${subjectId}`);
+        const response = await fetch(`/documents/library?handler=GetChapters&subjectId=${subjectId}`, {
+            method: "GET",
+            headers: {
+                "CallerSignalRConnectionId": connId,
+            }
+        });
 
         const chapters = await response.json();
 
-        if (reqTs != subjectReqTimestamp)
+        if (conTkn != currentConcurrencyToken)
             return;
+
+        chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
         chapterSelect.innerHTML =
             "<option value=''>Select Chapter</option>";
@@ -147,7 +169,7 @@
             chapterSelect.insertAdjacentHTML(
                 "beforeend",
                 `
-                <option value="${chapter.id}">
+                <option value="${chapter.id}"${chapter.id === parseInt(cachedId) ? " selected" : ""}>
                     ${chapter.name}
                 </option>
                 `);
@@ -156,16 +178,20 @@
         chapterSelect.disabled = false;
     }
 
-    async function loadFilesOfSubject(subjectId, reqTs) {
+    async function loadDocuments(subjectId, conTkn) {
 
         fileTableBody.innerHTML = loadingRow;
 
-        const response = await fetch(
-            `/documents/library?handler=GetFiles&subjectId=${subjectId}`);
+        const response = await fetch(`/documents/library?handler=GetFiles&subjectId=${subjectId}`, {
+            method: "GET",
+            headers: {
+                "CallerSignalRConnectionId": connId,
+            }
+        });
 
         currentFiles = await response.json();
 
-        if (reqTs != subjectReqTimestamp)
+        if (conTkn != currentConcurrencyToken)
             return;
 
         displayFiles(currentFiles);
@@ -268,15 +294,19 @@
                     const conf = confirm("Are you sure you wish to delete this file?");
                     if (!conf) return;
 
-                    var response = await fetch(`/documents/delete/${file.id}`, {
-                        method: "DELETE"
+                    var response = await fetch(`/documents/library/${file.id}`, {
+                        method: "DELETE",
+                        headers: {
+                            "RequestVerificationToken": getAntiForgery(),
+                            "CallerSignalRConnectionId": connId,
+                        }
                     });
 
                     if (response.ok) {
 
-                        const reqTs = ++subjectReqTimestamp;
+                        const conTkn = ++currentConcurrencyToken;
 
-                        loadFilesOfSubject(subjectSelect.value, reqTs)
+                        loadDocuments(subjectSelect.value, conTkn)
                             .then(refreshTable);
                     }
                 }
@@ -480,6 +510,9 @@ Are you sure you wish to upload them?
                 "POST",
                 "/documents/library?handler=Upload");
 
+            xhr.setRequestHeader("RequestVerificationToken", getAntiForgery());
+            xhr.setRequestHeader("CallerSignalRConnectionId", connId);
+
             xhr.upload.addEventListener(
                 "progress",
                 e => {
@@ -509,7 +542,8 @@ Are you sure you wish to upload them?
                     else {
                         updateStatus(
                             file.uploadId,
-                            "Upload Failed");
+                            "Upload Failed",
+                            "crimson");
                     }
 
                     activeUploads--;
@@ -536,9 +570,7 @@ Are you sure you wish to upload them?
 
         if (outstandingUploads === 0) {
 
-            const reqTs = ++subjectReqTimestamp;
-
-            loadFilesOfSubject(subjectSelect.value, reqTs)
+            loadDocuments(subjectSelect.value, ++currentConcurrencyToken)
                 .then(refreshTable);
         }
     }
@@ -578,12 +610,16 @@ Are you sure you wish to upload them?
             .textContent = `${percent}%`;
     }
 
-    function updateStatus(uploadId, status) {
+    function updateStatus(uploadId, status, color = null) {
         const fileRow = document.getElementById(uploadId);
         if (!fileRow) return;
 
         fileRow.querySelector(".upload-file-percent")
             .textContent = status;
+
+        if (color)
+            fileRow.querySelector(".upload-progress-bar")
+                .style.background = "crimson";
     }
 
     function getFileIcon(type) {
@@ -608,6 +644,76 @@ Are you sure you wish to upload them?
             default:
                 return "fa-file";
         }
+    }
+
+    /* SIGNALR EVENTS */
+
+    $(document).on(
+        "resource:changed",
+        async function (_, resUpd) {
+            switch (resUpd.resourceType) {
+                case "subject":
+                    await loadSubjects(++currentConcurrencyToken);
+                    refreshTable();
+                    break;
+                case "chapter":
+                    await loadChapters(subjectSelect.value, ++currentConcurrencyToken);
+                    refreshTable();
+                    break;
+                case "document":
+                    await loadDocuments(subjectSelect.value, ++currentConcurrencyToken);
+                    refreshTable();
+                    break;
+                case "subject_membership":
+                    if (resUpd.alternateResourceId && resUpd.alternateResourceId.length == 2 && resUpd.alternateResourceId[1] === DocumentLibraryPage.userId) {
+                        await loadSubjects(++currentConcurrencyToken);
+                        refreshTable();
+                    }
+                    break;
+            }
+        }
+    );
+
+    async function loadSubjects(conTkn) {
+
+        const cachedId = subjectSelect.value;
+
+        subjectSelect.disabled = true;
+
+        subjectSelect.innerHTML =
+            "<option value=''>Loading...</option>";
+
+        const response = await fetch(`/documents/library?handler=GetSubjects`, {
+            method: "GET",
+            headers: {
+                "CallerSignalRConnectionId": connId,
+            }
+        });
+
+        const subjects = await response.json();
+
+        if (conTkn != currentConcurrencyToken)
+            return;
+
+        subjectSelect.innerHTML =
+            "<option value=''>Select Subject</option>";
+
+        subjects.forEach(subject => {
+
+            subjectSelect.insertAdjacentHTML(
+                "beforeend",
+                `
+                <option value="${subject.id}"${subject.id === parseInt(cachedId) ? " selected" : ""}>
+                    ${subject.name}
+                </option>
+                `);
+        });
+
+        subjectSelect.disabled = false;
+    }
+
+    function getAntiForgery() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
     }
 
 });

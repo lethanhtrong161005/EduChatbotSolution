@@ -1,8 +1,12 @@
+using DocumentFormat.OpenXml.Spreadsheet;
 using Domain.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
+using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
+using System.Net;
 
 namespace Presentation.Pages.Admin;
 
@@ -11,14 +15,33 @@ namespace Presentation.Pages.Admin;
 /// Handles page display and AJAX user management endpoints.
 /// </summary>
 [Authorize(Roles = "Admin")]
-public class UserManageModel(IUserManagementService userManagementService) : PageModel
+public class UserManageModel(
+    IUserManagementService userManagementService,
+    IHubContext<RealtimeHub, IRealtimeClient> hub)
+    : PageModel
 {
     private readonly IUserManagementService _userManagementService = userManagementService;
+    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
 
     /// <summary>
     /// Gets the user management view model rendered by the page.
     /// </summary>
     public AdminUserListVm ViewModel { get; private set; } = new();
+
+    [FromHeader]
+    public string CallerSignalRConnectionId { get; set; } = string.Empty;
+
+    private static List<string> OtherUserGroups
+    {
+        get
+        {
+            var groups = ResourceRelations.UserGroups.ToList();
+            groups.Remove(ThisGroup);
+            return groups;
+        }
+    }
+
+    private static string ThisGroup => HubGroups.Resource("user-manage");
 
     /// <summary>
     /// Loads users and roles for the user management page.
@@ -56,8 +79,21 @@ public class UserManageModel(IUserManagementService userManagementService) : Pag
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid form data." });
 
-        var (success, error) = await _userManagementService.CreateUserAsync(
-            new Domain.Contracts.CreateUserDto(vm.FullName, vm.Email, vm.Password, vm.Role));
+        var (success, user, error) = await _userManagementService.CreateUserAsync(
+            new CreateUserDto(vm.FullName, vm.Email, vm.Password, vm.Role));
+
+        if (!success)
+            return StatusCode(500, new { success, error });
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "user",
+            Action = "created",
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, error });
     }
@@ -67,7 +103,7 @@ public class UserManageModel(IUserManagementService userManagementService) : Pag
     /// </summary>
     /// <param name="id">The user's ID.</param>
     /// <param name="vm">Update form data.</param>
-    public async Task<IActionResult> OnPostUpdateUserAsync([FromQuery] Guid id, [FromBody] AdminUpdateUserVm vm)
+    public async Task<IActionResult> OnPutUpdateUserAsync([FromQuery] Guid id, [FromBody] AdminUpdateUserVm vm)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, error = "Invalid form data." });
@@ -75,27 +111,47 @@ public class UserManageModel(IUserManagementService userManagementService) : Pag
         if (id != vm.UserId)
             return BadRequest(new { success = false, error = "User ID mismatch." });
 
-        var (success, error) = await _userManagementService.UpdateUserAsync(
-            new Domain.Contracts.UpdateUserDto(vm.UserId, vm.FullName, vm.Email, vm.Role, vm.UpdatedAt));
+        var (success, user, error) = await _userManagementService.UpdateUserAsync(
+            new UpdateUserDto(vm.UserId, vm.FullName, vm.Email, vm.Role, vm.UpdatedAt));
 
-        if (success)
+        if (!success)
+            return StatusCode(500, new { success, error });
+
+        var message = vm.Email != vm.OriginalEmail
+            ? "Changes saved! A verification email has been sent to the new email address."
+            : "Changes saved successfully!";
+
+        var upd = new ResourceUpdate
         {
-            var message = vm.Email != vm.OriginalEmail
-                ? "Changes saved! A verification email has been sent to the new email address."
-                : "Changes saved successfully!";
-            return new JsonResult(new { success, message });
-        }
+            ResourceType = "user",
+            Action = "updated",
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
-        return new JsonResult(new { success, error });
+        return new JsonResult(new { success, message });
     }
 
     /// <summary>
     /// Soft-deletes a user account. Sends a deletion-notification email.
     /// </summary>
     /// <param name="id">The user's ID.</param>
-    public async Task<IActionResult> OnPostDeleteUserAsync([FromQuery] Guid id)
+    public async Task<IActionResult> OnDeleteDeleteUserAsync([FromQuery] Guid id)
     {
-        var (success, error) = await _userManagementService.SoftDeleteUserAsync(id);
+        var (success, user, error) = await _userManagementService.SoftDeleteUserAsync(id);
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "user",
+            Action = "deleted",
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
         return new JsonResult(new { success, error });
     }
 
@@ -104,9 +160,20 @@ public class UserManageModel(IUserManagementService userManagementService) : Pag
     /// </summary>
     /// <param name="id">The user's ID.</param>
     /// <param name="body">Body containing the concurrency token.</param>
-    public async Task<IActionResult> OnPostDisableUserAsync([FromQuery] Guid id, [FromBody] ConcurrencyTokenBody body)
+    public async Task<IActionResult> OnPutDisableUserAsync([FromQuery] Guid id, [FromBody] ConcurrencyTokenBody body)
     {
-        var (success, error) = await _userManagementService.DisableUserAsync(id, body.UpdatedAt);
+        var (success, user, error) = await _userManagementService.DisableUserAsync(id, body.UpdatedAt);
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "user",
+            Action = "updated",
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
         return new JsonResult(new { success, error });
     }
 
@@ -115,9 +182,20 @@ public class UserManageModel(IUserManagementService userManagementService) : Pag
     /// </summary>
     /// <param name="id">The user's ID.</param>
     /// <param name="body">Body containing the concurrency token.</param>
-    public async Task<IActionResult> OnPostReactivateUserAsync([FromQuery] Guid id, [FromBody] ConcurrencyTokenBody body)
+    public async Task<IActionResult> OnPutReactivateUserAsync([FromQuery] Guid id, [FromBody] ConcurrencyTokenBody body)
     {
-        var (success, error) = await _userManagementService.ReactivateUserAsync(id, body.UpdatedAt);
+        var (success, user, error) = await _userManagementService.ReactivateUserAsync(id, body.UpdatedAt);
+
+        var upd = new ResourceUpdate
+        {
+            ResourceType = "user",
+            Action = "updated",
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
         return new JsonResult(new { success, error });
     }
 }

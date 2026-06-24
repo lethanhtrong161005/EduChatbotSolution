@@ -278,3 +278,47 @@ ${vectorText}
         }
 
     });
+
+$(document).on(
+    "resource:changed",
+    async function (_, resUpd) {
+        switch (resUpd.resourceType) {
+            case "document":
+                if (resUpd.resourceId === DocumentDetailsPage.documentId) {
+
+                    promptReload();
+                }
+                break;
+            case "user":
+                if (resUpd.resourceId === DocumentDetailsPage.uploaderId) {
+
+                    promptReload();
+                }
+                break;
+            case "subject_membership":
+                if (resUpd.action === "deleted" && resUpd.alternateResourceId && resUpd.alternateResourceId.length == 2
+                    && resUpd.alternateResourceId[0] === DocumentDetailsPage.subjectId && resUpd.alternateResourceId[1] === DocumentDetailsPage.userId) {
+
+                    denyAccess();
+                } else {
+                    // loadComments();
+                }
+                break;
+            case "comment":
+                // loadComments()
+                break;
+        }
+    }
+);
+
+function promptReload() {
+
+    if (confirm("This document has been modified. Refresh?"))
+        window.location.reload();
+}
+
+function denyAccess() {
+
+    alert("Sorry for the inconvenience. You no longer have access to this document.");
+    window.location.href = "/documents/library";
+}

@@ -149,7 +149,8 @@ async function submitCreate() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ fullName: name, email, password, role })
         });
@@ -212,10 +213,11 @@ async function submitUpdate() {
     setLoading('btnEditSubmit', true);
     try {
         const res = await fetch(`/admin/user-manage?handler=UpdateUser&id=${userId}`, {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ userId, fullName, email, role, updatedAt })
         });
@@ -249,8 +251,11 @@ async function submitDelete() {
     setLoading('btnDeleteSubmit', true);
     try {
         const res = await fetch(`/admin/user-manage?handler=DeleteUser&id=${userId}`, {
-            method: 'POST',
-            headers: { 'RequestVerificationToken': getAntiForgery() }
+            method: 'DELETE',
+            headers: {
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
+            }
         });
         const data = await res.json();
 
@@ -286,10 +291,11 @@ async function submitDisable() {
     setLoading('btnDisableSubmit', true);
     try {
         const res = await fetch(`/admin/user-manage?handler=DisableUser&id=${userId}`, {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ updatedAt })
         });
@@ -327,10 +333,11 @@ async function submitReactivate() {
     setLoading('btnReactivateSubmit', true);
     try {
         const res = await fetch(`/admin/user-manage?handler=ReactivateUser&id=${userId}`, {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgery()
+                'RequestVerificationToken': getAntiForgery(),
+                'CallerSignalRConnectionId': connId,
             },
             body: JSON.stringify({ updatedAt })
         });
@@ -351,3 +358,29 @@ async function submitReactivate() {
         setLoading('btnReactivateSubmit', false);
     }
 }
+
+// ── SIGNALR EVENT HANDLERS ───────────────────────────────
+
+const resConn =
+    new signalR.HubConnectionBuilder()
+        .withUrl(`/realtime`)
+        .withAutomaticReconnect()
+        .build();
+
+resConn.on(
+    "ResourceChanged",
+    async function (resUpd) {
+        switch (resUpd.resourceType) {
+            case "user":
+                showToast('info', `${resUpd.resourceName ? "User [" + resUpd.resourceName + "] has" : "Users have"} been updated.`);
+                setTimeout(() => location.reload(), 1800);
+                break;
+        }
+    }
+);
+
+resConn
+    .start()
+    .then(() => resConn.invoke("JoinPage", "user-manage", null))
+    .then(() => window.connId = resConn.connectionId)
+    .catch(console.error);

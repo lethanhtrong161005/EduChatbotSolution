@@ -162,8 +162,7 @@
             a.code - b.code);
 
         $("#subject-list").html(
-            ChatTemplates.renderSidebarSubjectList(scopeSubjectHeaders)
-        );
+            ChatTemplates.renderSidebarSubjectList(scopeSubjectHeaders));
     }
 
     function updateDom_SidebarSessionList() {
@@ -177,8 +176,7 @@
         const $list = $("#session-list");
 
         $("#session-list").html(
-            ChatTemplates.renderSidebarSessionList(sessionHeaders)
-        );
+            ChatTemplates.renderSidebarSessionList(sessionHeaders));
     }
 
     function updateDom_AssistantMessage(msgClientId) {
@@ -208,7 +206,7 @@
     async function init() {
 
         activeSessionId =
-            window.chatPage.activeSessionId ?? null;
+            ChatPage.activeSessionId ?? null;
 
         await ChatSignalR.start();
 
@@ -689,8 +687,7 @@
         }
 
         $("#chat-main").html(
-            ChatTemplates.renderLandingSession(subjectHeaders)
-        );
+            ChatTemplates.renderLandingSession(subjectHeaders));
     }
 
     async function loadExistingSession(sessionId, pushHistory) {
@@ -724,8 +721,7 @@
         }
 
         $("#chat-main").html(
-            ChatTemplates.renderExistingSession(activeSession)
-        );
+            ChatTemplates.renderExistingSession(activeSession));
 
         renderMessages(activeSession.messages);
     }
@@ -744,22 +740,18 @@
         message._clientId ??= crypto.randomUUID();
 
         message.getContent = function () {
-
             return this._variants[this._activeVariant].content;
         };
 
         message.setContent = function (val) {
-
             this._variants[this._activeVariant].content = val;
         };
 
         message.getCitations = function () {
-
             return this._variants[this._activeVariant].citations;
         };
 
         message.setCitations = function (val) {
-
             this._variants[this._activeVariant].citations = val;
         };
 
@@ -929,8 +921,12 @@
         setInputEnabled(false);
 
         if (!activeSession) {
-
-            await createNewSession();
+            try {
+                await createNewSession();
+            } catch (err) {
+                setInputEnabled(true);
+                return;
+            }
         }
 
         const userMessage =
@@ -950,6 +946,9 @@
             genChatRes = await $.ajax({
                 url: "/chat?handler=Generate",
                 method: "POST",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                },
                 data: {
                     sessionId: activeSession.id,
                     userMessageClientId: userMessage._clientId,
@@ -960,10 +959,8 @@
         } catch (err) {
 
             alert(err);
-
             // setActiveSessionLastMessageAt(cachedLastMessagAt);
             setInputEnabled(true);
-
             return;
         }
 
@@ -999,6 +996,9 @@
             await $.ajax({
                 url: "/chat?handler=CreateSession",
                 method: "POST",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                },
                 data: {
                     subjectId,
                 },
@@ -1285,8 +1285,7 @@
             .forEach(citation => {
 
                 $content.append(
-                    ChatTemplates.renderSourceCard(
-                        citation));
+                    ChatTemplates.renderSourceCard(citation));
             });
 
         $panel
@@ -1446,6 +1445,10 @@
 
         return activeSession.messages
             .find(x => x._clientId === msgClientId);
+    }
+
+    function getAntiForgery() {
+        return $("input[name='__RequestVerificationToken']").val() ?? "";
     }
 
     /* ==========================================================

@@ -32,3 +32,29 @@ conn.on(
         $badge.removeClass().addClass(`document-status-badge ${settings.className}`);
     }
 );
+
+const resConn =
+    new signalR.HubConnectionBuilder()
+        .withUrl(`/realtime`)
+        .withAutomaticReconnect()
+        .build();
+
+resConn.on(
+    "ResourceChanged",
+    function (resUpd) {
+        switch (resUpd.resourceType) {
+            case "subject":
+            case "chapter":
+            case "subject_membership":
+            case "document":
+                $(document).trigger("resource:changed", resUpd);
+                break;
+        }
+    }
+);
+
+resConn
+    .start()
+    .then(() => resConn.invoke("JoinPage", "document-library", null))
+    .then(() => window.connId = resConn.connectionId)
+    .catch(console.error);

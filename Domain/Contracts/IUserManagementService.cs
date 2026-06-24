@@ -1,4 +1,6 @@
 using Domain.Common;
+using Domain.Entities;
+using System.Linq.Expressions;
 
 namespace Domain.Contracts;
 
@@ -10,6 +12,8 @@ namespace Domain.Contracts;
 /// </summary>
 public interface IUserManagementService
 {
+    Task<UserManagementItemDto> GetUserAsync(Expression<Func<ApplicationUser, bool>> filter);
+
     /// <summary>
     /// Returns a paginated list of users filtered by optional name, email, and role criteria.
     /// Soft-deleted accounts are included (shown as deleted in the UI).
@@ -39,7 +43,7 @@ public interface IUserManagementService
     /// </summary>
     /// <param name="dto">The user creation data including full name, email, password, and role.</param>
     /// <returns>A success/error tuple. <c>Error</c> is null on success.</returns>
-    Task<(bool Success, string? Error)> CreateUserAsync(CreateUserDto dto);
+    Task<(bool Success, ApplicationUser? user, string? Error)> CreateUserAsync(CreateUserDto dto);
 
     /// <summary>
     /// Updates an existing user's profile (name, email, and/or role).
@@ -48,7 +52,7 @@ public interface IUserManagementService
     /// </summary>
     /// <param name="dto">The update data including the current <c>UpdatedAt</c> timestamp.</param>
     /// <returns>A success/error tuple. Returns a conflict error if <c>UpdatedAt</c> mismatches.</returns>
-    Task<(bool Success, string? Error)> UpdateUserAsync(UpdateUserDto dto);
+    Task<(bool Success, ApplicationUser? user, string? Error)> UpdateUserAsync(UpdateUserDto dto);
 
     /// <summary>
     /// Soft-deletes a user by setting <c>DeletedAt</c> to the current UTC time.
@@ -57,7 +61,7 @@ public interface IUserManagementService
     /// </summary>
     /// <param name="userId">The ID of the user to soft-delete.</param>
     /// <returns>A success/error tuple.</returns>
-    Task<(bool Success, string? Error)> SoftDeleteUserAsync(Guid userId);
+    Task<(bool Success, ApplicationUser? user, string? Error)> SoftDeleteUserAsync(Guid userId);
 
     /// <summary>
     /// Disables a user account, preventing authentication.
@@ -67,7 +71,7 @@ public interface IUserManagementService
     /// <param name="userId">The ID of the user to disable.</param>
     /// <param name="updatedAt">The <c>UpdatedAt</c> timestamp from the client for concurrency checking.</param>
     /// <returns>A success/error tuple. Returns a conflict error if <c>UpdatedAt</c> mismatches.</returns>
-    Task<(bool Success, string? Error)> DisableUserAsync(Guid userId, DateTimeOffset updatedAt);
+    Task<(bool Success, ApplicationUser? user, string? Error)> DisableUserAsync(Guid userId, DateTimeOffset updatedAt);
 
     /// <summary>
     /// Re-enables a previously disabled user account.
@@ -76,7 +80,7 @@ public interface IUserManagementService
     /// <param name="userId">The ID of the user to reactivate.</param>
     /// <param name="updatedAt">The <c>UpdatedAt</c> timestamp from the client for concurrency checking.</param>
     /// <returns>A success/error tuple. Returns a conflict error if <c>UpdatedAt</c> mismatches.</returns>
-    Task<(bool Success, string? Error)> ReactivateUserAsync(Guid userId, DateTimeOffset updatedAt);
+    Task<(bool Success, ApplicationUser? user, string? Error)> ReactivateUserAsync(Guid userId, DateTimeOffset updatedAt);
 }
 
 /// <summary>Represents a single user record for display in the admin user management list.</summary>

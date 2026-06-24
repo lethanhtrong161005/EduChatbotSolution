@@ -225,7 +225,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
+    public async Task<SubjectMembership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
     {
         var subject = await _unitOfWork.Subjects.FindByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
@@ -251,6 +251,7 @@ public class SubjectService(
 
         // Check if user is already a member
         var existing = await _unitOfWork.SubjectMemberships.GetAsync(
+            includeProperties: [nameof(SubjectMembership.Subject), nameof(SubjectMembership.User)],
             filter: m => m.SubjectId == subjectId && m.UserId == userId);
 
         var existingList = existing.ToList();
@@ -258,7 +259,7 @@ public class SubjectService(
         {
             var membership = existingList[0];
             if (membership.Role == role)
-                return; // Role is already matching, no changes needed.
+                return membership; // Role is already matching, no changes needed.
 
             // Changing roles: Enforce Chief uniqueness if target role is Chief
             if (role == MembershipRole.Chief)
@@ -272,6 +273,8 @@ public class SubjectService(
             membership.Role = role;
             membership.AssignedAt = DateTime.UtcNow;
             _unitOfWork.SubjectMemberships.Update(membership);
+            await _unitOfWork.SaveAsync();
+            return membership;
         }
         else
         {
@@ -293,24 +296,26 @@ public class SubjectService(
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _unitOfWork.SubjectMemberships.InsertAsync(newMembership);
-        }
+            _unitOfWork.SubjectMemberships.Insert(newMembership);
+            await _unitOfWork.SaveAsync();
 
-        await _unitOfWork.SaveAsync();
+            return newMembership;
+        }
     }
 
     /// <inheritdoc/>
-    public async Task RemoveMemberAsync(int subjectId, Guid userId)
+    public async Task<SubjectMembership> RemoveMemberAsync(int subjectId, Guid userId)
     {
-        var existing = await _unitOfWork.SubjectMemberships.GetAsync(
-            filter: m => m.SubjectId == subjectId && m.UserId == userId);
+        var existing = (await _unitOfWork.SubjectMemberships
+            .GetAsync(
+                includeProperties: [nameof(SubjectMembership.Subject), nameof(SubjectMembership.User)],
+                filter: m => m.SubjectId == subjectId && m.UserId == userId))
+            .FirstOrDefault()
+            ?? throw new EntityNotFoundException("No membership matched the provided IDs.");
 
-        var existingList = existing.ToList();
-        if (existingList.Count > 0)
-        {
-            _unitOfWork.SubjectMemberships.Delete(existingList[0]);
-            await _unitOfWork.SaveAsync();
-        }
+        _unitOfWork.SubjectMemberships.Delete(existing);
+        await _unitOfWork.SaveAsync();
+        return existing;
     }
 
     /// <inheritdoc/>

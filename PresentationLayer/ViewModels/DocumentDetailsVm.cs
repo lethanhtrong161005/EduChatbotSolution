@@ -34,6 +34,8 @@ public class DocumentDetailsVm
 
     public DateTime UploadedAt { get; set; }
 
+    public Guid UploaderId { get; set; }
+
     public string UploadedBy { get; set; } = string.Empty;
 
     public string? ExtractedText { get; set; }

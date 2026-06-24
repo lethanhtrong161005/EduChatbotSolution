@@ -1,4 +1,5 @@
-@page "{handler?}"
+@page "{id:guid?}/{handler?}"
+@using System.Security.Claims
 @model Presentation.Pages.Documents.LibraryModel
 @{
     ViewData["Title"] = "Knowledge Base";
@@ -47,7 +48,7 @@
                         class="form-select">
 
                     <option value="">
-                        Choose a subject...
+                        Select Subject
                     </option>
 
                     @foreach (var subject in Model.ViewModel.Subjects)
@@ -70,7 +71,7 @@
                         disabled>
 
                     <option value="">
-                        All chapters
+                        Select Chapter
                     </option>
 
                 </select>
@@ -151,12 +152,20 @@
 
 </div>
 
+@Html.AntiForgeryToken()
+
 @section Scripts {
+
+    <script>
+        window.DocumentLibraryPage = {
+            userId: '@Model.User.FindFirstValue(ClaimTypes.NameIdentifier)',
+        };
+    </script>
 
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
 
     <script src="~/js/status-badge.js"></script>
-    <script src="~/js/document-library.js"></script>
     <script src="~/js/document-library-signalr.js"></script>
+    <script src="~/js/document-library.js"></script>
 
 }

@@ -76,12 +76,12 @@ public interface ISubjectService
     /// <summary>
     /// Assigns an active user to a subject with a specific membership role (Student, Lecturer, Chief).
     /// </summary>
-    Task AssignMemberAsync(int subjectId, Guid userId, MembershipRole role);
+    Task<SubjectMembership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role);
 
     /// <summary>
     /// Removes a user from a subject's membership.
     /// </summary>
-    Task RemoveMemberAsync(int subjectId, Guid userId);
+    Task<SubjectMembership> RemoveMemberAsync(int subjectId, Guid userId);
 
     /// <summary>
     /// Returns a list of active users that are eligible to be assigned to the subject (e.g. not already members).
