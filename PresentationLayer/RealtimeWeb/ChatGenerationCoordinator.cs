@@ -2,7 +2,9 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.SignalR;
+using NuGet.Common;
 using Presentation.DTOs;
 
 namespace Presentation.RealtimeWeb;
@@ -23,76 +25,84 @@ public class ChatGenerationCoordinator(
     private readonly IHubContext<AiChatHub, IAiChatClient> _chatHub = chatHub;
     private readonly IMapper _mapper = mapper;
 
-    public async Task GenerateAsync(
+    public async Task GenerateTitleAsync(
+        Guid sessionId,
+        CancellationToken cxlTkn = default)
+    {
+        var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(sessionId, 2, cxlTkn)
+                      ?? throw new EntityNotFoundException($"Could not find parent session. Provided ID: {sessionId}");
+
+        var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(session.SubjectId, cxlTkn);
+
+        var userMessage = session.Messages.First(e => e.ChatRole == ChatRole.User);
+        var assistantMessage = session.Messages.First(e => e.ChatRole == ChatRole.Assistant);
+
+        var request = new TitleGenerationRequest
+        {
+            UserMessage = userMessage.RawContent,
+            AssistantMessage = assistantMessage.RawContent,
+            Attachments = [],
+            Settings = new TitleGenerationSettings
+            {
+                LlmModel = aiConfig.LlmModel,
+                Temperature = aiConfig.TitleTemperature,
+                SystemPrompt = aiConfig.TitlePrompt,
+            },
+        };
+
+        var result = await _chatGenerationService.GenerateTitleAsync(request, cxlTkn);
+
+        await _chatPersistenceService.UpdateSessionTitleAsync(
+            session.Id,
+            result.Title,
+            request.Settings,
+            result.Metrics,
+            cxlTkn);
+
+        await _chatHub.Clients
+             .Group(HubGroups.Chat(sessionId))
+             .TitleGenerated(sessionId, result.Title);
+    }
+
+    public async Task GenerateChatAsync(
         Guid sessionId,
         Guid assistantMessageId,
+        Guid assistantMessageClientId,
         CancellationToken cxlTkn = default)
     {
         try
         {
-            var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(sessionId, cxlTkn);
-            if (session == null)
-                return;
+            var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(sessionId, cancellationToken: cxlTkn)
+                          ?? throw new EntityNotFoundException($"Could not find parent session. Provided ID: {sessionId}");
 
-            var targetAssistantMessage = session.Messages.FirstOrDefault(e => e.Id == assistantMessageId);
-            if (targetAssistantMessage == null)
-                return;
+            var targetAssistantMessage = session.Messages.FirstOrDefault(e => e.Id == assistantMessageId)
+                                         ?? throw new EntityNotFoundException($"Could not find target asssistant message. Provided ID: {assistantMessageId}");
+
+            if (targetAssistantMessage.Status != MessageStatus.Pending)
+                throw new InvalidOperationException("Assistant message is not pending content generation.");
 
             var allowedSubjectIds = session.SubjectId.HasValue
                 ? [session.SubjectId.Value]
                 : (await _subjectService.GetAccessibleSubjectsAsync(session.UserId, cxlTkn))
                     .Select(e => e.Id);
 
-            var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(session.SubjectId, cxlTkn);
+            var request = await BuildChatGenerationRequest(session, targetAssistantMessage, allowedSubjectIds, cxlTkn);
 
-            var chatHistory = session.Messages
-                .Where(e => e.Status == MessageStatus.Completed
-                            && e.SentAt < targetAssistantMessage.SentAt)
-                .OrderBy(e => e.SentAt)
-                .TakeLast(aiConfig.MaxHistoryMessages)
-                .Select(e => new ChatHistoryMessage
-                {
-                    ChatRole = e.ChatRole,
-                    Content = e.RawContent,
-                })
-                .ToList();
-
-            var latestUserMessage = chatHistory.Last(e => e.ChatRole == ChatRole.User);
-
-            var request = new ChatGenerationRequest
+            if (await _chatPersistenceService.UpdateAssistantMessageStatusAsync(
+                targetAssistantMessage.Id, MessageStatus.Generating, cxlTkn))
             {
-                UserMessage = latestUserMessage.Content,
-                AllowedSubjects = [.. allowedSubjectIds],
-                ChatHistory = chatHistory,
-                Settings = new ChatGenerationSettings
-                {
-                    EmbeddingModel = aiConfig.EmbeddingModel,
+                await _chatHub.Clients
+                           .Group(HubGroups.Chat(sessionId))
+                           .StreamingStarted(assistantMessageId, assistantMessageClientId);
+            }
 
-                    TopK = aiConfig.TopK,
-                    SimilarityThreshold = aiConfig.SimilarityThreshold,
-
-                    LlmModel = aiConfig.LlmModel,
-                    Temperature = aiConfig.Temperature,
-
-                    SystemPrompt = aiConfig.SystemPrompt,
-                    ContextPrompt = aiConfig.ContextPrompt,
-                    NoContextRetrievedPrompt = aiConfig.NoContextRetrievedPrompt,
-
-                    CitationExtractionTemperature = aiConfig.CitationExtractionTemperature,
-                    CitationExtractionPrompt = aiConfig.CitationExtractionPrompt,
-
-                    MaxContextChunks = aiConfig.MaxContextChunks,
-                    MaxHistoryMessages = aiConfig.MaxHistoryMessages,
-                }
-            };
-
-            var result = await _chatGenerationService.GenerateAsync(
+            var result = await _chatGenerationService.GenerateChatAsync(
                     request,
                     async token =>
                     {
                         await _chatHub.Clients
                             .Group(HubGroups.Chat(sessionId))
-                            .ReceiveToken(assistantMessageId, token);
+                            .ReceiveToken(assistantMessageId, assistantMessageClientId, token);
                     },
                     cxlTkn);
 
@@ -111,20 +121,69 @@ public class ChatGenerationCoordinator(
 
             await _chatHub.Clients
                 .Group(HubGroups.Chat(sessionId))
-                .GenerationCompleted(assistantMessageId, dto);
+                .GenerationCompleted(assistantMessageId, assistantMessageClientId, dto);
         }
         catch (Exception ex)
         {
+            await _chatPersistenceService.FailAssistantMessageAsync(assistantMessageId, ex.Message, cxlTkn);
+
             await _chatHub.Clients
                 .Group(HubGroups.Chat(sessionId))
-                .GenerationFailed(assistantMessageId, ex.Message);
-
-            await _chatPersistenceService.FailAssistantMessageAsync(
-                assistantMessageId,
-                ex.Message,
-                cxlTkn);
+                .GenerationFailed(assistantMessageId, assistantMessageClientId, ex.Message);
 
             throw;
         }
+    }
+
+    async Task<ChatGenerationRequest> BuildChatGenerationRequest(
+        ChatSession session,
+        ChatMessage targetAssistantMessage,
+        IEnumerable<int> allowedSubjectIds,
+        CancellationToken cxlTkn)
+    {
+        var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(session.SubjectId, cxlTkn);
+
+        var chatHistory = session.Messages
+            .Where(e => e.Status == MessageStatus.Completed
+                        && e.SentAt < targetAssistantMessage.SentAt)
+            .OrderBy(e => e.SentAt)
+            .TakeLast(aiConfig.MaxHistoryMessages)
+            .Select(e => new ChatHistoryMessage
+            {
+                ChatRole = e.ChatRole,
+                Content = e.RawContent,
+            })
+            .ToList();
+
+        var latestUserMessage = chatHistory.Last(e => e.ChatRole == ChatRole.User);
+
+        var request = new ChatGenerationRequest
+        {
+            UserMessage = latestUserMessage.Content,
+            AllowedSubjects = [.. allowedSubjectIds],
+            ChatHistory = chatHistory,
+            Settings = new ChatGenerationSettings
+            {
+                EmbeddingModel = aiConfig.EmbeddingModel,
+
+                TopK = aiConfig.TopK,
+                SimilarityThreshold = aiConfig.SimilarityThreshold,
+
+                LlmModel = aiConfig.LlmModel,
+                Temperature = aiConfig.ChatTemperature,
+
+                SystemPrompt = aiConfig.ChatPrompt,
+                ContextPrompt = aiConfig.ContextPrompt,
+                NoContextRetrievedPrompt = aiConfig.NoContextRetrievedPrompt,
+
+                CitationExtractionTemperature = aiConfig.CitationExtractionTemperature,
+                CitationExtractionPrompt = aiConfig.CitationExtractionPrompt,
+
+                MaxContextChunks = aiConfig.MaxContextChunks,
+                MaxHistoryMessages = aiConfig.MaxHistoryMessages,
+            }
+        };
+
+        return request;
     }
 }

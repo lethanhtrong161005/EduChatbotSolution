@@ -45,7 +45,7 @@ public enum ChatRole
 public enum MessageStatus
 {
     Pending,
-    Streaming,
+    Generating,
     Completed,
     Failed,
 }

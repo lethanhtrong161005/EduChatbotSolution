@@ -10,14 +10,18 @@ public class ChatSession : NaturalEntity
 
     public int? SubjectId { get; set; }
 
-    /// <summary>Gets or sets the optional conversation title.</summary>
-    public string? Title { get; set; }
+    /// <summary>Gets or sets the conversation title.</summary>
+    public string Title { get; set; } = string.Empty;
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the user who owns this conversation.</summary>
     public virtual ApplicationUser User { get; set; } = null!;
 
     public virtual Subject? Subject { get; set; } = null!;
+
+    public virtual ChatSessionTitleGenerationSettings TitleGenerationSettings { get; set; } = null!;
+
+    public virtual ChatSessionTitleGenerationMetrics TitleGenerationMetrics { get; set; } = null!;
 
     /// <summary>Gets or sets the messages in this conversation.</summary>
     public virtual ICollection<ChatMessage> Messages { get; set; } = [];

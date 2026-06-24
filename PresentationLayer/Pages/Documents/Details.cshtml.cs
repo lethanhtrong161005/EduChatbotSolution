@@ -182,10 +182,10 @@ public class DetailsModel(
     /// <param name="documentId">The document identifier.</param>
     /// <param name="pageIndex">The one-based page index requested by the client.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetChunksAsync([FromQuery] Guid documentId, [FromQuery] int pageIndex, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
     {
         var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
-            documentId,
+            id,
             PageSize,
             pageIndex,
             cxlTkn);

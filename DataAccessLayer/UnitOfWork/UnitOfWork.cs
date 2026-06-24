@@ -25,6 +25,8 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<ParsedSection>? _parsedSections;
     GenericRepository<Chunk>? _chunks;
     GenericRepository<ChatSession>? _chatSessions;
+    GenericRepository<ChatSessionTitleGenerationSettings>? _chatSessionTitleGenerationSettings;
+    GenericRepository<ChatSessionTitleGenerationMetrics>? _chatSessionTitleGenerationMetrics;
     GenericRepository<ChatMessage>? _chatMessages;
     GenericRepository<ChatMessageGenerationSettings>? _chatMessageGenerationSettings;
     GenericRepository<ChatMessageGenerationMetrics>? _chatMessageGenerationMetrics;
@@ -64,6 +66,10 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<Chunk> Chunks => _chunks ??= new GenericRepository<Chunk>(context);
     /// <inheritdoc/>
     public GenericRepository<ChatSession> ChatSessions => _chatSessions ??= new GenericRepository<ChatSession>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ChatSessionTitleGenerationSettings> ChatSessionTitleGenerationSettings => _chatSessionTitleGenerationSettings ??= new GenericRepository<ChatSessionTitleGenerationSettings>(context);
+    /// <inheritdoc/>
+    public GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics => _chatSessionTitleGenerationMetrics ??= new GenericRepository<ChatSessionTitleGenerationMetrics>(context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(context);
     /// <inheritdoc/>

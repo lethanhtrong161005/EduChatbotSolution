@@ -2,7 +2,8 @@
 
     MessageStatus: Object.freeze({
         Pending: 0,
-        Streaming: 1,
+        Generating: 1,
+        Streaming: 101,
         Completed: 2,
         Failed: 3,
     }),

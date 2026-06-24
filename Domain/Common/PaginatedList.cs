@@ -9,6 +9,7 @@ public class PaginatedList<T> : List<T>
     public int PageSize { get; private set; }
     public int PageIndex { get; private set; }
     public int TotalPages { get; private set; }
+    public int TotalCount { get; private set; }
 
     public PaginatedList() { }
 
@@ -21,6 +22,7 @@ public class PaginatedList<T> : List<T>
             PageSize = pageSize;
             PageIndex = pageIndex;
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
+            TotalCount = count;
         }
     }
 
@@ -28,7 +30,7 @@ public class PaginatedList<T> : List<T>
     {
         return new PaginatedList<T>(
             [.. enumerable.Items],
-            enumerable.Items.Count(),
+            enumerable.TotalCount,
             enumerable.PageSize,
             enumerable.PageIndex);
     }

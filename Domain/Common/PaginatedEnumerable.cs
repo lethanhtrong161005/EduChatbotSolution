@@ -8,6 +8,7 @@ public class PaginatedEnumerable<T> : IEnumerable<T>
     public int PageSize { get; private set; }
     public int PageIndex { get; private set; }
     public int TotalPages { get; private set; }
+    public int TotalCount { get; private set; }
 
     public PaginatedEnumerable() { }
 
@@ -20,6 +21,7 @@ public class PaginatedEnumerable<T> : IEnumerable<T>
             PageSize = pageSize;
             PageIndex = pageIndex;
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
+            TotalCount = count;
         }
     }
 

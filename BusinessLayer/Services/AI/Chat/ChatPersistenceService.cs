@@ -15,31 +15,66 @@ public class ChatPersistenceService(
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMapper _mapper = mapper;
 
-    public async Task<ChatSession?> GetSessionByIdAsync(
+    public async Task<ChatSessionInfo?> GetSessionInfoByIdAsync(
         Guid id,
-        CancellationToken cancellationToken = default)
+        CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.ChatSessions.FindByIdAsync(id, cancellationToken);
+        return (await _unitOfWork.ChatSessions.GetAsync(
+             preFilter: e => e.Id == id,
+             projection: e => new ChatSessionInfo
+             {
+                 Id = e.Id,
+                 UserId = e.UserId,
+                 SubjectId = e.SubjectId,
+                 Title = e.Title,
+                 LastMessageAt = e.Messages.Max(e => (DateTime?)e.SentAt) ?? e.CreatedAt,
+                 MessageCount = e.Messages.Count,
+             },
+             asNoTracking: true,
+             cancellationToken: cxlTkn))
+             .FirstOrDefault();
+    }
+
+    public async Task<IEnumerable<ChatSessionInfo>> GetSessionInfosByUserAsync(
+        Guid userId,
+        CancellationToken cxlTkn = default)
+    {
+        return await _unitOfWork.ChatSessions.GetAsync(
+            preFilter: e => e.UserId == userId,
+            projection: e => new ChatSessionInfo
+            {
+                Id = e.Id,
+                UserId = e.UserId,
+                SubjectId = e.SubjectId,
+                Title = e.Title,
+                LastMessageAt = e.Messages.Max(e => (DateTime?)e.SentAt) ?? e.CreatedAt,
+                MessageCount = e.Messages.Count,
+            },
+            orderBy: q => q.OrderByDescending(x => x.LastMessageAt),
+            asNoTracking: true,
+            cancellationToken: cxlTkn);
     }
 
     public async Task<ChatSession?> GetSessionWithMessagesByIdAsync(
-       Guid id,
-       CancellationToken cancellationToken = default)
+        Guid id,
+        int? limit = null,
+        CancellationToken cxlTkn = default)
     {
         var session = (await _unitOfWork.ChatSessions.GetAsync(
             filter: e => e.Id == id,
             asNoTracking: true,
-            cancellationToken: cancellationToken))
+            cancellationToken: cxlTkn))
             .FirstOrDefault();
 
-        session?.Messages = [.. await GetMessagesBySessionAsync(id, cancellationToken)];
+        session?.Messages = [.. await GetMessagesBySessionAsync(id, limit, cxlTkn)];
 
         return session;
     }
 
     private async Task<IEnumerable<ChatMessage>> GetMessagesBySessionAsync(
         Guid sessionId,
-        CancellationToken cancellationToken = default)
+        int? limit = null,
+        CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.ChatMessages.GetAsync(
             includeProperties:
@@ -50,34 +85,16 @@ public class ChatPersistenceService(
             ],
             filter: e => e.ChatSessionId == sessionId,
             orderBy: q => q.OrderBy(e => e.SentAt),
+            paginationSettings: limit.HasValue ? (limit.Value, 1) : (0, 0),
             asNoTracking: true,
-            cancellationToken: cancellationToken);
-    }
-
-    public async Task<IEnumerable<ChatSessionHeader>> GetSessionHeadersByUserAsync(
-          Guid userId,
-          CancellationToken cancellationToken = default)
-    {
-        var sessionHeaders = await _unitOfWork.ChatSessions.GetAsync(
-            preFilter: e => e.UserId == userId,
-            projection: e => new ChatSessionHeader
-            {
-                Id = e.Id,
-                Title = e.Title ?? string.Empty,
-                LastMessageAt = e.Messages.Max(e => (DateTime?)e.SentAt) ?? e.CreatedAt,
-            },
-            orderBy: q => q.OrderByDescending(x => x.LastMessageAt),
-            asNoTracking: true,
-            cancellationToken: cancellationToken);
-
-        return sessionHeaders;
+            cancellationToken: cxlTkn);
     }
 
     public async Task<ChatSession> CreateSessionAsync(
-          Guid userId,
-          int? subjectId,
-          string? title,
-          CancellationToken cancellationToken = default)
+        Guid userId,
+        int? subjectId,
+        string title,
+        CancellationToken cancellationToken = default)
     {
         var newSession = _unitOfWork.ChatSessions.Insert(
             new ChatSession
@@ -92,38 +109,56 @@ public class ChatPersistenceService(
     }
 
     public async Task<ChatSession> UpdateSessionTitleAsync(
-           Guid sessionId,
-           string title,
-           CancellationToken cancellationToken = default)
+        Guid sessionId,
+        string title,
+        TitleGenerationSettings settings,
+        TitleGenerationMetrics metrics,
+        CancellationToken cxlTkn = default)
     {
-        var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cancellationToken)
+        if (title == string.Empty)
+            throw new EntityConstraintException("Title must not be empty");
+
+        var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cxlTkn)
                       ?? throw new EntityNotFoundException("No chat session matched the provided ID.");
 
         session.Title = title;
 
-        var updatedSession = _unitOfWork.ChatSessions.Update(session);
-        await _unitOfWork.SaveAsync(cancellationToken);
+        session.TitleGenerationSettings = new ChatSessionTitleGenerationSettings
+        {
+            LlmModel = settings.LlmModel,
+            Temperature = settings.Temperature,
+            SystemPrompt = settings.SystemPrompt,
+        };
 
-        return updatedSession;
+        session.TitleGenerationMetrics = new ChatSessionTitleGenerationMetrics
+        {
+            PromptTokens = metrics.PromptTokens,
+            CompletionTokens = metrics.CompletionTokens,
+            ResponseTimeMs = metrics.ResponseTimeMs,
+        };
+
+        await _unitOfWork.SaveAsync(cxlTkn);
+
+        return session;
     }
 
     public async Task DeleteSessionAsync(
-          Guid sessionId,
-          CancellationToken cancellationToken = default)
+        Guid sessionId,
+        CancellationToken cxlTkn = default)
     {
-        var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cancellationToken)
+        var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cxlTkn)
                       ?? throw new EntityNotFoundException("No chat session matched the provided ID.");
 
         _unitOfWork.ChatSessions.Delete(session);
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await _unitOfWork.SaveAsync(cxlTkn);
     }
 
 
 
     public async Task<ResolvedChatMessage> CreateUserMessageAsync(
-          Guid sessionId,
-          string content,
-          CancellationToken cancellationToken = default)
+        Guid sessionId,
+        string content,
+        CancellationToken cxlTkn = default)
     {
         var newMessage = _unitOfWork.ChatMessages.Insert(
             new ChatMessage
@@ -136,7 +171,7 @@ public class ChatPersistenceService(
                 Status = MessageStatus.Completed,
             });
 
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await _unitOfWork.SaveAsync(cxlTkn);
 
         var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
 
@@ -145,7 +180,7 @@ public class ChatPersistenceService(
 
     public async Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
         Guid sessionId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cxlTkn = default)
     {
         var newMessage = _unitOfWork.ChatMessages.Insert(
             new ChatMessage
@@ -156,11 +191,39 @@ public class ChatPersistenceService(
                 Status = MessageStatus.Pending,
             });
 
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await _unitOfWork.SaveAsync(cxlTkn);
 
         var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
 
         return dto;
+    }
+
+    public async Task<bool> UpdateAssistantMessageStatusAsync(
+        Guid messageId,
+        MessageStatus status,
+        CancellationToken cxlTkn = default)
+    {
+        var message = (await _unitOfWork.ChatMessages.GetAsync(
+            filter: e => e.Id == messageId,
+            cancellationToken: cxlTkn))
+            .FirstOrDefault()
+            ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
+
+        var oldStatus = message.Status;
+
+        if (status == oldStatus)
+            return false;
+
+        if ((status == MessageStatus.Generating && oldStatus != MessageStatus.Pending)
+            || (status == MessageStatus.Pending && oldStatus == MessageStatus.Generating))
+        {
+            throw new InvalidOperationException($"Cannot transition from {oldStatus} to {status}.");
+        }
+
+        message.Status = status;
+
+        await _unitOfWork.SaveAsync(cxlTkn);
+        return true;
     }
 
     public async Task<ResolvedChatMessage> CompleteAssistantMessageAsync(
@@ -172,15 +235,15 @@ public class ChatPersistenceService(
         IReadOnlyList<ChunkUsage> chunkUsages,
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,
-        CancellationToken cancellationToken = default)
+        CancellationToken cxlTkn = default)
     {
-        var resolvedCitations = await ResolveCitationsAsync(chunkUsages, cancellationToken);
-
         var message = (await _unitOfWork.ChatMessages.GetAsync(
             filter: e => e.Id == messageId,
-            cancellationToken: cancellationToken))
+            cancellationToken: cxlTkn))
             .FirstOrDefault()
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
+
+        var resolvedCitations = await ResolveCitationsAsync(chunkUsages, cxlTkn);
 
         message.Content = content;
         message.RawContent = rawContent;
@@ -230,7 +293,7 @@ public class ChatPersistenceService(
                         LocationInDocument = c.LocationInDocument,
                     })];
 
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await _unitOfWork.SaveAsync(cxlTkn);
 
         var dto = new ResolvedChatMessage
         {
@@ -247,8 +310,8 @@ public class ChatPersistenceService(
     }
 
     private async Task<IReadOnlyList<ResolvedCitation>> ResolveCitationsAsync(
-          IEnumerable<ChunkUsage> chunkUsages,
-          CancellationToken cancellationToken = default)
+        IEnumerable<ChunkUsage> chunkUsages,
+        CancellationToken cxlTkn = default)
     {
         var chunkIds = chunkUsages
             .Select(c => c.ChunkId)
@@ -258,7 +321,7 @@ public class ChatPersistenceService(
         var chunks = await _unitOfWork.Chunks.GetAsync(
             filter: e => chunkIds.Contains(e.Id),
             includeProperties: [nameof(Chunk.Document)],
-            cancellationToken: cancellationToken);
+            cancellationToken: cxlTkn);
 
         var chunkLookup = chunks.ToDictionary(c => c.Id, c => c);
 
@@ -308,9 +371,8 @@ public class ChatPersistenceService(
         string generationErrors,
         CancellationToken cxlTkn = default)
     {
-        var message = await _unitOfWork.ChatMessages.FindByIdAsync(messageId, cxlTkn);
-        if (message == null)
-            return;
+        var message = await _unitOfWork.ChatMessages.FindByIdAsync(messageId, cxlTkn)
+                      ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         message.Status = MessageStatus.Failed;
         message.GenerationErrors = generationErrors;

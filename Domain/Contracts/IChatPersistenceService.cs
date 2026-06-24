@@ -5,34 +5,35 @@ namespace Domain.Contracts;
 
 public interface IChatPersistenceService
 {
-    Task<ChatSession?> GetSessionByIdAsync(
+    Task<ChatSessionInfo?> GetSessionInfoByIdAsync(
         Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<ChatSessionInfo>> GetSessionInfosByUserAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     Task<ChatSession?> GetSessionWithMessagesByIdAsync(
         Guid id,
-        CancellationToken cancellationToken = default);
-
-    Task<IEnumerable<ChatSessionHeader>> GetSessionHeadersByUserAsync(
-        Guid userId,
+        int? limit = null,
         CancellationToken cancellationToken = default);
 
     Task<ChatSession> CreateSessionAsync(
         Guid userId,
         int? subjectId,
-        string? title,
+        string title,
         CancellationToken cancellationToken = default);
 
     Task<ChatSession> UpdateSessionTitleAsync(
         Guid sessionId,
         string title,
+        TitleGenerationSettings settings,
+        TitleGenerationMetrics metrics,
         CancellationToken cancellationToken = default);
 
     Task DeleteSessionAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default);
-
-
 
     Task<ResolvedChatMessage> CreateUserMessageAsync(
         Guid sessionId,
@@ -41,6 +42,11 @@ public interface IChatPersistenceService
 
     Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
         Guid sessionId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateAssistantMessageStatusAsync(
+        Guid messageId,
+        MessageStatus status,
         CancellationToken cancellationToken = default);
 
     Task<ResolvedChatMessage> CompleteAssistantMessageAsync(

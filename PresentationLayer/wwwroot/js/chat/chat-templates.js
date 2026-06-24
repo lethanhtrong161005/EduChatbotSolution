@@ -240,27 +240,24 @@
             case ChatEnums.MessageStatus.Pending:
 
                 return `
-                <div class="assistant-loading flex gap-1 items-center min-h-6">
-                    <span class="w-2 h-2 rounded-full bg-muted"></span>
-                    <span class="w-2 h-2 rounded-full bg-muted"></span>
-                    <span class="w-2 h-2 rounded-full bg-muted"></span>
-                </div>
-            `;
+                    <div class="assistant-loading flex gap-1 items-center min-h-6">
+                        <span class="w-2 h-2 rounded-full bg-muted"></span>
+                        <span class="w-2 h-2 rounded-full bg-muted"></span>
+                        <span class="w-2 h-2 rounded-full bg-muted"></span>
+                    </div>
+                `;
+
+            case ChatEnums.MessageStatus.Generating:
+
+                return renderAnimatedText("Reading course materials...");
 
             case ChatEnums.MessageStatus.Streaming:
 
                 if (!message.getContent().trim()) {
-                    return `
-                    <div class="assistant-thinking flex gap-0 items-center min-h-6">
-                        <span class="text-foreground">T</span>
-                        <span class="text-foreground">h</span>
-                        <span class="text-foreground">in</span>
-                        <span class="text-foreground">k</span>
-                        <span class="text-foreground">in</span>
-                        <span class="text-foreground">g</span>
-                    </div>
-                    `;
+                    return renderAnimatedText("Thinking...");
                 }
+
+                return marked.parse(message.getContent() ?? "");
 
             case ChatEnums.MessageStatus.Completed:
 
@@ -269,8 +266,7 @@
             case ChatEnums.MessageStatus.Failed:
 
                 return `
-                    ${marked.parse(message.getContent() ?? "")}
-                    <hr>
+                    ${marked.parse((content = message.getContent()) ? content + "\n\n-- -\n\n" : "")}
                     <div class="prose prose-error max-w-none wrap-normal md:wrap-anywhere">
                         \n\n⚠ Generation failed.\n\n
                         ${marked.parse(message.generationErrors ?? "")}
@@ -279,12 +275,23 @@
         }
     }
 
-    const citationRegex = /\[\[(\d+)\]\]/gm;
+    function renderAnimatedText(text) {
+
+        return `
+            <div class="assistant-working flex flex-wrap items-center min-h-6">
+                ${[...text].map((ch, i) => `
+                    <span style="animation-delay:${i * 0.05}s">
+                        ${ch === " " ? "&nbsp;" : ch}
+                    </span>
+                `).join("")}
+            </div>
+        `;
+    }
 
     function renderInlineCitationMarker(content) {
 
         return content.replaceAll(
-            citationRegex,
+            /\[\[(\d+)\]\]/g,
             `<sup class="message-inline-citation" data-citation-index="$1">[$1]</sup>`);
     }
 
@@ -436,7 +443,7 @@
                 : ""}
 
             ${citation._snippet
-            ? `
+                ? `
                     <div class="mt-3 text-sm whitespace-pre-wrap">${escapeHtml(citation._snippet) + trailing}</div>
                 `
                 : ""}

@@ -13,7 +13,7 @@ public class ChatMappingProfile : Profile
         /* Page shell */
         CreateMap<Subject, SubjectHeaderDto>();
 
-        CreateMap<ChatSessionHeader, SessionHeaderDto>()
+        CreateMap<ChatSessionInfo, SessionHeaderDto>()
             .ForMember(dest => dest.Title, opts => opts.MapFrom(src => !string.IsNullOrWhiteSpace(src.Title) ? src.Title : $"Conversation {src.Id}"));
 
         /* New session */

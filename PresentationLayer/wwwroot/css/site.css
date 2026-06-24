@@ -230,39 +230,19 @@ body {
     }
 }
 
-.assistant-thinking span {
-    animation: thinkingText 2s infinite;
+.assistant-working span {
+    animation: letterWave 1.2s ease-in-out infinite;
 }
 
-    .assistant-thinking span:nth-child(5n+1) {
-        animation-delay: 0s;
+@keyframes letterWave {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.7;
     }
 
-    .assistant-thinking span:nth-child(5n+2) {
-        animation-delay: 0.4s;
-    }
-
-    .assistant-thinking span:nth-child(5n+3) {
-        animation-delay: 0.8s;
-    }
-
-    .assistant-thinking span:nth-child(5n+4) {
-        animation-delay: 1.2s;
-    }
-
-    .assistant-thinking span:nth-child(5n+5) {
-        animation-delay: 1.6s;
-    }
-
-@keyframes thinkingText {
-    0%, 80%, 100% {
-        opacity: .6;
-        transform: scale(.95);
-    }
-
-    40% {
+    30% {
+        transform: translateY(-4px);
         opacity: 1;
-        transform: scale(1);
     }
 }
 

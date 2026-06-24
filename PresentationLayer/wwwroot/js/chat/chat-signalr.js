@@ -11,44 +11,60 @@
             .withAutomaticReconnect()
             .build();
 
+        connection.on("TitleGenerated",
+            (sessionId, title) => {
+
+                $(document).trigger(
+                    "chat:title",
+                    [sessionId, title]);
+            });
+
+        connection.on("StreamingStarted",
+            (assistantMessageId, assistantMessageClientId) => {
+
+                $(document).trigger(
+                    "chat:stream",
+                    [assistantMessageId, assistantMessageClientId]);
+            });
+
         connection.on("ReceiveToken",
-            (assistantMessageId, token) => {
+            (assistantMessageId, assistantMessageClientId, token) => {
 
                 $(document).trigger(
                     "chat:token",
-                    [assistantMessageId, token]);
+                    [assistantMessageId, assistantMessageClientId, token]);
             });
 
         connection.on("GenerationCompleted",
-            (assistantMessageId, chatMessageDto) => {
+            (assistantMessageId, assistantMessageClientId, chatMessageDto) => {
 
                 $(document).trigger(
                     "chat:completed",
-                    [assistantMessageId, chatMessageDto]);
+                    [assistantMessageId, assistantMessageClientId, chatMessageDto]);
             });
 
         connection.on("GenerationFailed",
-            (assistantMessageId, error) => {
+            (assistantMessageId, assistantMessageClientId, error) => {
 
                 $(document).trigger(
                     "chat:failed",
-                    [assistantMessageId, error]);
+                    [assistantMessageId, assistantMessageClientId, error]);
             });
 
         await connection.start();
     }
 
-    async function switchSession(oldSessionId, newSessionId) {
+    async function switchSession(sessionId) {
 
         if (activeSessionId)
             await connection.invoke(
                 "SwitchSession",
                 activeSessionId,
-                activeSessionId = newSessionId);
+                activeSessionId = sessionId);
         else
             await connection.invoke(
                 "JoinSession",
-                activeSessionId = newSessionId);
+                activeSessionId = sessionId);
     }
 
     return {

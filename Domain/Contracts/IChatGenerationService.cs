@@ -4,7 +4,11 @@ namespace Domain.Contracts;
 
 public interface IChatGenerationService
 {
-    Task<ChatGenerationResult> GenerateAsync(
+    Task<TitleGenerationResult> GenerateTitleAsync(
+        TitleGenerationRequest request, 
+        CancellationToken cancellationToken = default);
+
+    Task<ChatGenerationResult> GenerateChatAsync(
         ChatGenerationRequest request,
         Func<string, Task> onToken,
         CancellationToken cancellationToken = default);

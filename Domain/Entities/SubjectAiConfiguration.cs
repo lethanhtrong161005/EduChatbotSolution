@@ -12,13 +12,17 @@ public class SubjectAiConfiguration : CategoryLikeEntity
 
     public string? LlmModel { get; set; }
 
-    public float? Temperature { get; set; }
+    public float? ChatTemperature { get; set; }
 
-    public string? SystemPrompt { get; set; }
+    public string? ChatPrompt { get; set; }
 
     public string? ContextPrompt { get; set; }
 
     public string? NoContextRetrievedPrompt { get; set; }
+
+    public float? TitleTemperature { get; set; }
+
+    public string? TitlePrompt { get; set; }
 
     public float? CitationExtractionTemperature { get; set; }
 

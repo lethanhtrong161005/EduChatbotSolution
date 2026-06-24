@@ -42,13 +42,13 @@ public class AiConfigurationResolver(IUnitOfWork unitOfWork) : IAiConfigurationR
                 subjectConfig?.LlmModel
                 ?? globalConfig.LlmModel,
 
-            Temperature =
-                subjectConfig?.Temperature
-                ?? globalConfig.Temperature,
+            ChatTemperature =
+                subjectConfig?.ChatTemperature
+                ?? globalConfig.ChatTemperature,
 
-            SystemPrompt =
-                subjectConfig?.SystemPrompt
-                ?? globalConfig.SystemPrompt,
+            ChatPrompt =
+                subjectConfig?.ChatPrompt
+                ?? globalConfig.ChatPrompt,
 
             ContextPrompt =
                 subjectConfig?.ContextPrompt
@@ -57,6 +57,14 @@ public class AiConfigurationResolver(IUnitOfWork unitOfWork) : IAiConfigurationR
             NoContextRetrievedPrompt =
                 subjectConfig?.NoContextRetrievedPrompt
                 ?? globalConfig.NoContextRetrievedPrompt,
+
+            TitleTemperature =
+                subjectConfig?.TitleTemperature
+                ?? globalConfig.TitleTemperature,
+
+            TitlePrompt =
+                subjectConfig?.TitlePrompt
+                ?? globalConfig.TitlePrompt,
 
             CitationExtractionTemperature =
                 subjectConfig?.CitationExtractionTemperature

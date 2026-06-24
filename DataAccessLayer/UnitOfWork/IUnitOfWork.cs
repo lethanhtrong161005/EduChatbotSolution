@@ -44,8 +44,10 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Document"/> entities.</summary>
     GenericRepository<Document> Documents { get; }
 
+    /// <summary>Gets the repository for <see cref="DocumentComment"/> entities.</summary>
     GenericRepository<DocumentComment> DocumentComments { get; }
 
+    /// <summary>Gets the repository for <see cref="ParsedSection"/> entities.</summary>
     GenericRepository<ParsedSection> ParsedSections { get; }
 
     /// <summary>Gets the repository for <see cref="Chunk"/> entities.</summary>
@@ -54,6 +56,12 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     // ── Conversations ────────────────────────────────────────
     /// <summary>Gets the repository for <see cref="ChatSession"/> entities.</summary>
     GenericRepository<ChatSession> ChatSessions { get; }
+
+    /// <summary>Gets the repository for <see cref="Domain.Entities.ChatSessionTitleGenerationSettings"/> entities.</summary>
+    GenericRepository<ChatSessionTitleGenerationSettings> ChatSessionTitleGenerationSettings { get; }
+
+    /// <summary>Gets the repository for <see cref="Domain.Entities.ChatSessionTitleGenerationMetrics"/> entities.</summary>
+    GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics { get; }
 
     /// <summary>Gets the repository for <see cref="ChatMessage"/> entities.</summary>
     GenericRepository<ChatMessage> ChatMessages { get; }

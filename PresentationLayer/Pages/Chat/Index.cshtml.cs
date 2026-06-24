@@ -5,6 +5,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using OllamaSharp.Models.Chat;
 using Presentation.Constants;
 using Presentation.DTOs;
 using Presentation.Extensions;
@@ -51,7 +52,7 @@ public class IndexModel(
 
         if (id.HasValue)
         {
-            var session = await _chatPersistenceService.GetSessionByIdAsync(id.Value, cxlTkn);
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(id.Value, cxlTkn);
 
             if (session == null || session.UserId != userId)
             {
@@ -95,7 +96,7 @@ public class IndexModel(
         try
         {
             var userId = User.GetUserId();
-            var sessions = await _chatPersistenceService.GetSessionHeadersByUserAsync(userId, cxlTkn);
+            var sessions = await _chatPersistenceService.GetSessionInfosByUserAsync(userId, cxlTkn);
             var res = _mapper.Map<List<SessionHeaderDto>>(sessions);
             return new JsonResult(res);
         }
@@ -112,7 +113,7 @@ public class IndexModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     public async Task<IActionResult> OnGetGetSessionAsync([FromQuery] Guid id, CancellationToken cxlTkn)
     {
-        var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(id, cxlTkn);
+        var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(id, cancellationToken: cxlTkn);
 
         if (session == null || session.UserId != User.GetUserId())
             return NotFound();
@@ -126,7 +127,9 @@ public class IndexModel(
     /// </summary>
     /// <param name="req">Session creation request.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnPostCreateSessionAsync([FromForm] CreateChatSessionRequest req, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnPostCreateSessionAsync(
+        [FromForm] CreateChatSessionRequest req,
+        CancellationToken cxlTkn)
     {
         try
         {
@@ -148,7 +151,9 @@ public class IndexModel(
             var session = await _chatPersistenceService.CreateSessionAsync(
                 userId,
                 req.SubjectId,
-                $"Session {DateTime.UtcNow:f}",
+                !string.IsNullOrWhiteSpace(req.MessageContent)
+                    ? GetMessageSnippet(req.MessageContent)
+                    : $"Session {DateTime.UtcNow:f}",
                 cxlTkn);
 
             var res = _mapper.Map<CreateChatSessionResponse>(session);
@@ -158,6 +163,12 @@ public class IndexModel(
         {
             return Unauthorized();
         }
+
+        static string GetMessageSnippet(string content)
+        {
+            content = content[..Math.Min(30, content.Length)];
+            return content[..content.LastIndexOf(' ')];
+        }
     }
 
     /// <summary>
@@ -165,12 +176,14 @@ public class IndexModel(
     /// </summary>
     /// <param name="req">Message generation request.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnPostGenerateAsync([FromForm] GenerateChatRequest req, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnPostGenerateAsync(
+        [FromForm] GenerateChatRequest req,
+        CancellationToken cxlTkn)
     {
         try
         {
             var userId = User.GetUserId();
-            var session = await _chatPersistenceService.GetSessionByIdAsync(req.SessionId, cxlTkn);
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(req.SessionId, cxlTkn);
 
             if (session == null || session.UserId != userId)
                 return NotFound();
@@ -178,9 +191,17 @@ public class IndexModel(
             var userMessage = await _chatPersistenceService.CreateUserMessageAsync(req.SessionId, req.Content, cxlTkn);
             var assistantMessage = await _chatPersistenceService.CreateStreamingAssistantMessageAsync(req.SessionId, cxlTkn);
 
-            BackgroundJob.Enqueue<IChatGenerationCoordinator>(
+            var chatJob = BackgroundJob.Enqueue<IChatGenerationCoordinator>(
                 HangfireConstants.HighPriorityQueue,
-                e => e.GenerateAsync(req.SessionId, assistantMessage.Id));
+                e => e.GenerateChatAsync(req.SessionId, assistantMessage.Id, req.AssistantMessageClientId));
+
+            if (session.MessageCount == 0)
+            {
+                BackgroundJob.ContinueJobWith<IChatGenerationCoordinator>(
+                    chatJob,
+                    HangfireConstants.MediumPriorityQueue,
+                    e => e.GenerateTitleAsync(session.Id));
+            }
 
             return new JsonResult(new GenerateChatResponse
             {

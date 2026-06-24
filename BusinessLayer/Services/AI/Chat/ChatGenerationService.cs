@@ -19,27 +19,85 @@ public class ChatGenerationService(
     private static readonly Regex CitationRegex = ChatGenerationServiceRegexes.CitationRegex();
     private static readonly Regex ConsecutiveWhitespaceRegex = ChatGenerationServiceRegexes.ConsecutiveWhitespaceRegex();
 
-    public async Task<ChatGenerationResult> GenerateAsync(
-        ChatGenerationRequest request,
-        Func<string, Task> onToken,
+    public async Task<TitleGenerationResult> GenerateTitleAsync(
+        TitleGenerationRequest req,
         CancellationToken cxlTkn = default)
     {
-        var chunkRetrievals = await RetrieveChunksAsync(request, cxlTkn);
-        var chunkRetrievalsInContext = chunkRetrievals.Take(request.Settings.MaxContextChunks).ToList();
-
-        var chatMessages = GetChatMessages(request, chunkRetrievalsInContext, [.. request.ChatHistory]);
+        var chatMessages = GetTitleChatMessages(req);
 
         var chatOpts = new ChatOptions
         {
-            Temperature = request.Settings.Temperature,
+            Temperature = req.Settings.Temperature,
             Reasoning = new ReasoningOptions
             {
-                Effort = ReasoningEffort.Medium,
+                Effort = ReasoningEffort.Low,
                 Output = ReasoningOutput.None,
             },
         };
 
-        var chatClient = _chatClientFactory.GetChatClient(request.Settings.LlmModel);
+        var chatClient = _chatClientFactory.GetChatClient(req.Settings.LlmModel);
+
+        var response = await chatClient.GetResponseAsync(chatMessages, chatOpts, cxlTkn);
+
+        var result = new TitleGenerationResult
+        {
+            Title = response.Text,
+            Metrics = new TitleGenerationMetrics
+            {
+                PromptTokens = 0,
+                CompletionTokens = 0,
+                ResponseTimeMs = 0,
+            },
+        };
+
+        return result;
+    }
+
+    private static List<ChatMessage> GetTitleChatMessages(TitleGenerationRequest req)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("User:");
+        sb.AppendLine(req.UserMessage);
+        sb.AppendLine();
+
+        sb.AppendLine("Assistant:");
+        sb.AppendLine(req.AssistantMessage);
+        sb.AppendLine();
+
+        var input = sb.ToString();
+
+        return
+        [
+            new(ChatRole.System, req.Settings.SystemPrompt),
+            new(ChatRole.User, input),
+        ];
+    }
+
+    public async Task<ChatGenerationResult> GenerateChatAsync(
+        ChatGenerationRequest req,
+        Func<string, Task> onToken,
+        CancellationToken cxlTkn = default)
+    {
+        var chunkRetrievals = await RetrieveChunksAsync(req, cxlTkn);
+        var chunkRetrievalsInContext = chunkRetrievals.Take(req.Settings.MaxContextChunks).ToList();
+
+        var chatMessages = GetChatMessages(
+            req,
+            chunkRetrievalsInContext,
+            [.. req.ChatHistory]);
+
+        var chatOpts = new ChatOptions
+        {
+            Temperature = req.Settings.Temperature,
+            Reasoning = new ReasoningOptions
+            {
+                Effort = ReasoningEffort.Low,
+                Output = ReasoningOutput.None,
+            },
+        };
+
+        var chatClient = _chatClientFactory.GetChatClient(req.Settings.LlmModel);
 
         var rawAnswerSb = new StringBuilder();
 
@@ -51,9 +109,7 @@ public class ChatGenerationService(
 
         var rawAnswer = rawAnswerSb.ToString();
 
-        var (processedAnswer, chunkUsages) = ProcessAnswer(
-            rawAnswer,
-            chunkRetrievalsInContext);
+        var (processedAnswer, chunkUsages) = ProcessAnswer(rawAnswer, chunkRetrievalsInContext);
 
         return new ChatGenerationResult
         {
@@ -75,32 +131,32 @@ public class ChatGenerationService(
     }
 
     private async Task<IReadOnlyList<ChunkRetrieval>> RetrieveChunksAsync(
-        ChatGenerationRequest request,
+        ChatGenerationRequest req,
         CancellationToken cxlTkn)
     {
         var embedResult = await _embedder.EmbedAsync(
-            [request.UserMessage],
-            request.Settings.EmbeddingModel,
+            [req.UserMessage],
+            req.Settings.EmbeddingModel,
             cxlTkn);
 
         var embedding = embedResult.Vectors[0];
 
         return await _vectorSearcher.SimilaritySearchCosineDistance(
             embedding,
-            request.Settings.TopK,
-            request.Settings.SimilarityThreshold,
-            request.AllowedSubjects,
+            req.Settings.TopK,
+            req.Settings.SimilarityThreshold,
+            req.AllowedSubjects,
             cxlTkn);
     }
 
     private static List<ChatMessage> GetChatMessages(
-        ChatGenerationRequest request,
+        ChatGenerationRequest req,
         List<ChunkRetrieval> chunkRetrievalsInContext,
         List<ChatHistoryMessage> chatHistory)
     {
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, request.Settings.SystemPrompt),
+            new(ChatRole.System, req.Settings.SystemPrompt),
             new(ChatRole.System, BuildContext())
         };
 
@@ -123,12 +179,12 @@ public class ChatGenerationService(
         {
             if (chunkRetrievalsInContext.Count == 0)
             {
-                return request.Settings.NoContextRetrievedPrompt;
+                return req.Settings.NoContextRetrievedPrompt;
             }
 
             var sb = new StringBuilder();
 
-            sb.AppendLine(request.Settings.ContextPrompt);
+            sb.AppendLine(req.Settings.ContextPrompt);
             sb.AppendLine();
 
             for (int i = 0; i < chunkRetrievalsInContext.Count; i++)
@@ -190,7 +246,7 @@ public class ChatGenerationService(
     }
 
     private async Task<List<CitationExtractionItem>?> ExtractCitationsAsync(
-        ChatGenerationRequest request,
+        ChatGenerationRequest req,
         string rawAnswer,
         List<ChunkRetrieval> chunkRetrievalsInContext,
         CancellationToken cxlTkn = default)
@@ -199,13 +255,13 @@ public class ChatGenerationService(
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, request.Settings.CitationExtractionPrompt),
+            new(ChatRole.System, req.Settings.CitationExtractionPrompt),
             new(ChatRole.User, input),
         };
 
         var chatOpts = new ChatOptions
         {
-            Temperature = request.Settings.CitationExtractionTemperature,
+            Temperature = req.Settings.CitationExtractionTemperature,
             Reasoning = new ReasoningOptions
             {
                 Effort = ReasoningEffort.High,
@@ -213,7 +269,7 @@ public class ChatGenerationService(
             },
         };
 
-        var chatClient = _chatClientFactory.GetChatClient(request.Settings.LlmModel);
+        var chatClient = _chatClientFactory.GetChatClient(req.Settings.LlmModel);
 
         var response = await chatClient.GetResponseAsync<List<CitationExtractionItem>>(messages, chatOpts, true, cxlTkn);
 
@@ -243,13 +299,13 @@ public class ChatGenerationService(
     }
 
     private static string BuildPrompt(
-        ChatGenerationRequest request,
+        ChatGenerationRequest req,
         IReadOnlyList<ChunkRetrieval> contextChunks,
         IReadOnlyList<ChatHistoryMessage> chatHistory)
     {
         return $"""
             SYSTEM:
-            {request.Settings.SystemPrompt}
+            {req.Settings.SystemPrompt}
 
             CONTEXT:
             {string.Join("\n\n", contextChunks.Select((c, index) => $"""
@@ -265,7 +321,7 @@ public class ChatGenerationService(
             )}
 
             CURRENT QUESTION:
-                {request.UserMessage}
+                {req.UserMessage}
             """;
     }
 }

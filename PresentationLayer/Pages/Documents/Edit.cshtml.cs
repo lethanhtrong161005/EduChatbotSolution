@@ -105,7 +105,6 @@ public class EditModel(
 
         var groups = ResourceRelations.DocumentGroups.ToList();
         groups.Remove(HubGroups.Resource("document-edit"));
-
         var upd = new ResourceUpdate
         {
             ResourceType = "document",

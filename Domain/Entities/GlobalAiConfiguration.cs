@@ -6,17 +6,17 @@ public class GlobalAiConfiguration : CategoryLikeEntity
 {
     public string ChunkingStrategy { get; set; } = "FixedLength";
 
-    public string EmbeddingModel { get; set; } = EmbeddingModelNames.BgeM3_Latest;
+    public string EmbeddingModel { get; set; } = EmbeddingModelNames.BgeM3;
 
     public int TopK { get; set; } = 15;
 
     public double SimilarityThreshold { get; set; } = 0.6;
 
-    public string LlmModel { get; set; } = ChatModelNames.Qwen3_5;
+    public string LlmModel { get; set; } = ChatModelNames.Qwen3;
 
-    public float Temperature { get; set; } = 0.3F;
+    public float ChatTemperature { get; set; } = 0.3F;
 
-    public string SystemPrompt { get; set; } =
+    public string ChatPrompt { get; set; } =
         """
         You are EduChatAI, an educational assistant.
 
@@ -72,6 +72,31 @@ public class GlobalAiConfiguration : CategoryLikeEntity
         state that the answer was not found in the course materials.
 
         Do not speculate.
+        """;
+
+    public float TitleTemperature { get; set; } = 0.0F;
+
+    public string TitlePrompt { get; set; } =
+        """
+        You are writing titles for conversations.
+
+        Generate a short, descriptive title for 
+        a conversation beginning with the provided exchange
+        between a user and an AI assistant.
+
+        Rules:
+        - 3 to 5 words.
+        - No more than 40 characters, including spaces.
+        - No punctuation unless necessary.
+        - No quotation marks.
+        - No prefixes.
+        - No explanations.
+
+        Examples:
+
+        How dependency injection works
+        Understanding polymorphism
+        Exam preparation strategies
         """;
 
     public float CitationExtractionTemperature { get; set; } = 0.0F;

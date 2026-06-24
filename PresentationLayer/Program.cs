@@ -35,8 +35,11 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStr = builder.Configuration.GetConnectionString("Docker")
-              ?? builder.Configuration.GetConnectionString(builder.Environment.IsDevelopment() ? "Docker" : "Tailscale")
+var connStrName = builder.Environment.IsStaging()
+                  ? "Tailscale"
+                  : (builder.Environment.IsDevelopment() ? "Docker" : "Default");
+
+var connStr = builder.Configuration.GetConnectionString(connStrName)
               ?? throw new KeyNotFoundException("Connection string not configured.");
 
 builder.Services.AddDbContext<EduChatAiDbContext>(opts =>
@@ -92,9 +95,12 @@ var ollamaOpts = builder.Configuration.GetRequiredSection("Ollama").Get<OllamaOp
                  ?? throw new KeyNotFoundException("Ollama is not configured.");
 
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, OllamaApiClient>(
-    EmbeddingModelNames.BgeM3_Latest,
+    EmbeddingModelNames.BgeM3,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 
+builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
+    ChatModelNames.Qwen3,
+    (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));
 builder.Services.AddKeyedSingleton<IChatClient, OllamaApiClient>(
     ChatModelNames.Qwen3_5,
     (provider, key) => new OllamaApiClient(ollamaOpts.Endpoint, (string)key));

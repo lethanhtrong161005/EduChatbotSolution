@@ -112,7 +112,7 @@ public class UserManagementServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var (success, error) = await _sut.CreateUserAsync(dto);
+        var (success, _, error) = await _sut.CreateUserAsync(dto);
 
         // Assert
         Assert.Multiple(() =>
@@ -142,7 +142,7 @@ public class UserManagementServiceTests
             .Setup(m => m.FindByEmailAsync("dup@example.com"))
             .ReturnsAsync(MakeUser(email: "dup@example.com"));   // already exists
 
-        var (success, error) = await _sut.CreateUserAsync(dto);
+        var (success, _, error) = await _sut.CreateUserAsync(dto);
 
         Assert.That(success, Is.False);
         Assert.That(error, Does.Contain("already exists"));
@@ -175,7 +175,7 @@ public class UserManagementServiceTests
             .ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
-        var (success, error) = await _sut.UpdateUserAsync(dto);
+        var (success, _, error) = await _sut.UpdateUserAsync(dto);
 
         Assert.Multiple(() =>
         {
@@ -198,7 +198,7 @@ public class UserManagementServiceTests
 
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
 
-        var (success, error) = await _sut.UpdateUserAsync(dto);
+        var (success, _, error) = await _sut.UpdateUserAsync(dto);
 
         Assert.That(success, Is.False);
         Assert.That(error, Does.Contain("modified by another administrator"));
@@ -221,7 +221,7 @@ public class UserManagementServiceTests
             .Setup(m => m.SendAccountDeletedAsync(user.Email!, user.FullName, It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
-        var (success, error) = await _sut.SoftDeleteUserAsync(user.Id);
+        var (success, _, error) = await _sut.SoftDeleteUserAsync(user.Id);
 
         Assert.Multiple(() =>
         {
@@ -253,7 +253,7 @@ public class UserManagementServiceTests
             .Setup(m => m.SendAccountDisabledAsync(user.Email!, user.FullName, It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
-        var (success, error) = await _sut.DisableUserAsync(user.Id, stamp);
+        var (success, _, error) = await _sut.DisableUserAsync(user.Id, stamp);
 
         Assert.Multiple(() =>
         {
@@ -278,7 +278,7 @@ public class UserManagementServiceTests
 
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
 
-        var (success, error) = await _sut.DisableUserAsync(user.Id, stale);
+        var (success, _, error) = await _sut.DisableUserAsync(user.Id, stale);
 
         Assert.That(success, Is.False);
         Assert.That(error, Does.Contain("modified by another administrator"));
@@ -299,7 +299,7 @@ public class UserManagementServiceTests
         _userManagerMock.Setup(m => m.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
-        var (success, error) = await _sut.ReactivateUserAsync(user.Id, stamp);
+        var (success, _, error) = await _sut.ReactivateUserAsync(user.Id, stamp);
 
         Assert.Multiple(() =>
         {

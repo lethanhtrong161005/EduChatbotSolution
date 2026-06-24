@@ -4,27 +4,26 @@
        State
        ========================================================== */
 
-    let subjectHeaders = [];
-    let scopeSubjectHeaders = [];
+    let _subjectHeaders = [];
+    let _scopeSubjectHeaders = [];
 
-    let sessionHeaders = [];
+    let _sessionHeaders = [];
 
-    let activeSessionId = null;
-    let activeSession = null;
+    let _activeSession = null;
 
-    let dropdownSelectedSubjectId = null;
-    let dropdownSelectedSubjectText = "All of Your Subjects";
+    let _dropdownSelectedSubjectId = null;
+    let _dropdownSelectedSubjectText = "All of Your Subjects";
 
-    let isSourcesPanelOpen = false;
-    let activeSourcesClientId = null;
+    let _isSourcesPanelOpen = false;
+    let _activeSourcesClientId = null;
 
-    let isProfileMenuOpen = false;
-    let isAttachmentMenuOpen = false;
+    let _isProfileMenuOpen = false;
+    let _isAttachmentMenuOpen = false;
 
-    let messageContent = "";
-    let inputEnabled = true;
+    let _messageContent = "";
+    let _inputEnabled = true;
 
-    let concurrencyToken = null;
+    let _concurrencyToken = null;
 
     /* ==========================================================
        State Mutation -- Active Session & Session List
@@ -32,14 +31,14 @@
 
     function setActiveSessionLastMessageAt(val) {
 
-        if (!val || !activeSession
-            || val === activeSession.lastMessageAt)
+        if (!val || !_activeSession
+            || val === _activeSession.lastMessageAt)
             return;
 
-        activeSession.lastMessageAt = val;
+        _activeSession.lastMessageAt = val;
 
-        const sessionHeader = sessionHeaders.
-            find(x => x.id === activeSession.id);
+        const sessionHeader = _sessionHeaders.
+            find(x => x.id === _activeSession.id);
 
         if (!sessionHeader)
             return;
@@ -55,26 +54,24 @@
 
     function setMessageContent(val) {
 
-        val = val ?? "";
+        _messageContent = val ?? "";
 
-        messageContent = val;
+        $("#chat-message-input").val(_messageContent);
 
-        $("#chat-message-input").val(val);
-        resizeInputDrawer();
-
+        updateDom_InputDrawer();
         updateDom_SendButton();
     }
 
     function setInputEnabled(val) {
 
-        inputEnabled = val;
+        _inputEnabled = val;
 
         updateDom_InputBar();
         updateDom_SendButton();
     }
 
     function getCanSend() {
-        return !!messageContent?.trim() && inputEnabled;
+        return !!_messageContent?.trim() && _inputEnabled;
     }
 
     /* ==========================================================
@@ -87,26 +84,26 @@
         // * subjectHeaders
         // * activeSession
 
-        if (!activeSession) { // Landing session
-            scopeSubjectHeaders = [];
+        if (!_activeSession) { // Landing session
+            _scopeSubjectHeaders = [];
         }
         else { // Existing session
-            const subjectId = activeSession.subjectId;
+            const subjectId = _activeSession.subjectId;
             if (subjectId === undefined)
                 return;
 
             if (subjectId === null) { // All accessible subjects
-                scopeSubjectHeaders = [...subjectHeaders];
+                _scopeSubjectHeaders = [..._subjectHeaders];
             }
             else {
-                const subjectHeader = subjectHeaders
+                const subjectHeader = _subjectHeaders
                     .find(x => x.id === subjectId);
 
                 if (!subjectHeader) {
-                    scopeSubjectHeaders = [];
+                    _scopeSubjectHeaders = [];
                 }
                 else {
-                    scopeSubjectHeaders = [subjectHeader];
+                    _scopeSubjectHeaders = [subjectHeader];
                 }
             }
         }
@@ -121,25 +118,25 @@
     function updateDom_InputBar() {
 
         // On:
-        // * inputEnabled
+        // * _inputEnabled
 
         $("#chat-message-input")
-            .prop("disabled", !inputEnabled)
-            .toggleClass("cursor-not-allowed", !inputEnabled);
+            .prop("disabled", !_inputEnabled)
+            .toggleClass("cursor-not-allowed", !_inputEnabled);
 
         $("#btn-attach-file")
-            .prop("disabled", !inputEnabled)
-            .toggleClass("hover:bg-surface-hover", inputEnabled)
-            .toggleClass("cursor-pointer", inputEnabled)
-            .toggleClass("opacity-50", !inputEnabled)
-            .toggleClass("cursor-not-allowed", !inputEnabled);
+            .prop("disabled", !_inputEnabled)
+            .toggleClass("hover:bg-surface-hover", _inputEnabled)
+            .toggleClass("cursor-pointer", _inputEnabled)
+            .toggleClass("opacity-50", !_inputEnabled)
+            .toggleClass("cursor-not-allowed", !_inputEnabled);
     }
 
     function updateDom_SendButton() {
 
         // On:
-        // * messageContent
-        // * inputEnabled
+        // * _messageContent
+        // * _inputEnabled
 
         let canSend = getCanSend();
 
@@ -156,37 +153,51 @@
     function updateDom_SidebarSubjectList() {
 
         // On:
-        // * scopeSubjectHeaders
+        // * _scopeSubjectHeaders
 
-        scopeSubjectHeaders.sort((a, b) =>
+        _scopeSubjectHeaders.sort((a, b) =>
             a.code - b.code);
 
         $("#subject-list").html(
-            ChatTemplates.renderSidebarSubjectList(scopeSubjectHeaders));
+            ChatTemplates.renderSidebarSubjectList(_scopeSubjectHeaders));
     }
 
     function updateDom_SidebarSessionList() {
 
         // On:
-        // * sessionHeaders
+        // * _sessionHeaders[*].*
 
-        sessionHeaders.sort((a, b) =>
+        _sessionHeaders.sort((a, b) =>
             b.lastMessageAt - a.lastMessageAt);
 
         const $list = $("#session-list");
 
         $("#session-list").html(
-            ChatTemplates.renderSidebarSessionList(sessionHeaders));
+            ChatTemplates.renderSidebarSessionList(_sessionHeaders));
+
+        updateDom_ActiveSessionHighlight();
     }
 
-    function updateDom_AssistantMessage(msgClientId) {
+    function updateDom_ActiveSessionHighlight() {
 
         // On:
-        // * activeSession.messages[?]
+        // * _activeSession.id
 
-        const message = findMessageByClientId(msgClientId);
-        if (!message)
+        $(".chat-session-item")
+            .removeClass("chat-session-item-active");
+
+        if (!_activeSession?.id) {
             return;
+        }
+
+        $(`.chat-session-item[data-session-id='${_activeSession.id}']`)
+            .addClass("chat-session-item-active");
+    }
+
+    function updateDom_AssistantMessage(message) {
+
+        // On:
+        // * _activeSession.messages[#].*
 
         const $container =
             $(`[data-client-id='${message._clientId}']`);
@@ -199,14 +210,35 @@
             ChatTemplates.renderAssistantMessage(message));
     }
 
+    const StreamingMessageReRenderIntervalMs = 15;
+
+    function updateDom_StreamingMessageContent(message) {
+
+        // On:
+        // * _activeSession.messages[#].content
+
+        if (Date.now() - message._lastRenderAt < StreamingMessageReRenderIntervalMs)
+            return;
+
+        const $container = $(`[data-client-id='${message._clientId}']`);
+        if ($container.length === 0)
+            return;
+
+        const $content = $container.find(".assistant-message-content");
+        if ($content.length === 0)
+            return;
+
+        $content.html(
+            ChatTemplates.renderAssistantMessageContent(message));
+
+        message._lastRenderAt = Date.now();
+    }
+
     /* ==========================================================
        Init
        ========================================================== */
 
     async function init() {
-
-        activeSessionId =
-            ChatPage.activeSessionId ?? null;
 
         await ChatSignalR.start();
 
@@ -214,7 +246,7 @@
 
         await loadSubjectList();
         await loadSessionList();
-        await loadSession(activeSessionId, false);
+        await loadSession(ChatPage.activeSessionId ?? null, false);
     }
 
     /* ==========================================================
@@ -420,14 +452,14 @@
 
                 e.stopPropagation();
 
-                dropdownSelectedSubjectId =
+                _dropdownSelectedSubjectId =
                     $(this).data("subject-id") || null;
 
-                dropdownSelectedSubjectText =
+                _dropdownSelectedSubjectText =
                     $(this).text();
 
                 $("#selected-subject-text")
-                    .text(dropdownSelectedSubjectText);
+                    .text(_dropdownSelectedSubjectText);
 
                 $("#subject-dropdown")
                     .addClass("hidden");
@@ -442,12 +474,8 @@
             "input",
             "#chat-message-input",
             function (e) {
-
                 e.preventDefault();
-
                 setMessageContent(e.currentTarget.value);
-
-                resizeInputDrawer();
             });
 
         /* Send */
@@ -563,24 +591,38 @@
     function bindSignalREvents() {
 
         $(document).on(
-            "chat:token",
-            function (_, assistantMessageId, token) {
+            "chat:title",
+            async function (_, sessionId, title) {
 
-                onReceiveToken(assistantMessageId, token);
+                await onTitleGenerated(sessionId, title);
+            });
+
+        $(document).on(
+            "chat:stream",
+            function (_, assistantMessageId, assistantMessageClientId) {
+
+                onStreamingStarted(assistantMessageId, assistantMessageClientId);
+            });
+
+        $(document).on(
+            "chat:token",
+            function (_, assistantMessageId, assistantMessageClientId, token) {
+
+                onReceiveToken(assistantMessageId, assistantMessageClientId, token);
             });
 
         $(document).on(
             "chat:completed",
-            function (_, assistantMessageId, chatMessageDto) {
+            function (_, assistantMessageId, assistantMessageClientId, chatMessageDto) {
 
-                onGenerationCompleted(assistantMessageId, chatMessageDto);
+                onGenerationCompleted(assistantMessageId, assistantMessageClientId, chatMessageDto);
             });
 
         $(document).on(
             "chat:failed",
-            function (_, assistantMessageId, error) {
+            function (_, assistantMessageId, assistantMessageClientId, error) {
 
-                onGenerationFailed(assistantMessageId, error);
+                onGenerationFailed(assistantMessageId, assistantMessageClientId, error);
             });
 
     }
@@ -597,7 +639,7 @@
                 method: "GET",
             });
 
-        subjectHeaders =
+        _subjectHeaders =
             subjectHeaderDtos
                 .map(normalizeSubjectHeader)
                 .sort((a, b) => a.code - b.code);
@@ -620,26 +662,9 @@
                 method: "GET",
             });
 
-        sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
+        _sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
 
         updateDom_SidebarSessionList();
-
-        highlightActiveSession();
-    }
-
-    function highlightActiveSession() {
-
-        $(".chat-session-item")
-            .removeClass(
-                "chat-session-item-active");
-
-        if (!activeSessionId) {
-            return;
-        }
-
-        $(`.chat-session-item[data-session-id='${activeSessionId}']`)
-            .addClass(
-                "chat-session-item-active");
     }
 
     function normalizeSessionHeader(sessionHeader) {
@@ -663,8 +688,7 @@
             await loadExistingSession(sessionId, pushHistory);
 
         updateState_ScopeSubjectHeaders();
-
-        highlightActiveSession();
+        updateDom_ActiveSessionHighlight();
 
         clearInput();
         setInputEnabled(true);
@@ -672,11 +696,11 @@
         closeSourcesPanel();
     }
 
+    /* WARN: Always call through loadSession(null) */
     async function loadLandingSession(pushHistory) {
 
-        activeSession = null;
-        activeSessionId = null;
-        activeSourcesClientId = null;
+        _activeSession = null;
+        _activeSourcesClientId = null;
 
         if (pushHistory) {
 
@@ -687,30 +711,30 @@
         }
 
         $("#chat-main").html(
-            ChatTemplates.renderLandingSession(subjectHeaders));
+            ChatTemplates.renderLandingSession(_subjectHeaders));
     }
 
+    /* WARN: Always call through loadSession(sessionId) */
     async function loadExistingSession(sessionId, pushHistory) {
 
         const reqToken = crypto.randomUUID();
-        concurrencyToken = reqToken;
+        _concurrencyToken = reqToken;
 
         const dto =
             await $.getJSON({
                 url: `/chat?handler=GetSession&id=${sessionId}`,
             });
 
-        if (concurrencyToken !== reqToken)
+        if (_concurrencyToken !== reqToken)
             return;
 
-        await ChatSignalR.switchSession(activeSessionId, sessionId);
+        await ChatSignalR.switchSession(sessionId);
 
-        if (concurrencyToken !== reqToken)
+        if (_concurrencyToken !== reqToken)
             return;
 
-        activeSession = normalizeSession(dto);
-        activeSessionId = sessionId;
-        activeSourcesClientId = null;
+        _activeSession = normalizeSession(dto);
+        _activeSourcesClientId = null;
 
         if (pushHistory) {
 
@@ -721,9 +745,9 @@
         }
 
         $("#chat-main").html(
-            ChatTemplates.renderExistingSession(activeSession));
+            ChatTemplates.renderExistingSession(_activeSession));
 
-        renderMessages(activeSession.messages);
+        renderMessages(_activeSession.messages);
     }
 
     function normalizeSession(dto) {
@@ -826,7 +850,10 @@
        Input Drawer
        ========================================================== */
 
-    function resizeInputDrawer() {
+    function updateDom_InputDrawer() {
+
+        // On:
+        // * _messageContent
 
         const textarea =
             $("#chat-message-input")[0];
@@ -909,21 +936,17 @@
         if (!getCanSend())
             return;
 
-        const $input = $("#chat-message-input");
-        if ($input.length === 0)
-            return;
-
-        const content = ($input.val() ?? "").trim();
-        if (!content)
-            return;
+        const content = _messageContent.trim();
 
         clearInput();
         setInputEnabled(false);
 
-        if (!activeSession) {
+        if (!_activeSession) {
             try {
-                await createNewSession();
+                await createNewSession(content);
             } catch (err) {
+                console.log(err);
+                alert("Failed to create new chat session.", err);
                 setInputEnabled(true);
                 return;
             }
@@ -937,60 +960,58 @@
 
         scrollToBottom();
 
-        const cachedLastMessagAt = activeSession.lastMessageAt;
+        const cachedLastMessagAt = _activeSession.lastMessageAt;
         setActiveSessionLastMessageAt(Date.now());
 
-        let genChatRes;
-
         try {
-            genChatRes = await $.ajax({
+            const genChatRes = await $.ajax({
                 url: "/chat?handler=Generate",
                 method: "POST",
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
                 },
                 data: {
-                    sessionId: activeSession.id,
+                    sessionId: _activeSession.id,
                     userMessageClientId: userMessage._clientId,
                     assistantMessageClientId: assistantMessage._clientId,
                     content,
                 },
             });
+
+            if (userMessage._clientId === genChatRes.userMessageClientId) {
+
+                userMessage.id = genChatRes.userMessageId;
+                userMessage.setContent(genChatRes.userMessageContent);
+                userMessage.sentAt = genChatRes.userMessageSentAt;
+                userMessage.status = genChatRes.userMessageStatus
+                    ?? ChatEnums.MessageStatus.Completed;
+
+                $(`[data-client-id='${userMessage._clientId}']`)
+                    .attr("data-message-id", userMessage.id);
+            }
+
+            if (assistantMessage._clientId === genChatRes.assistantMessageClientId) {
+
+                assistantMessage.id = genChatRes.assistantMessageId;
+                assistantMessage.sentAt = genChatRes.assistantSentAt;
+                assistantMessage.status = genChatRes.assistantStatus
+                    ?? ChatEnums.MessageStatus.Pending;
+
+                $(`[data-client-id='${assistantMessage._clientId}']`)
+                    .attr("data-message-id", assistantMessage.id);
+            }
         } catch (err) {
 
-            alert(err);
+            alert("Problem sending chat message.", err);
             // setActiveSessionLastMessageAt(cachedLastMessagAt);
             setInputEnabled(true);
             return;
         }
-
-        if (userMessage._clientId === genChatRes.userMessageClientId) {
-
-            userMessage.id = genChatRes.userMessageId;
-            userMessage.setContent(genChatRes.userMessageContent);
-            userMessage.sentAt = genChatRes.userMessageSentAt;
-            userMessage.status = genChatRes.userMessageStatus
-                ?? ChatEnums.MessageStatus.Completed;
-
-            $(`[data-client-id='${userMessage._clientId}']`)
-                .attr("data-message-id", userMessage.id);
-        }
-
-        if (assistantMessage._clientId === genChatRes.assistantMessageClientId) {
-
-            assistantMessage.id = genChatRes.assistantMessageId;
-            assistantMessage.sentAt = genChatRes.assistantSentAt;
-            assistantMessage.status = genChatRes.assistantStatus
-                ?? ChatEnums.MessageStatus.Pending;
-
-            $(`[data-client-id='${assistantMessage._clientId}']`)
-                .attr("data-message-id", assistantMessage.id);
-        }
     }
 
-    async function createNewSession() {
+    async function createNewSession(messageContent) {
 
-        const subjectId = dropdownSelectedSubjectId;
+        const subjectId = _dropdownSelectedSubjectId;
 
         const response =
             await $.ajax({
@@ -1001,6 +1022,7 @@
                 },
                 data: {
                     subjectId,
+                    messageContent,
                 },
             });
 
@@ -1020,7 +1042,7 @@
                 status: ChatEnums.MessageStatus.Pending,
             });
 
-        activeSession.messages.push(message);
+        _activeSession.messages.push(message);
 
         $("#message-list")
             .append(
@@ -1041,7 +1063,7 @@
                 status: ChatEnums.MessageStatus.Pending,
             });
 
-        activeSession.messages.push(message);
+        _activeSession.messages.push(message);
 
         $("#message-list")
             .append(
@@ -1051,61 +1073,77 @@
     }
 
     /* ==========================================================
-       Streaming Token Handling
+       SignalR Handlers
        ========================================================== */
 
-    function onReceiveToken(assistantMessageId, token) {
+    async function onTitleGenerated(sessionId, title) {
 
-        if (!activeSessionId)
+        const sessionHeader = _sessionHeaders.find(x => x.id === sessionId);
+
+        if (!sessionHeader) {
+            await loadSessionList();
+            return;
+        }
+
+        sessionHeader.title = title;
+        updateDom_SidebarSessionList();
+    }
+
+    function onStreamingStarted(assistantMessageId, assistantMessageClientId) {
+
+        if (!_activeSession?.id)
             return;
 
-        const message = findMessageById(assistantMessageId);
+        const message = findMessageByBothIds(assistantMessageId, assistantMessageClientId);
         if (!message)
             return;
 
-        if (message.status === ChatEnums.MessageStatus.Pending) {
+        if (message.status !== ChatEnums.MessageStatus.Pending) {
+            // TODO: Figure out what this means
+            //
+            // > Did another client of the same session
+            //   initiate retry/regeneration?
+            //
+            // > Race condition?
+            //   Content token arrived before start signal?
+            //
+            return;
+        }
+
+        message.status = ChatEnums.MessageStatus.Generating;
+        updateDom_AssistantMessage(message);
+    }
+
+    function onReceiveToken(assistantMessageId, assistantMessageClientId, token) {
+
+        if (!_activeSession?.id)
+            return;
+
+        const message = findMessageByBothIds(assistantMessageId, assistantMessageClientId);
+        if (!message)
+            return;
+
+        if (message.status === ChatEnums.MessageStatus.Pending
+            || message.status === ChatEnums.MessageStatus.Generating) {
 
             message.status = ChatEnums.MessageStatus.Streaming;
-
-            updateDom_AssistantMessage(message._clientId);
+            updateDom_AssistantMessage(message);
         }
 
         message.setContent(message.getContent() + token);
 
         if (token) {
-
-            reRenderStreamingMessageContent(message);
-            scrollToBottomIfNearBottom();
+            updateDom_StreamingMessageContent(message);
+            scrollToBottomIfNeeded();
         }
     }
 
-    const StreamingMessageReRenderIntervalMs = 15;
+    function onGenerationCompleted(assistantMessageId, assistantMessageClientId, chatMessageDto) {
 
-    function reRenderStreamingMessageContent(message) {
-
-        if (Date.now() - message._lastRenderAt < StreamingMessageReRenderIntervalMs)
+        if (!_activeSession?.id)
             return;
 
-        const $container = $(`[data-client-id='${message._clientId}']`);
-        if ($container.length === 0)
-            return;
-
-        const $content = $container.find(".assistant-message-content");
-        if ($content.length === 0)
-            return;
-
-        $content.html(
-            ChatTemplates.renderAssistantMessageContent(message));
-
-        message._lastRenderAt = Date.now();
-    }
-
-    function onGenerationCompleted(assistantMessageId, chatMessageDto) {
-
-        if (!activeSessionId)
-            return;
-
-        const message = findMessageById(assistantMessageId);
+        const message = findMessageByBothIds(assistantMessageId, assistantMessageClientId);
         if (!message) {
             return;
         }
@@ -1123,26 +1161,25 @@
             (chatMessageDto.citations ?? [])
                 .map(normalizeCitation));
 
-        updateDom_AssistantMessage(message._clientId);
+        updateDom_AssistantMessage(message);
         scrollToBottom();
 
         setInputEnabled(true);
     }
 
-    function onGenerationFailed(assistantMessageId, error) {
+    function onGenerationFailed(assistantMessageId, assistantMessageClientId, error) {
 
-        if (!activeSessionId)
+        if (!_activeSession?.id)
             return;
 
-        const message = findMessageById(assistantMessageId);
+        const message = findMessageByBothIds(assistantMessageId, assistantMessageClientId);
         if (!message)
             return;
 
         message.status = ChatEnums.MessageStatus.Failed;
-
         message.generationErrors = error;
 
-        updateDom_AssistantMessage(message._clientId);
+        updateDom_AssistantMessage(message);
         scrollToBottom();
 
         setInputEnabled(true);
@@ -1182,9 +1219,9 @@
 
         updateMessageFromVariant(message);
 
-        updateDom_AssistantMessage(message._clientId);
+        updateDom_AssistantMessage(message);
 
-        if (activeSourcesClientId === message._clientId) {
+        if (_activeSourcesClientId === message._clientId) {
 
             openSourcesPanel(message._clientId);
         }
@@ -1247,9 +1284,9 @@
 
         updateMessageFromVariant(message);
 
-        updateDom_AssistantMessage(message._clientId);
+        updateDom_AssistantMessage(message);
 
-        if (activeSourcesClientId === message._clientId) {
+        if (_activeSourcesClientId === message._clientId) {
 
             openSourcesPanel(message._clientId);
         }
@@ -1261,8 +1298,8 @@
 
     function openSourcesPanel(msgClientId) {
 
-        activeSourcesClientId = msgClientId;
-        isSourcesPanelOpen = true;
+        _activeSourcesClientId = msgClientId;
+        _isSourcesPanelOpen = true;
 
         const $panel = $("#sources-panel");
         const $content = $("#sources-panel-content");
@@ -1302,7 +1339,7 @@
 
     function closeSourcesPanel() {
 
-        isSourcesPanelOpen = false;
+        _isSourcesPanelOpen = false;
 
         const $panel =
             $("#sources-panel");
@@ -1316,7 +1353,7 @@
         setTimeout(
             () => {
 
-                if (!isSourcesPanelOpen) {
+                if (!_isSourcesPanelOpen) {
 
                     $panel.addClass("hidden");
 
@@ -1358,7 +1395,7 @@
 
     function toggleProfileMenu() {
 
-        if (isProfileMenuOpen) {
+        if (_isProfileMenuOpen) {
 
             closeProfileMenu();
             return;
@@ -1367,7 +1404,7 @@
         $("#profile-dropdown")
             .removeClass("hidden");
 
-        isProfileMenuOpen = true;
+        _isProfileMenuOpen = true;
     }
 
     function closeProfileMenu() {
@@ -1375,7 +1412,7 @@
         $("#profile-dropdown")
             .addClass("hidden");
 
-        isProfileMenuOpen = false;
+        _isProfileMenuOpen = false;
     }
 
     /* ==========================================================
@@ -1384,7 +1421,7 @@
 
     function toggleAttachmentMenu() {
 
-        if (isAttachmentMenuOpen) {
+        if (_isAttachmentMenuOpen) {
 
             closeAttachmentMenu();
             return;
@@ -1393,7 +1430,7 @@
         $("#attachment-menu")
             .removeClass("hidden");
 
-        isAttachmentMenuOpen = true;
+        _isAttachmentMenuOpen = true;
     }
 
     function closeAttachmentMenu() {
@@ -1401,7 +1438,7 @@
         $("#attachment-menu")
             .addClass("hidden");
 
-        isAttachmentMenuOpen = false;
+        _isAttachmentMenuOpen = false;
     }
 
     /* ==========================================================
@@ -1428,22 +1465,31 @@
         setMessageContent("");
     }
 
-    function findMessageById(messageId) {
+    function findMessageByBothIds(messageId, msgClientId) {
 
-        if (!activeSession)
+        if (!_activeSession)
             return null;
 
-        return activeSession.messages
+        return findMessageById(messageId)
+            ?? findMessageByClientId(msgClientId);
+    }
+
+    function findMessageById(messageId) {
+
+        if (!_activeSession)
+            return null;
+
+        return _activeSession.messages
             .find(x => x.id === messageId);
     }
 
     function findMessageByClientId(msgClientId) {
 
-        if (!activeSession) {
+        if (!_activeSession) {
             return null;
         }
 
-        return activeSession.messages
+        return _activeSession.messages
             .find(x => x._clientId === msgClientId);
     }
 
@@ -1512,7 +1558,7 @@
         return remaining < 100;
     }
 
-    function scrollToBottomIfNearBottom() {
+    function scrollToBottomIfNeeded() {
 
         if (isNearBottom()) {
 

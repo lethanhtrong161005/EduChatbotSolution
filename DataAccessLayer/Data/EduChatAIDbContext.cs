@@ -57,6 +57,10 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     /// <summary>Gets or sets the conversations set.</summary>
     public DbSet<ChatSession> ChatSessions { get; set; }
 
+    public DbSet<ChatSessionTitleGenerationSettings> ChatSessionTitleGenerationSettings { get; set; }
+
+    public DbSet<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics { get; set; }
+
     /// <summary>Gets or sets the messages set.</summary>
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
@@ -118,6 +122,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<ParsedSection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Chunk>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatSession>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatSessionTitleGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatSessionTitleGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
@@ -133,6 +139,10 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
         modelBuilder.Entity<PlanOption>()
             .HasIndex(e => new { e.PlanId, e.DurationDays })
+            .IsUnique();
+
+        modelBuilder.Entity<Subject>()
+            .HasIndex(e => e.Code)
             .IsUnique();
 
         modelBuilder.Entity<Chapter>()
@@ -161,6 +171,16 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .HasOperators("vector_cosine_ops")
             .HasStorageParameter("m", 32)
             .HasStorageParameter("ef_construction", 128);
+
+        modelBuilder.Entity<ChatSessionTitleGenerationSettings>()
+            .HasOne(d => d.ChatSession)
+            .WithOne(p => p.TitleGenerationSettings)
+            .HasForeignKey<ChatSessionTitleGenerationSettings>(d => d.Id);
+
+        modelBuilder.Entity<ChatSessionTitleGenerationMetrics>()
+            .HasOne(d => d.ChatSession)
+            .WithOne(p => p.TitleGenerationMetrics)
+            .HasForeignKey<ChatSessionTitleGenerationMetrics>(d => d.Id);
 
         modelBuilder.Entity<ChatMessageGenerationSettings>()
             .HasOne(d => d.ChatMessage)

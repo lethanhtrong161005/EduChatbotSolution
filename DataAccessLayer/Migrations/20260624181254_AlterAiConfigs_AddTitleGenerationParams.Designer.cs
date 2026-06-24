@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624181254_AlterAiConfigs_AddTitleGenerationParams")]
+    partial class AlterAiConfigs_AddTitleGenerationParams
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -397,80 +400,6 @@ namespace DataAccessLayer.Migrations
                         .HasDatabaseName("ix_chat_sessions_user_id");
 
                     b.ToTable("chat_sessions", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.ChatSessionTitleGenerationMetrics", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("CompletionTokens")
-                        .HasColumnType("integer")
-                        .HasColumnName("completion_tokens");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<int>("PromptTokens")
-                        .HasColumnType("integer")
-                        .HasColumnName("prompt_tokens");
-
-                    b.Property<long>("ResponseTimeMs")
-                        .HasColumnType("bigint")
-                        .HasColumnName("response_time_ms");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_chat_session_title_generation_metrics");
-
-                    b.ToTable("chat_session_title_generation_metrics", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.ChatSessionTitleGenerationSettings", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("LlmModel")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("llm_model");
-
-                    b.Property<string>("SystemPrompt")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("system_prompt");
-
-                    b.Property<float>("Temperature")
-                        .HasColumnType("real")
-                        .HasColumnName("temperature");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_chat_session_title_generation_settings");
-
-                    b.ToTable("chat_session_title_generation_settings", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Chunk", b =>
@@ -1746,30 +1675,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Entities.ChatSessionTitleGenerationMetrics", b =>
-                {
-                    b.HasOne("Domain.Entities.ChatSession", "ChatSession")
-                        .WithOne("TitleGenerationMetrics")
-                        .HasForeignKey("Domain.Entities.ChatSessionTitleGenerationMetrics", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_chat_session_title_generation_metrics_chat_sessions_id");
-
-                    b.Navigation("ChatSession");
-                });
-
-            modelBuilder.Entity("Domain.Entities.ChatSessionTitleGenerationSettings", b =>
-                {
-                    b.HasOne("Domain.Entities.ChatSession", "ChatSession")
-                        .WithOne("TitleGenerationSettings")
-                        .HasForeignKey("Domain.Entities.ChatSessionTitleGenerationSettings", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_chat_session_title_generation_settings_chat_sessions_id");
-
-                    b.Navigation("ChatSession");
-                });
-
             modelBuilder.Entity("Domain.Entities.Chunk", b =>
                 {
                     b.HasOne("Domain.Entities.Document", "Document")
@@ -2061,12 +1966,6 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("Domain.Entities.ChatSession", b =>
                 {
                     b.Navigation("Messages");
-
-                    b.Navigation("TitleGenerationMetrics")
-                        .IsRequired();
-
-                    b.Navigation("TitleGenerationSettings")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.Chunk", b =>
