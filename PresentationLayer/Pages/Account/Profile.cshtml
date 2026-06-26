@@ -1,5 +1,6 @@
 @page
 @using System.Security.Claims
+@using System.Text.Json
 @model Presentation.Pages.Account.ProfileModel
 @{
     ViewData["Title"] = "User Profile";
@@ -66,36 +67,36 @@
         gap: 1.5rem;
     }
 
-    .profile-nav-tabs .nav-link {
-        border: none;
-        background: none;
-        color: var(--color-text-secondary);
-        font-weight: 600;
-        font-size: 1.05rem;
-        padding: 0.75rem 0.25rem;
-        position: relative;
-        transition: all 0.2s ease;
-    }
+        .profile-nav-tabs .nav-link {
+            border: none;
+            background: none;
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            font-size: 1.05rem;
+            padding: 0.75rem 0.25rem;
+            position: relative;
+            transition: all 0.2s ease;
+        }
 
-    .profile-nav-tabs .nav-link:hover {
-        color: var(--color-primary);
-    }
+            .profile-nav-tabs .nav-link:hover {
+                color: var(--color-primary);
+            }
 
-    .profile-nav-tabs .nav-link.active {
-        color: var(--color-primary);
-        background: none;
-    }
+            .profile-nav-tabs .nav-link.active {
+                color: var(--color-primary);
+                background: none;
+            }
 
-    .profile-nav-tabs .nav-link.active::after {
-        content: "";
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: var(--color-primary);
-        border-radius: 2px;
-    }
+                .profile-nav-tabs .nav-link.active::after {
+                    content: "";
+                    position: absolute;
+                    bottom: -2px;
+                    left: 0;
+                    right: 0;
+                    height: 2px;
+                    background: var(--color-primary);
+                    border-radius: 2px;
+                }
 
     /* Cards & Layout */
     .profile-card {
@@ -171,31 +172,31 @@
         text-align: left;
     }
 
-    .profile-table th {
-        padding: 1rem;
-        border-bottom: 2px solid var(--color-border-light);
-        font-weight: 700;
-        color: var(--color-text-secondary);
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+        .profile-table th {
+            padding: 1rem;
+            border-bottom: 2px solid var(--color-border-light);
+            font-weight: 700;
+            color: var(--color-text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-    .profile-table td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--color-border-light);
-        color: var(--color-text-primary);
-        font-size: 0.95rem;
-        vertical-align: middle;
-    }
+        .profile-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+            font-size: 0.95rem;
+            vertical-align: middle;
+        }
 
-    .profile-table tr:last-child td {
-        border-bottom: none;
-    }
+        .profile-table tr:last-child td {
+            border-bottom: none;
+        }
 
-    .profile-table tr:hover td {
-        background: rgba(255, 255, 255, 0.01);
-    }
+        .profile-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
 
     .role-badge-custom {
         display: inline-flex;
@@ -251,16 +252,16 @@
         color: var(--color-text-muted);
     }
 
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
 
-    .empty-state p {
-        font-size: 1.1rem;
-        margin: 0;
-    }
+        .empty-state p {
+            font-size: 1.1rem;
+            margin: 0;
+        }
 </style>
 
 <div class="profile-page">
@@ -312,7 +313,7 @@
                 <h2 class="card-title-custom">
                     <i class="fas fa-info-circle text-primary"></i> Personal Details
                 </h2>
-                
+
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-icon">
@@ -529,9 +530,11 @@
 
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
 
+
     <script>
         window.ProfilePage = {
-            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)'
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+            membershipIds: '@JsonSerializer.Serialize(Model.Memberships.Select(e => e.Id))',
         };
     </script>
 

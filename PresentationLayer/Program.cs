@@ -76,7 +76,7 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
-builder.Services.AddScoped<IDocumentRealtimeNotifier, SignalRDocumentRealtimeNotifier>();
+builder.Services.AddScoped<IDocumentStatusRealtimeNotifier, SignalRDocumentStatusRealtimeNotifier>();
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
@@ -234,8 +234,8 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 
 app.MapRazorPages();
 
-app.MapHub<DocumentHub>("/documents/status");
+app.MapHub<DocumentStatusHub>("/documents/status");
 app.MapHub<AiChatHub>("/chat/answer");
-app.MapHub<RealtimeHub>("/realtime");
+app.MapHub<ResourceHub>("/resource");
 
 app.Run();

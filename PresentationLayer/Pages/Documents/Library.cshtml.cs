@@ -3,6 +3,7 @@ using Business.Services.AI.Indexing;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Exceptions;
 using Domain.Utils;
 using Hangfire;
 using HeyRed.Mime;
@@ -15,7 +16,6 @@ using Presentation.DTOs;
 using Presentation.Extensions;
 using Presentation.RealtimeWeb;
 using Presentation.Utils;
-using Presentation.ViewModels;
 
 namespace Presentation.Pages.Documents;
 
@@ -29,7 +29,7 @@ public class LibraryModel(
     ISubjectService subjectService,
     IChapterService chapterService,
     IDocumentService documentService,
-    IHubContext<RealtimeHub, IRealtimeClient> hub,
+    IHubContext<ResourceHub, IResourceClient> hub,
     IMapper mapper) : PageModel
 {
     private const int PageSize = 10;
@@ -55,13 +55,8 @@ public class LibraryModel(
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
     private readonly IDocumentService _documentService = documentService;
-    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
+    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
     private readonly IMapper _mapper = mapper;
-
-    /// <summary>
-    /// Gets the document library view model rendered by the page.
-    /// </summary>
-    public DocumentLibraryVm ViewModel { get; private set; } = new();
 
     [FromHeader]
     public string CallerSignalRConnectionId { get; set; } = string.Empty;
@@ -70,7 +65,7 @@ public class LibraryModel(
     {
         get
         {
-            var groups = ResourceRelations.DocumentGroups.ToList();
+            var groups = NotificationTargets.DocumentGroups.ToList();
             groups.Remove(ThisGroup);
             return groups;
         }
@@ -83,23 +78,22 @@ public class LibraryModel(
     /// </summary>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     /// <returns>A task that renders the page.</returns>
-    public async Task OnGetAsync(CancellationToken cxlTkn)
+    public async Task OnGetAsync()
     {
-        var userId = User.GetUserId();
-        var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-
-        ViewModel = new DocumentLibraryVm
-        {
-            Subjects = _mapper.Map<List<SubjectLookupVm>>(accessibleSubjects),
-        };
     }
 
-    public async Task<IActionResult> OnGetGetSubjectsAsync([FromQuery] int subjectId, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetGetSubjectsAsync(CancellationToken cxlTkn)
     {
-        var userId = User.GetUserId();
-        var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-
-        return new JsonResult(_mapper.Map<List<SubjectLookupVm>>(accessibleSubjects));
+        try
+        {
+            var userId = User.GetUserId();
+            var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
+            return new JsonResult(_mapper.Map<List<SubjectLookupDto>>(accessibleSubjects));
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
     }
 
     /// <summary>
@@ -165,7 +159,7 @@ public class LibraryModel(
 
         var canUpload = await _subjectService.IsChiefAsync(chapter.SubjectId, userId, cxlTkn);
         if (!canUpload)
-            return Unauthorized();
+            return Forbid();
 
         var docs = new List<Document>();
 
@@ -222,8 +216,11 @@ public class LibraryModel(
                 ResourceType = "document",
                 Action = "deleted",
                 ResourceId = doc.Id.ToString(),
-                AlternateResourceId = [null, doc.UploaderId.ToString()],
                 ResourceName = doc.Title,
+                Properties =
+                {
+                    { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
+                },
             };
             await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
             await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
@@ -278,8 +275,11 @@ public class LibraryModel(
             ResourceType = "document",
             Action = "deleted",
             ResourceId = doc.Id.ToString(),
-            AlternateResourceId = [null, doc.UploaderId.ToString()],
             ResourceName = doc.Title,
+            Properties =
+            {
+                { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
+            },
         };
         await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);

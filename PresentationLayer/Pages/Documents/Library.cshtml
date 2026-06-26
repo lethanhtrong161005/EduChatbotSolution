@@ -46,18 +46,6 @@
 
                 <select id="subjectSelect"
                         class="form-select">
-
-                    <option value="">
-                        Select Subject
-                    </option>
-
-                    @foreach (var subject in Model.ViewModel.Subjects)
-                    {
-                        <option value="@subject.Id">
-                            @subject.Name
-                        </option>
-                    }
-
                 </select>
             </div>
 

@@ -12,14 +12,14 @@ public class DocumentIndexer(
     IDocumentChunker chunker,
     IEmbeddingService embedder,
     IUnitOfWork unitOfWork,
-    IDocumentRealtimeNotifier notifier,
+    IDocumentStatusRealtimeNotifier notifier,
     IAiConfigurationResolver aiConfigResolver) : IDocumentIndexer
 {
     private readonly IDocumentParser _parser = parser;
     private readonly IDocumentChunker _chunker = chunker;
     private readonly IEmbeddingService _embedder = embedder;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IDocumentRealtimeNotifier _notifier = notifier;
+    private readonly IDocumentStatusRealtimeNotifier _notifier = notifier;
     private readonly IAiConfigurationResolver _aiConfigResolver = aiConfigResolver;
 
     private readonly string _processingDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirProcessing);
@@ -85,6 +85,7 @@ public class DocumentIndexer(
             var chunkCount = 0;
 
             var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.Chapter.SubjectId, cxlTkn);
+
             // TODO: Swap _chunker for ChunkingService -> Use strategy pattern
 
             foreach (var section in sections)

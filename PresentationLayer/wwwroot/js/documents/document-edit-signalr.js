@@ -2,7 +2,7 @@
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -11,26 +11,48 @@ resConn.on(
     function (resUpd) {
         switch (resUpd.resourceType) {
             case "document":
-                if (resUpd.resourceId === DocumentEditPage.documentId) {
-
-                    if (confirm("This document has been modified. Refresh?"))
-                        window.location.reload();
+                if (resUpd.resourceId === DocumentEditPage.documentId)
+                    promptReload();
+                break;
+            case "chapter":
+                if (resUpd.resourceId === DocumentEditPage.chapterId)
+                    promptReload();
+                break;
+            case "subject":
+                if (resUpd.resourceId === DocumentEditPage.subjectId)
+                    promptReload();
+                break;
+            case "user":
+                if (resUpd.resourceId === DocumentEditPage.uploaderId)
+                    promptReload();
+                break;
+            case "membership":
+                if (resUpd.action === "deleted"
+                    && resUpd.properties["subjectId"] === DocumentEditPage.subjectId
+                    && resUpd.properties["userId"] === DocumentEditPage.userId) {
+                    denyAccess();
                 }
                 break;
-            case "subject_membership":
-                if (resUpd.action === "deleted" && resUpd.alternateResourceId && resUpd.alternateResourceId.length == 2
-                    && resUpd.alternateResourceId[0] === DocumentEditPage.subjectId && resUpd.alternateResourceId[1] === DocumentEditPage.userId) {
-
-                    alert("Sorry for the inconvenience. You no longer have access to this document.");
-                    window.location.href = "/documents/library";
-                }
         }
     }
 );
 
+function promptReload() {
+
+    if (confirm("This document has been modified. Refresh?"))
+        window.location.reload();
+}
+
+function denyAccess() {
+
+    alert("Sorry for the inconvenience. You no longer have access to this document.");
+    window.location.href = "/documents/library";
+}
+
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "document-edit", null))
+    .then(() => resConn.invoke("JoinGroup", "document-edit", DocumentEditPage.documentId))
+    .then(() => resConn.invoke("JoinGroup", "document-edit", null))
     .then(() => window.connId = resConn.connectionId)
     .then(() =>
         $("<input>")

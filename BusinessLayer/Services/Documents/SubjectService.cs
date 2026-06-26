@@ -351,13 +351,18 @@ public class SubjectService(
 
     public async Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cxlTkn = default)
     {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+                   ?? throw new EntityNotFoundException("No user matched the provided ID.");
+
+        var isAdmin = await _userManager.IsInRoleAsync(user, nameof(UserRole.Admin));
+
         return await _unitOfWork.Subjects.GetAsync(
-            filter: e => e.Memberships.Any(d => d.UserId == userId),
+            filter: e => isAdmin || e.Memberships.Any(d => d.UserId == userId),
             orderBy: e => e.OrderBy(e => e.Code),
             cancellationToken: cxlTkn);
     }
 
-    public async Task<bool> HasAccessAsync(int subjectId, Guid userId, CancellationToken cxlTkn)
+    public async Task<bool> IsMemberAsync(int subjectId, Guid userId, CancellationToken cxlTkn)
     {
         return (await _unitOfWork.SubjectMemberships.GetAsync(
             filter: e => e.SubjectId == subjectId

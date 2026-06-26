@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using Domain.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +5,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
-using System.Net;
 
 namespace Presentation.Pages.Admin;
 
@@ -17,11 +15,11 @@ namespace Presentation.Pages.Admin;
 [Authorize(Roles = "Admin")]
 public class UserManageModel(
     IUserManagementService userManagementService,
-    IHubContext<RealtimeHub, IRealtimeClient> hub)
+    IHubContext<ResourceHub, IResourceClient> hub)
     : PageModel
 {
     private readonly IUserManagementService _userManagementService = userManagementService;
-    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
+    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
 
     /// <summary>
     /// Gets the user management view model rendered by the page.
@@ -31,14 +29,11 @@ public class UserManageModel(
     [FromHeader]
     public string CallerSignalRConnectionId { get; set; } = string.Empty;
 
-    private static List<string> OtherUserGroups
+    private static List<string> OtherUserGroups(Guid? userId = null, Guid? docId = null)
     {
-        get
-        {
-            var groups = ResourceRelations.UserGroups.ToList();
-            groups.Remove(ThisGroup);
-            return groups;
-        }
+        var groups = NotificationTargets.UserGroups(userId, docId).ToList();
+        groups.Remove(ThisGroup);
+        return groups;
     }
 
     private static string ThisGroup => HubGroups.Resource("user-manage");
@@ -92,7 +87,7 @@ public class UserManageModel(
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, error });
@@ -128,7 +123,7 @@ public class UserManageModel(
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, message });
@@ -149,7 +144,7 @@ public class UserManageModel(
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, error });
@@ -171,7 +166,7 @@ public class UserManageModel(
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, error });
@@ -193,7 +188,7 @@ public class UserManageModel(
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups).ResourceChanged(upd);
+        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
         await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
         return new JsonResult(new { success, error });

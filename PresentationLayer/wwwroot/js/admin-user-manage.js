@@ -363,7 +363,7 @@ async function submitReactivate() {
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -381,6 +381,6 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "user-manage", null))
+    .then(() => resConn.invoke("JoinGroup", "user-manage", null))
     .then(() => window.connId = resConn.connectionId)
     .catch(console.error);

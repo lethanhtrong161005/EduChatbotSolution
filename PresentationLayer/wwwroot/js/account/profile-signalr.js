@@ -2,7 +2,7 @@
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -14,12 +14,17 @@ resConn.on(
                 if (resUpd.resourceId === ProfilePage.userId)
                     promptReload();
                 break;
-            case "subject_membership":
-                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length == 2 && resUpd.alternateResourceId[1] === ProfilePage.userId)
+            case "subject":
+                // TEST_ME
+                if (ProfilePage.membershipIds.includes(resUpd.resourceId))
+                    promptReload();
+                break;
+            case "membership":
+                if (resUpd.properties["userId"] === ProfilePage.userId)
                     promptReload();
                 break;
             case "document":
-                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length == 2 && resUpd.alternateResourceId[1] === ProfilePage.userId)
+                if (resUpd.properties["uploaderId"] === ProfilePage.userId)
                     promptReload();
                 break;
         }
@@ -28,12 +33,13 @@ resConn.on(
 
 function promptReload() {
 
-    if (confirm("This document has been modified. Refresh?"))
+    if (confirm("Your info has been modified. Refresh?"))
         window.location.reload();
 }
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "profile", null))
+    .then(() => resConn.invoke("JoinGroup", "profile", ProfilePage.userId))
+    .then(() => resConn.invoke("JoinGroup", "profile", null))
     .then(() => window.connId = resConn.connectionId)
     .catch(console.error);

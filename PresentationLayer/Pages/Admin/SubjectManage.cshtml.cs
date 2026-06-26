@@ -16,11 +16,11 @@ namespace Presentation.Pages.Admin;
 [Authorize(Roles = "Admin")]
 public class SubjectManageModel(
     ISubjectService subjectService,
-    IHubContext<RealtimeHub, IRealtimeClient> hub
+    IHubContext<ResourceHub, IResourceClient> hub
     ) : PageModel
 {
     private readonly ISubjectService _subjectService = subjectService;
-    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
+    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
 
     /// <summary>
     /// Gets the subject management view model rendered by the page.
@@ -30,37 +30,28 @@ public class SubjectManageModel(
     [FromHeader]
     public string CallerSignalRConnectionId { get; set; } = string.Empty;
 
-    private static List<string> OtherSubjectGroups
+    private static List<string> OtherSubjectGroups(int subjectId, Guid[] userIds, Guid[] docIds)
     {
-        get
-        {
-            var groups = ResourceRelations.SubjectGroups.ToList();
-            groups.Remove(ThisGroup);
-            return groups;
-        }
+        var groups = NotificationTargets.Subject(subjectId, userIds, docIds).ToList();
+        groups.Remove(ThisGroup());
+        return groups;
     }
 
-    private static List<string> OtherChapterGroups
+    private static List<string> OtherChapterGroups(int chapterId, Guid[] docIds)
     {
-        get
-        {
-            var groups = ResourceRelations.ChapterGroups.ToList();
-            groups.Remove(ThisGroup);
-            return groups;
-        }
+        var groups = NotificationTargets.Chapter(chapterId, docIds).ToList();
+        groups.Remove(ThisGroup());
+        return groups;
     }
 
-    private static List<string> OtherMembershipGroups
+    private static List<string> OtherMembershipGroups(int subjectId, Guid userId, Guid[] docIds)
     {
-        get
-        {
-            var groups = ResourceRelations.MembershipGroups.ToList();
-            groups.Remove(ThisGroup);
-            return groups;
-        }
+        var groups = NotificationTargets.Membership(subjectId, userId, docIds).ToList();
+        groups.Remove(ThisGroup());
+        return groups;
     }
 
-    private static string ThisGroup => HubGroups.Resource("subject-manage");
+    private static string ThisGroup() => HubGroups.Resource(PageTypes.SubjectManage);
 
     /// <summary>
     /// Loads subjects for the subject management page.
@@ -288,8 +279,11 @@ public class SubjectManageModel(
                 ResourceType = "chapter",
                 Action = "deleted",
                 ResourceId = id.ToString(),
-                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
                 ResourceName = chapter.Name,
+                Properties =
+                {
+                    { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
+                },
             };
             await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
             await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
@@ -365,14 +359,26 @@ public class SubjectManageModel(
 
             var upd = new ResourceUpdate
             {
-                ResourceType = "subject_membership",
-                Action = "created",
+                ResourceType = ResourceTypes.Membership,
+                Action = Actions.Created,
                 ResourceId = membership.Id.ToString(),
-                AlternateResourceId = [membership.SubjectId.ToString(), membership.UserId.ToString()],
-                ResourceName = $"{membership.Subject.Name} = {membership.User.FullName}",
+                ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
+                Properties =
+                {
+                    { nameof(SubjectMembership.SubjectId), membership.SubjectId.ToString() },
+                    { nameof(SubjectMembership.UserId), membership.UserId.ToString() },
+                },
             };
-            await _hub.Clients.Groups(OtherMembershipGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            var docsInSubject = /* WHAT NOW? */;
+
+            await _hub.Clients.Groups(
+                OtherMembershipGroups(membership.SubjectId, membership.UserId, docsInSubject))
+                .ResourceChanged(upd);
+
+            await _hub.Clients
+                .GroupExcept(ThisGroup(), CallerSignalRConnectionId)
+                .ResourceChanged(upd);
 
             return new JsonResult(new { success = true });
         }
@@ -400,10 +406,14 @@ public class SubjectManageModel(
                 ResourceType = "subject_membership",
                 Action = "deleted",
                 ResourceId = membership.Id.ToString(),
-                AlternateResourceId = [membership.SubjectId.ToString(), membership.UserId.ToString()],
-                ResourceName = $"{membership.Subject.Name} = {membership.User.FullName}",
+                ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
+                Properties =
+                {
+                    { nameof(SubjectMembership.SubjectId), membership.SubjectId.ToString() },
+                    { nameof(SubjectMembership.UserId), membership.UserId.ToString() },
+                },
             };
-            await _hub.Clients.Groups(OtherMembershipGroups).ResourceChanged(upd);
+            await _hub.Clients.Groups(OtherMembershipGroups()).ResourceChanged(upd);
             await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
 
             return new JsonResult(new { success = true });

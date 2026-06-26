@@ -19,6 +19,8 @@ public interface ISubjectService
         int limit,
         int offset);
 
+    Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Gets a subject by its unique integer identifier.
     /// </summary>
@@ -91,8 +93,7 @@ public interface ISubjectService
         MembershipRole role,
         string? search);
 
-    // ==================================================
-    Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<bool> HasAccessAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
+    Task<bool> IsMemberAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
+
     Task<bool> IsChiefAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
 }

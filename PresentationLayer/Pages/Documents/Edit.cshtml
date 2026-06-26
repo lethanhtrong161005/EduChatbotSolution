@@ -181,8 +181,10 @@
     <script>
         window.DocumentEditPage = {
             documentId: '@Model.ViewModel.Id',
+            chapterId: '@Model.ChapterId',
             subjectId: '@Model.SubjectId',
-            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)'
+            uploaderId: '@Model.UploaderId',
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
         };
     </script>
 

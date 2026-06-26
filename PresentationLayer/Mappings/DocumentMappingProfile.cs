@@ -9,7 +9,7 @@ public class DocumentMappingProfile : Profile
 {
     public DocumentMappingProfile()
     {
-        CreateMap<Subject, SubjectLookupVm>();
+        CreateMap<Subject, SubjectLookupDto>();
 
         CreateMap<Chapter, ChapterLookupDto>();
 

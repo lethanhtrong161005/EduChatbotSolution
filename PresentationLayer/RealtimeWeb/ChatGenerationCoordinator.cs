@@ -4,7 +4,6 @@ using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.SignalR;
-using NuGet.Common;
 using Presentation.DTOs;
 
 namespace Presentation.RealtimeWeb;

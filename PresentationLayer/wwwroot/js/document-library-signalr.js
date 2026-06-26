@@ -23,7 +23,6 @@ conn.on(
                 ? settings.text.replace("{{PROGRESS}}", docStatusUpd.progress.toFixed(2))
                 : settings.text.replace("({{PROGRESS}}%)", "").trim();
 
-
         $badge.html(`
             <i class="fas ${settings.iconClass}"></i>
             ${text}
@@ -35,7 +34,7 @@ conn.on(
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -45,8 +44,9 @@ resConn.on(
         switch (resUpd.resourceType) {
             case "subject":
             case "chapter":
-            case "subject_membership":
             case "document":
+            case "user": // Uploader details
+            case "membership": // of current user
                 $(document).trigger("resource:changed", resUpd);
                 break;
         }
@@ -55,6 +55,6 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "document-library", null))
+    .then(() => resConn.invoke("JoinGroup", "document-library", null))
     .then(() => window.connId = resConn.connectionId)
     .catch(console.error);

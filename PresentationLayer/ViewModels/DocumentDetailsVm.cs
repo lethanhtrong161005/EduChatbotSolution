@@ -6,9 +6,11 @@ public class DocumentDetailsVm
 {
     public Guid Id { get; set; }
 
-    public string ChapterName { get; set; } = string.Empty;
-
     public int SubjectId { get; set; }
+
+    public int ChapterId { get; set; }
+
+    public string ChapterName { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
 

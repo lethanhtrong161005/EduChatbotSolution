@@ -1,12 +1,13 @@
 using AutoMapper;
-using DataAccess.UnitOfWork;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Presentation.DTOs;
+using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 using System.Security.Claims;
 
@@ -18,14 +19,16 @@ namespace Presentation.Pages.Documents;
 /// </summary>
 [Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DetailsModel(
+    ISubjectService subjectService,
     IDocumentService documentService,
-    IUnitOfWork unitOfWork,
+    IHubContext<ResourceHub, IResourceClient> hub,
     IMapper mapper) : PageModel
 {
     private const int PageSize = 10;
 
+    private readonly ISubjectService _subjectService = subjectService;
     private readonly IDocumentService _documentService = documentService;
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
@@ -39,6 +42,19 @@ public class DetailsModel(
     /// Gets whether the current user has permission to edit this document.
     /// </summary>
     public bool CanEdit { get; private set; } = false;
+
+    [FromForm]
+    public string CallerSignalRConnectionId { get; set; } = string.Empty;
+
+    public static List<string> OtherCommentGroups(Guid commentId, Guid docId, Guid userId)
+    {
+        var groups = NotificationTargets.Comment(commentId, docId, userId).ToList();
+        groups.Remove(ThisGroup(docId));
+        return groups;
+    }
+
+    public static string ThisGroup(Guid docId) =>
+        HubGroups.Resource(PageTypes.DocumentDetails, docId.ToString());
 
     /// <summary>
     /// Loads document metadata, chunks, and comments.
@@ -75,19 +91,13 @@ public class DetailsModel(
         var isAdmin = User.IsInRole(nameof(UserRole.Admin));
         if (!isAdmin)
         {
-            var isMember = await _unitOfWork.SubjectMemberships.ExistsAsync(
-                filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId,
-                cancellationToken: cxlTkn);
-
+            var isMember = await _subjectService.IsMemberAsync(doc.Chapter.SubjectId, userId, cxlTkn);
             if (!isMember)
-            {
                 return Forbid();
-            }
         }
 
-        var isChief = await _unitOfWork.SubjectMemberships.ExistsAsync(
-            filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId && m.Role == MembershipRole.Chief,
-            cancellationToken: cxlTkn);
+        var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+
         CanEdit = isChief;
 
         var vm = _mapper.Map<DocumentDetailsVm>(doc);
@@ -129,13 +139,38 @@ public class DetailsModel(
     }
 
     /// <summary>
+    /// Returns a paginated preview of indexed chunks for a document.
+    /// </summary>
+    /// <param name="documentId">The document identifier.</param>
+    /// <param name="pageIndex">The one-based page index requested by the client.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnGetGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
+    {
+        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
+            id,
+            PageSize,
+            pageIndex,
+            cxlTkn);
+
+        var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
+        var pageDto = new ChunkPreviewPageDto
+        {
+            Chunks = chunkDtos,
+            PageIndex = chunks.PageIndex,
+            TotalPages = chunks.TotalPages,
+        };
+
+        return new JsonResult(pageDto);
+    }
+
+    /// <summary>
     /// Adds a comment to the current document and redirects back to the details page.
     /// </summary>
     /// <param name="id">The document identifier from the route.</param>
     /// <param name="documentId">The document identifier from the posted form.</param>
     /// <param name="content">The submitted comment text.</param>
     /// <returns>A redirect back to the document details page.</returns>
-    public async Task<IActionResult> OnPostAddCommentAsync(Guid id, Guid documentId, string content)
+    public async Task<IActionResult> OnPostAddCommentAsync(Guid id, Guid documentId, string content, CancellationToken cxlTkn)
     {
         var targetDocumentId = documentId == Guid.Empty ? id : documentId;
 
@@ -162,8 +197,7 @@ public class DetailsModel(
         var isAdmin = User.IsInRole(nameof(UserRole.Admin));
         if (!isAdmin)
         {
-            var isMember = await _unitOfWork.SubjectMemberships.ExistsAsync(
-                filter: m => m.UserId == userId && m.SubjectId == doc.Chapter.SubjectId);
+            var isMember = await _subjectService.IsMemberAsync(doc.Chapter.SubjectId, userId, cxlTkn);
 
             if (!isMember)
             {
@@ -171,33 +205,27 @@ public class DetailsModel(
             }
         }
 
-        await _documentService.AddCommentAsync(targetDocumentId, userId, content);
+        var comment = await _documentService.AddCommentAsync(targetDocumentId, userId, content);
 
-        return RedirectToPage(new { id = targetDocumentId });
-    }
-
-    /// <summary>
-    /// Returns a paginated preview of indexed chunks for a document.
-    /// </summary>
-    /// <param name="documentId">The document identifier.</param>
-    /// <param name="pageIndex">The one-based page index requested by the client.</param>
-    /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
-    {
-        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
-            id,
-            PageSize,
-            pageIndex,
-            cxlTkn);
-
-        var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
-        var pageDto = new ChunkPreviewPageDto
+        var upd = new ResourceUpdate
         {
-            Chunks = chunkDtos,
-            PageIndex = chunks.PageIndex,
-            TotalPages = chunks.TotalPages,
+            ResourceType = ResourceTypes.Comment,
+            Action = Actions.Created,
+            ResourceId = comment.Id.ToString(),
+            Properties = {
+                { nameof(DocumentComment.UserId), comment.UserId.ToString() },
+                { nameof(DocumentComment.DocumentId), comment.DocumentId.ToString() },
+            },
         };
 
-        return new JsonResult(pageDto);
+        await _hub.Clients
+            .Groups(OtherCommentGroups(comment.Id, comment.UserId, comment.DocumentId))
+            .ResourceChanged(upd);
+
+        await _hub.Clients
+            .GroupExcept(ThisGroup(comment.DocumentId), CallerSignalRConnectionId)
+            .ResourceChanged(upd);
+
+        return RedirectToPage(new { id = targetDocumentId });
     }
 }

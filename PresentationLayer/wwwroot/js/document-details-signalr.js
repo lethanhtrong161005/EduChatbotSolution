@@ -2,7 +2,7 @@
 
 const conn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/documents/status?page=details&document-id=${razor_docId}`)
+        .withUrl(`/documents/status?page=details&document-id=${DocumentDetailsPage.documentId}`)
         .withAutomaticReconnect()
         .build();
 
@@ -13,7 +13,7 @@ conn.on(
     "UpdateStatus",
     function (update) {
 
-        if (update.id !== razor_docId)
+        if (update.id !== DocumentDetailsPage.documentId)
             return;
 
         updateBadge(update);
@@ -69,7 +69,7 @@ function updateBadge(update) {
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -78,8 +78,10 @@ resConn.on(
     function (resUpd) {
         switch (resUpd.resourceType) {
             case "document":
+            case "chapter":
+            case "subject":
             case "user":
-            case "subject_membership":
+            case "membership":
             case "comment":
                 $(document).trigger("resource:changed", resUpd);
                 break;
@@ -89,6 +91,13 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "document-library", null))
+    .then(() => resConn.invoke("JoinGroup", "document-details", DocumentDetailsPage.documentId))
+    .then(() => resConn.invoke("JoinGroup", "document-details", null))
     .then(() => window.connId = resConn.connectionId)
+    .then(() =>
+        $("<input>")
+            .attr("type", "hidden")
+            .attr("name", "CallerSignalRConnectionId")
+            .val(connId)
+            .appendTo($("form")))
     .catch(console.error);

@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const resConn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/realtime`)
+        .withUrl(`/resource`)
         .withAutomaticReconnect()
         .build();
 
@@ -646,12 +646,12 @@ resConn.on(
                 break;
             case "chapter":
                 showToast('info', `${resUpd.resourceName ? "Chapter [" + resUpd.resourceName + "] has" : "Chapters have"} been updated.`);
-                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length === 2 && resUpd.alternateResourceId[0] === document.getElementById('chapter-sub-id').value)
+                if (resUpd.properties["subjectId"] === document.getElementById('chapter-sub-id').value)
                     await loadChapters(resUpd.alternateResourceId[0]);
                 break;
-            case "subject_membership":
+            case "membership":
                 showToast('info', `${resUpd.resourceName ? "Membership [" + resUpd.resourceName + "] has" : "Memberships have"} been updated.`);
-                if (resUpd.alternateResourceId && resUpd.alternateResourceId.length === 2 && resUpd.alternateResourceId[0] === document.getElementById('member-sub-id').value)
+                if (resUpd.properties["subjectId"] === document.getElementById('member-sub-id').value)
                     await loadMembers(resUpd.alternateResourceId[0]);
                 break;
         }
@@ -660,6 +660,6 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinPage", "subject-manage", null))
+    .then(() => resConn.invoke("JoinGroup", "subject-manage", null))
     .then(() => window.connId = resConn.connectionId)
     .catch(console.error);

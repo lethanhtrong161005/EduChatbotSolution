@@ -12,7 +12,7 @@ namespace Business.Services.AI.Indexing.Parsing;
 
 public class LocationAnnotatedParser : IDocumentParser
 {
-    public string ParserName => "SimpleParser";
+    public string ParserName => "Location Annotated Parser";
 
     public async Task<ParsedDocument> ParseAsync(string path, Ent.DocumentType type, CancellationToken cxlTkn = default)
     {

@@ -1,4 +1,5 @@
 @page
+@using System.Security.Claims
 @model Presentation.Pages.Home.IndexModel
 @{
     ViewData["Title"] = "Dashboard";
@@ -32,16 +33,16 @@
         box-shadow: var(--shadow-lg);
     }
 
-    .dashboard-hero::after {
-        content: "";
-        position: absolute;
-        width: 220px;
-        height: 220px;
-        right: -70px;
-        bottom: -95px;
-        border-radius: var(--radius-full);
-        background: rgba(255, 255, 255, 0.16);
-    }
+        .dashboard-hero::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            right: -70px;
+            bottom: -95px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.16);
+        }
 
     .dashboard-hero-content {
         position: relative;
@@ -108,11 +109,11 @@
         transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
     }
 
-    .dashboard-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(46, 204, 113, 0.32);
-        box-shadow: var(--shadow-md);
-    }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(46, 204, 113, 0.32);
+            box-shadow: var(--shadow-md);
+        }
 
     .metric-card {
         display: flex;
@@ -133,20 +134,20 @@
         font-size: var(--font-size-xl);
     }
 
-    .metric-icon.primary {
-        background: rgba(46, 204, 113, 0.12);
-        color: var(--color-primary-dark);
-    }
+        .metric-icon.primary {
+            background: rgba(46, 204, 113, 0.12);
+            color: var(--color-primary-dark);
+        }
 
-    .metric-icon.secondary {
-        background: rgba(52, 152, 219, 0.12);
-        color: var(--color-secondary-dark);
-    }
+        .metric-icon.secondary {
+            background: rgba(52, 152, 219, 0.12);
+            color: var(--color-secondary-dark);
+        }
 
-    .metric-icon.neutral {
-        background: var(--color-neutral-100);
-        color: var(--color-neutral-700);
-    }
+        .metric-icon.neutral {
+            background: var(--color-neutral-100);
+            color: var(--color-neutral-700);
+        }
 
     .metric-value {
         color: var(--color-text-primary);
@@ -176,9 +177,9 @@
         font-weight: var(--font-weight-bold);
     }
 
-    .profile-title i {
-        color: var(--color-primary);
-    }
+        .profile-title i {
+            color: var(--color-primary);
+        }
 
     .profile-list {
         display: grid;
@@ -195,10 +196,10 @@
         border-bottom: 1px solid var(--color-border-light);
     }
 
-    .profile-row:last-child {
-        border-bottom: 0;
-        padding-bottom: 0;
-    }
+        .profile-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
 
     .profile-icon {
         width: 44px;
@@ -262,13 +263,13 @@
             border-radius: var(--radius-lg);
         }
 
-        .dashboard-hero h1 {
-            font-size: var(--font-size-3xl);
-        }
+            .dashboard-hero h1 {
+                font-size: var(--font-size-3xl);
+            }
 
-        .dashboard-hero p {
-            font-size: var(--font-size-base);
-        }
+            .dashboard-hero p {
+                font-size: var(--font-size-base);
+            }
 
         .metric-card,
         .profile-card {
@@ -340,3 +341,15 @@
 
 </section>
 
+@section Scripts {
+
+    <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+        window.HomePage = {
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)'
+        };
+    </script>
+
+    <script src="~/js/home/home-signalr.js"></script>
+}

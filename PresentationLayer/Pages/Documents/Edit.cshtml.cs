@@ -4,7 +4,6 @@ using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 using Presentation.Extensions;
@@ -20,12 +19,12 @@ namespace Presentation.Pages.Documents;
 public class EditModel(
     IDocumentService documentService,
     ISubjectService subjectService,
-    IHubContext<RealtimeHub, IRealtimeClient> hub,
+    IHubContext<ResourceHub, IResourceClient> hub,
     IMapper mapper) : PageModel
 {
     private readonly IDocumentService _documentService = documentService;
     private readonly ISubjectService _subjectService = subjectService;
-    private readonly IHubContext<RealtimeHub, IRealtimeClient> _hub = hub;
+    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
@@ -36,8 +35,22 @@ public class EditModel(
 
     public int SubjectId { get; set; }
 
+    public int ChapterId { get; set; }
+
+    public Guid UploaderId { get; set; }
+
     [FromForm]
     public string CallerSignalRConnectionId { get; set; } = string.Empty;
+
+    private static List<string> OtherDocumentGroups(Guid docId, int subjectId, Guid uploaderId)
+    {
+        var groups = NotificationTargets.Document(docId, subjectId, uploaderId).ToList();
+        groups.Remove(ThisGroup(docId));
+        return groups;
+    }
+
+    private static string ThisGroup(Guid docId) =>
+        HubGroups.Resource(PageTypes.DocumentEdit, docId.ToString());
 
     /// <summary>
     /// Loads document data into the edit form.
@@ -67,6 +80,8 @@ public class EditModel(
 
         ViewModel = _mapper.Map<DocumentEditVm>(doc);
         SubjectId = doc.Chapter.Id;
+        ChapterId = doc.ChapterId;
+        UploaderId = doc.UploaderId;
 
         return Page();
     }
@@ -103,18 +118,26 @@ public class EditModel(
 
         await _documentService.UpdateAsync(doc, cxlTkn);
 
-        var groups = ResourceRelations.DocumentGroups.ToList();
-        groups.Remove(HubGroups.Resource("document-edit"));
         var upd = new ResourceUpdate
         {
-            ResourceType = "document",
-            Action = "deleted",
+            ResourceType = ResourceTypes.Comment,
+            Action = Actions.Deleted,
             ResourceId = doc.Id.ToString(),
-            AlternateResourceId = [doc.Chapter.SubjectId.ToString(), doc.UploaderId.ToString()],
             ResourceName = doc.Title,
+            Properties =
+            {
+                { nameof(Document.Chapter.SubjectId) , doc.Chapter.SubjectId.ToString() },
+                { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
+            },
         };
-        await _hub.Clients.Groups(groups).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(HubGroups.Resource("document-edit"), CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _hub.Clients
+            .Groups(OtherDocumentGroups(doc.Id, doc.Chapter.SubjectId, doc.UploaderId))
+            .ResourceChanged(upd);
+
+        await _hub.Clients
+            .GroupExcept(ThisGroup(doc.Id), CallerSignalRConnectionId)
+            .ResourceChanged(upd);
 
         return RedirectToPage("/Documents/Details", new { id = doc.Id });
     }

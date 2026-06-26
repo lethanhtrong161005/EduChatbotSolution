@@ -2,7 +2,6 @@
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Presentation.DTOs;
-using Presentation.ViewModels;
 
 namespace Presentation.Mappings;
 

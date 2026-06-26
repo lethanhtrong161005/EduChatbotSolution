@@ -5,7 +5,6 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using OllamaSharp.Models.Chat;
 using Presentation.Constants;
 using Presentation.DTOs;
 using Presentation.Extensions;
@@ -40,15 +39,7 @@ public class IndexModel(
     /// <returns>The chat page, unauthorized, or not found result.</returns>
     public async Task<IActionResult> OnGetAsync(Guid? id, CancellationToken cxlTkn)
     {
-        Guid userId;
-        try
-        {
-            userId = User.GetUserId();
-        }
-        catch (UserClaimException)
-        {
-            return Unauthorized();
-        }
+        var userId = User.GetUserId();
 
         if (id.HasValue)
         {
@@ -143,7 +134,7 @@ public class IndexModel(
             }
 
             if (req.SubjectId.HasValue
-                && !await _subjectService.HasAccessAsync(req.SubjectId.Value, userId, cxlTkn))
+                && !await _subjectService.IsMemberAsync(req.SubjectId.Value, userId, cxlTkn))
             {
                 return BadRequest();
             }
