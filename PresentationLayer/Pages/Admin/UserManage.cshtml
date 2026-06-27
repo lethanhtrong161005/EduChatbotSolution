@@ -39,9 +39,9 @@
             <button type="submit" class="btn-filter">
                 <i class="fas fa-filter"></i> Filter
             </button>
-            <a asp-page="/Admin/UserManage" class="btn-reset">
+            <button type="button" class="btn-reset" id="btnReset">
                 <i class="fas fa-times"></i> Reset
-            </a>
+            </button>
         </form>
         <div class="um-actions">
             <button class="btn-import-user" id="btnImportUser" onclick="openImportModal()">
@@ -64,7 +64,7 @@
         <div class="stat-separator"></div>
         <div class="stat-item">
             <span class="stat-number">@(Model.ViewModel.Offset + 1)–@(Model.ViewModel.Offset + Model.ViewModel.Users.Count)</span>
-            <span class="stat-label">of all users</span>
+            <span class="stat-label">of <span id="totalUserCount">0</span> users</span>
         </div>
     </div>
 
@@ -160,43 +160,9 @@
 
     <!-- Pagination -->
     <div class="um-pagination">
-        @if (Model.ViewModel.Offset > 0)
-        {
-            var prevOffset = Math.Max(0, Model.ViewModel.Offset - Model.ViewModel.Limit);
-            <a asp-page="/Admin/UserManage"
-               asp-route-name="@Model.ViewModel.NameFilter" asp-route-email="@Model.ViewModel.EmailFilter"
-               asp-route-role="@Model.ViewModel.RoleFilter" asp-route-limit="@Model.ViewModel.Limit"
-               asp-route-offset="@prevOffset" class="pg-btn">
-                <i class="fas fa-chevron-left"></i> Previous
-            </a>
-        }
-        else
-        {
-            <button class="pg-btn pg-disabled" disabled>
-                <i class="fas fa-chevron-left"></i> Previous
-            </button>
-        }
-
-        <span class="pg-info">
-            Page @((Model.ViewModel.Offset / Model.ViewModel.Limit) + 1)
-        </span>
-
-        @if (Model.ViewModel.Users.Count == Model.ViewModel.Limit)
-        {
-            var nextOffset = Model.ViewModel.Offset + Model.ViewModel.Limit;
-            <a asp-page="/Admin/UserManage"
-               asp-route-name="@Model.ViewModel.NameFilter" asp-route-email="@Model.ViewModel.EmailFilter"
-               asp-route-role="@Model.ViewModel.RoleFilter" asp-route-limit="@Model.ViewModel.Limit"
-               asp-route-offset="@nextOffset" class="pg-btn">
-                Next <i class="fas fa-chevron-right"></i>
-            </a>
-        }
-        else
-        {
-            <button class="pg-btn pg-disabled" disabled>
-                Next <i class="fas fa-chevron-right"></i>
-            </button>
-        }
+        <button id="btnPrev" class="pg-btn"></button>
+        <span class="pg-info"></span>
+        <button id="btnNext" class="pg-btn"></button>
     </div>
 </div>
 

@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,11 +18,14 @@ namespace Presentation.Pages.Account;
 public class VerifyEmailModel(
     IAuthService authService,
     IEmailVerificationService emailVerificationService,
-    UserManager<ApplicationUser> userManager) : PageModel
+    UserManager<ApplicationUser> userManager,
+    IResourceRealtimeNotifier notifier)
+    : PageModel
 {
     private readonly IAuthService _authService = authService;
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
 
     /// <summary>
     /// Gets the email verification form data rendered by the page.
@@ -96,6 +100,17 @@ public class VerifyEmailModel(
             }
 
             await _emailVerificationService.CleanupAsync(ViewModel.Email);
+
+            var upd = new ResourceUpdate
+            {
+                ResourceType = ResourceType.User,
+                Action = ResourceAction.Enabled,
+                ResourceId = existingUser.Id.ToString(),
+                ResourceName = existingUser.FullName,
+            };
+
+            await _notifier.PushUpdateAsync(upd);
+
             TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
             return RedirectToPage("/Account/Login", new { returnUrl = ReturnUrl });
         }
@@ -107,18 +122,30 @@ public class VerifyEmailModel(
             return Page();
         }
 
-        var createError = await _authService.CreateVerifiedAccountAsync(
+        var createResult = await _authService.CreateVerifiedAccountAsync(
             ViewModel.Email,
             pendingReg.Value.FullName,
             pendingReg.Value.BcryptHash);
 
-        if (createError is not null)
+        if (createResult.Errors is not null)
         {
-            ModelState.AddModelError(string.Empty, createError);
+            ModelState.AddModelError(string.Empty, createResult.Errors);
             return Page();
         }
 
         await _emailVerificationService.CleanupAsync(ViewModel.Email);
+
+        var user = createResult.User;
+
+        var update = new ResourceUpdate
+        {
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Enabled,
+            ResourceId = user!.Id.ToString(),
+            ResourceName = user.FullName,
+        };
+
+        await _notifier.PushUpdateAsync(update);
 
         TempData[AppConstants.TempDataSuccess] = AppConstants.RegistrationSuccess;
         return RedirectToPage("/Account/Login", new { returnUrl = ReturnUrl });

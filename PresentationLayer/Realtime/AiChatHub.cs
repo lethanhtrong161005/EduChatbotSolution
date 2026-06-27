@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Presentation.DTOs;
 
-namespace Presentation.RealtimeWeb;
+namespace Presentation.Realtime;
 
 public class AiChatHub : Hub<IAiChatClient>
 {
@@ -24,8 +24,6 @@ public class AiChatHub : Hub<IAiChatClient>
 
 public interface IAiChatClient
 {
-    Task TitleGenerated(Guid sessionId, string title);
-
     Task StreamingStarted(Guid assistantMessageId, Guid assistantMessageClientId);
 
     Task ReceiveToken(Guid assistantMessageId, Guid assistantMessageClientId, string token);

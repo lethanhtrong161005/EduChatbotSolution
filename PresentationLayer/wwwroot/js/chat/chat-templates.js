@@ -64,7 +64,9 @@
 
                 </div>
 
-                <div class="mt-10">
+                <div
+                    id="chat-message-input-container"
+                    class="mt-10">
 
                     ${renderChatMessageInput(subjectHeaders)}
 
@@ -86,7 +88,9 @@
                     class="chat-scrollbar flex-1 overflow-y-auto px-8 py-8">
                 </div>
 
-                    <div class="mt-4 mb-6 w-full">
+                    <div
+                        id="chat-message-input-container"
+                        class="mt-4 mb-6 w-full">
 
                         ${renderChatMessageInput(null)}
 
@@ -513,6 +517,7 @@
         renderSidebarSessionList,
         renderLandingSession,
         renderExistingSession,
+        renderChatMessageInput,
         renderUserMessage,
         renderAssistantMessage,
         renderAssistantMessageContent,

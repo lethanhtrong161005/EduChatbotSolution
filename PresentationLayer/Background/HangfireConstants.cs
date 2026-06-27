@@ -1,4 +1,4 @@
-﻿namespace Presentation.Constants;
+﻿namespace Presentation.Background;
 
 public static class HangfireConstants
 {

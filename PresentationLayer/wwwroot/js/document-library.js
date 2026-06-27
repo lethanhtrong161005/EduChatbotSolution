@@ -75,7 +75,7 @@
         const response = await fetch(`/documents/library?handler=GetSubjects`, {
             method: "GET",
             headers: {
-                "CallerSignalRConnectionId": connId,
+                "CallerConnectionId": connId,
             }
         });
 
@@ -172,7 +172,7 @@
         const response = await fetch(`/documents/library?handler=CanUpload&subjectId=${subjectId}`, {
             method: "GET",
             headers: {
-                "CallerSignalRConnectionId": connId,
+                "CallerConnectionId": connId,
             }
         });
 
@@ -204,7 +204,7 @@
         const response = await fetch(`/documents/library?handler=GetChapters&subjectId=${subjectId}`, {
             method: "GET",
             headers: {
-                "CallerSignalRConnectionId": connId,
+                "CallerConnectionId": connId,
             }
         });
 
@@ -239,7 +239,7 @@
         const response = await fetch(`/documents/library?handler=GetFiles&subjectId=${subjectId}`, {
             method: "GET",
             headers: {
-                "CallerSignalRConnectionId": connId,
+                "CallerConnectionId": connId,
             }
         });
 
@@ -357,7 +357,7 @@
             method: "DELETE",
             headers: {
                 "RequestVerificationToken": getAntiForgery(),
-                "CallerSignalRConnectionId": connId,
+                "CallerConnectionId": connId,
             }
         });
 
@@ -565,7 +565,7 @@ Are you sure you wish to upload them?
                 "/documents/library?handler=Upload");
 
             xhr.setRequestHeader("RequestVerificationToken", getAntiForgery());
-            xhr.setRequestHeader("CallerSignalRConnectionId", connId);
+            xhr.setRequestHeader("CallerConnectionId", connId);
 
             xhr.upload.addEventListener(
                 "progress",
@@ -706,21 +706,21 @@ Are you sure you wish to upload them?
         "resource:changed",
         async function (_, resUpd) {
             switch (resUpd.resourceType) {
-                case "subject":
+                case ResourceType.Subject:
                     await loadSubjects(++concurrencyToken);
                     refreshTable();
                     break;
-                case "chapter":
+                case ResourceType.Chapter:
                     await loadChapters(subjectSelect.value, ++concurrencyToken);
                     refreshTable();
                     break;
-                case "document":
-                case "user": // Uploader details may have changed
+                case ResourceType.Document:
+                case ResourceType.User: // Uploader details may have changed
                     await loadDocuments(subjectSelect.value, ++concurrencyToken);
                     refreshTable();
                     break;
-                case "membership": // Current user may have gained/lost membership(s)
-                    if (resUpd.properties["userId"] === DocumentLibraryPage.userId) {
+                case ResourceType.Membership: // Current user may have gained/lost membership(s)
+                    if (resUpd.properties["userId"] === Page.userId) {
                         await loadSubjects(++concurrencyToken);
                         refreshTable();
                     }

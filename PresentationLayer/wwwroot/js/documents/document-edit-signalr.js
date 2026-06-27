@@ -10,23 +10,23 @@ resConn.on(
     "ResourceChanged",
     function (resUpd) {
         switch (resUpd.resourceType) {
-            case "document":
+            case ResourceType.Document:
                 if (resUpd.resourceId === DocumentEditPage.documentId)
                     promptReload();
                 break;
-            case "chapter":
+            case ResourceType.Chapter:
                 if (resUpd.resourceId === DocumentEditPage.chapterId)
                     promptReload();
                 break;
-            case "subject":
+            case ResourceType.Subject:
                 if (resUpd.resourceId === DocumentEditPage.subjectId)
                     promptReload();
                 break;
-            case "user":
+            case ResourceType.User:
                 if (resUpd.resourceId === DocumentEditPage.uploaderId)
                     promptReload();
                 break;
-            case "membership":
+            case ResourceType.Membership:
                 if (resUpd.action === "deleted"
                     && resUpd.properties["subjectId"] === DocumentEditPage.subjectId
                     && resUpd.properties["userId"] === DocumentEditPage.userId) {
@@ -51,13 +51,25 @@ function denyAccess() {
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinGroup", "document-edit", DocumentEditPage.documentId))
-    .then(() => resConn.invoke("JoinGroup", "document-edit", null))
+    .then(async () => {
+
+        const promises = [];
+
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Page.documentId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Page.chapterId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Page.subjectId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Page.uploaderId));
+
+        if (Page.viewerMembershipId)
+            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Page.uploaderId));
+
+        await Promise.all(promises);
+    })
     .then(() => window.connId = resConn.connectionId)
     .then(() =>
         $("<input>")
             .attr("type", "hidden")
-            .attr("name", "CallerSignalRConnectionId")
+            .attr("name", "CallerConnectionId")
             .val(connId)
             .appendTo($("form")))
     .catch(console.error);

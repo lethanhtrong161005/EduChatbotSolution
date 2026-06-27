@@ -6,7 +6,7 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.SignalR;
 using Presentation.DTOs;
 
-namespace Presentation.RealtimeWeb;
+namespace Presentation.Realtime;
 
 public class ChatGenerationCoordinator(
     ISubjectService subjectService,
@@ -14,6 +14,7 @@ public class ChatGenerationCoordinator(
     IChatPersistenceService chatPersistenceService,
     IChatGenerationService chatGenerationService,
     IHubContext<AiChatHub, IAiChatClient> chatHub,
+    IResourceRealtimeNotifier notifier,
     IMapper mapper)
     : IChatGenerationCoordinator
 {
@@ -22,6 +23,7 @@ public class ChatGenerationCoordinator(
     private readonly IChatPersistenceService _chatPersistenceService = chatPersistenceService;
     private readonly IChatGenerationService _chatGenerationService = chatGenerationService;
     private readonly IHubContext<AiChatHub, IAiChatClient> _chatHub = chatHub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
     public async Task GenerateTitleAsync(
@@ -51,16 +53,27 @@ public class ChatGenerationCoordinator(
 
         var result = await _chatGenerationService.GenerateTitleAsync(request, cxlTkn);
 
-        await _chatPersistenceService.UpdateSessionTitleAsync(
-            session.Id,
-            result.Title,
-            request.Settings,
-            result.Metrics,
-            cxlTkn);
+        var updatedSession = await _chatPersistenceService.UpdateSessionTitleAsync(
+                   session.Id,
+                   result.Title,
+                   request.Settings,
+                   result.Metrics,
+                   cxlTkn);
 
-        await _chatHub.Clients
-             .Group(HubGroups.Chat(sessionId))
-             .TitleGenerated(sessionId, result.Title);
+        var update = new ResourceUpdate
+        {
+            ResourceType = ResourceType.ChatSession,
+            Action = ResourceAction.Updated,
+            ResourceId = updatedSession.Id.ToString(),
+            ResourceName = updatedSession.Title,
+            Properties =
+            {
+                { nameof(ChatSession.UserId), updatedSession.UserId },
+                { nameof(ChatSession.SubjectId), updatedSession.SubjectId },
+            },
+        };
+
+        await _notifier.PushUpdateAsync(update);
     }
 
     public async Task GenerateChatAsync(

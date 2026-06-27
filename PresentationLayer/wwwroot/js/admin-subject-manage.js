@@ -23,6 +23,15 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+/** JS escaping helper to prevent script injection in dynamic content rendering. */
+function escapeJs(value) {
+
+    return String(value)
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"');
+}
+
 /** Open a modal by ID with animation. */
 function openModal(id) {
     document.getElementById(id)?.classList.add('open');
@@ -104,7 +113,106 @@ function setLoading(btnId, loading) {
     btn.disabled = loading;
 }
 
+// ── Intercept form ─────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("filterForm");
+
+    form.addEventListener("submit", async e => {
+        e.preventDefault();
+        await loadSubjects();
+    });
+
+    document.getElementById("btnReset")
+        .addEventListener("click", async () => {
+            const form = document.getElementById("filterForm");
+            form.reset();
+            form.elements.offset.value = 0;
+            await loadSubjects();
+        });
+});
+
 // ── SUBJECTS CRUD ─────────────────────────────────────────────
+
+async function loadSubjects() {
+    const form = document.getElementById('filterForm');
+    if (!form) return;
+
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (!btnSubmit) return;
+
+    const subjectTable = document.getElementById('subjectTable');
+    if (!subjectTable) return;
+
+    const subjectTableBody = subjectTable.querySelector('tbody');
+    if (!subjectTableBody) return;
+
+    const query = new URLSearchParams(new FormData(form));
+
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Loading subjects...';
+
+    try {
+        const res = await fetch(`/admin/subject-manage?handler=GetSubjects&${query.toString()}`);
+        if (!res.ok) throw new Error('Failed to fetch subjects');
+        const subjects = await res.json();
+
+        if (subjects.length === 0) {
+            subjectTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="um-empty" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-book-open" style="font-size: 36px; color: #9ca3af; margin-bottom: 10px; display: block;"></i>
+                        <p>No matching subjects found.</p>
+                    </td>
+                </tr>
+            `;
+            btnSubmit.innerHTML = `<i class="fas fa-filter"></i> Filter`;
+            return;
+        }
+
+        // Sort chapters by ChapterNumber
+        subjects.sort((a, b) => a.code - b.code);
+
+        subjectTableBody.innerHTML = subjects.map(s => `
+            <tr data-subject-id="${s.id}">
+                <td>
+                    <span class="subject-code-badge">${s.code}</span>
+                </td>
+                <td>
+                    <strong style="color: #111827;">${s.name}</strong>
+                </td>
+                <td>
+                    <span style="color: #6b7280; font-size: 13px;">${s.description?.trim() ?? "-"}</span>
+                </td>
+                <td class="col-actions">
+                    <button class="action-btn btn-edit" title="Edit subject"
+                            onclick="openEditSubjectModal('${s.id}','${s.code}','${s.name}','${s.description}')">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="action-btn btn-chapters" title="Manage chapters"
+                            onclick="openChapterModal('${s.id}','${s.name}')">
+                        <i class="fas fa-list-ol"></i>
+                    </button>
+                    <button class="action-btn btn-members" title="Manage members"
+                            onclick="openMemberModal('${s.id}','${s.name}')">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                    <button class="action-btn btn-delete" title="Delete subject"
+                            onclick="confirmDeleteSubject('${s.id}','${s.name}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        btnSubmit.innerHTML = `<i class="fas fa-filter"></i> Filter`;
+    } catch {
+        btnSubmit.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to load subjects';
+        setTimeout(() => btnSubmit.innerHTML = `<i class="fas fa-filter"></i> Filter`, 3000);
+    } finally {
+        btnSubmit.disabled = false;
+    }
+}
 
 function openCreateSubjectModal() {
     document.getElementById('create-sub-code').value = '';
@@ -133,7 +241,7 @@ async function submitCreateSubject() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ subjectCode: code, subjectName: name, description: desc })
         });
@@ -182,7 +290,7 @@ async function submitUpdateSubject() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ id, subjectCode: code, subjectName: name, description: desc })
         });
@@ -217,7 +325,7 @@ async function submitDeleteSubject() {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -316,7 +424,7 @@ async function submitCreateChapter() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ subjectId, chapterName: name, chapterNumber: number })
         });
@@ -383,7 +491,7 @@ async function saveEditChapter(id) {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ id, chapterName: name, chapterNumber: number })
         });
@@ -409,7 +517,7 @@ async function deleteChapter(id) {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -514,7 +622,7 @@ async function submitAssignMember() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ userId, role })
         });
@@ -544,7 +652,7 @@ async function removeMember(userId) {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -640,19 +748,19 @@ resConn.on(
     "ResourceChanged",
     async function (resUpd) {
         switch (resUpd.resourceType) {
-            case "subject":
+            case ResourceType.Subject:
                 showToast('info', `${resUpd.resourceName ? "Subject [" + resUpd.resourceName + "] has" : "Subjects have"} been updated.`);
-                setTimeout(() => location.reload(), 1500);
+                await loadSubjects();
                 break;
-            case "chapter":
+            case ResourceType.Chapter:
                 showToast('info', `${resUpd.resourceName ? "Chapter [" + resUpd.resourceName + "] has" : "Chapters have"} been updated.`);
                 if (resUpd.properties["subjectId"] === document.getElementById('chapter-sub-id').value)
-                    await loadChapters(resUpd.alternateResourceId[0]);
+                    await loadChapters(resUpd.properties["subjectId"]);
                 break;
-            case "membership":
+            case ResourceType.Membership:
                 showToast('info', `${resUpd.resourceName ? "Membership [" + resUpd.resourceName + "] has" : "Memberships have"} been updated.`);
                 if (resUpd.properties["subjectId"] === document.getElementById('member-sub-id').value)
-                    await loadMembers(resUpd.alternateResourceId[0]);
+                    await loadMembers(resUpd.properties["subjectId"]);
                 break;
         }
     }
@@ -660,6 +768,21 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinGroup", "subject-manage", null))
+    .then(async () => {
+
+        const promises = [];
+
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Subject));
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Chapter));
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Membership));
+
+        await Promise.all(promises);
+    })
     .then(() => window.connId = resConn.connectionId)
+    .then(() =>
+        $("<input>")
+            .attr("type", "hidden")
+            .attr("name", "CallerConnectionId")
+            .val(connId)
+            .appendTo($("form")))
     .catch(console.error);

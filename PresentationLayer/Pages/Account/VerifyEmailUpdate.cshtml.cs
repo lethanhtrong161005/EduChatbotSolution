@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,10 +17,13 @@ namespace Presentation.Pages.Account;
 [AllowAnonymous]
 public class VerifyEmailUpdateModel(
     IEmailVerificationService emailVerificationService,
-    UserManager<ApplicationUser> userManager) : PageModel
+    UserManager<ApplicationUser> userManager,
+    IResourceRealtimeNotifier notifier)
+    : PageModel
 {
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
 
     /// <summary>
     /// Gets the email verification form data rendered by the page.
@@ -81,6 +85,16 @@ public class VerifyEmailUpdateModel(
             user.EmailConfirmed = true;
             user.UpdatedAt = DateTimeOffset.UtcNow;
             await _userManager.UpdateAsync(user);
+
+            var update = new ResourceUpdate
+            {
+                ResourceType = ResourceType.User,
+                Action = ResourceAction.Enabled,
+                ResourceId = user!.Id.ToString(),
+                ResourceName = user.FullName,
+            };
+
+            await _notifier.PushUpdateAsync(update);
         }
 
         await _emailVerificationService.CleanupEmailUpdateAsync(ViewModel.Email);

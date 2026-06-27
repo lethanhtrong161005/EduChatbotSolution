@@ -8,11 +8,49 @@
 
 'use strict';
 
+// ── State ───────────────────────────────────────────────────
+
+const Page = {
+    filters: {
+        name: "",
+        email: "",
+        role: ""
+    },
+
+    paging: {
+        limit: 20,
+        offset: 0,
+    },
+
+    users: [],
+    totalCount: 0
+};
+
 // ── Helpers ───────────────────────────────────────────────────
 
 /** Read the anti-forgery token from the DOM (injected by Razor's @Html.AntiForgeryToken()). */
 function getAntiForgery() {
     return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+}
+
+/** HTML escaping helper to prevent XSS in dynamic content rendering. */
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/** JS escaping helper to prevent script injection in dynamic content rendering. */
+function escapeJs(value) {
+
+    return String(value)
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll('"', '\\"');
 }
 
 /**
@@ -108,6 +146,240 @@ function setLoading(btnId, loading) {
     btn.disabled = loading;
 }
 
+// ── Intercept form ────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("filterForm")
+        .addEventListener("submit", async e => {
+            e.preventDefault();
+
+            Page.filters.name = document.getElementById("filterName").value;
+            Page.filters.email = document.getElementById("filterEmail").value;
+            Page.filters.role = document.getElementById("filterRole").value;
+            Page.paging.offset = 0;
+
+            await loadUsers();
+        });
+
+    document.getElementById("btnReset")
+        .addEventListener("click", async e => {
+            e.preventDefault();
+
+            Page.filters = {
+                name: "",
+                email: "",
+                role: ""
+            };
+
+            filterForm.reset();
+            Page.paging.offset = 0;
+
+            await loadUsers();
+        });
+
+    document.getElementById("btnPrev").onclick = async () => {
+        if (Page.paging.offset == 0) return;
+        Page.paging.offset -= Page.paging.limit;
+        await loadUsers();
+    };
+
+    document.getElementById("btnNext").onclick = async () => {
+        Page.paging.offset += Page.paging.limit;
+        await loadUsers();
+    };
+});
+
+// ── RETRIEVE ────────────────────────────────────────────────────
+
+async function loadUsers() {
+
+    const params = new URLSearchParams({
+        name: Page.filters.name,
+        email: Page.filters.email,
+        role: Page.filters.role,
+        limit: Page.paging.limit,
+        offset: Page.paging.offset
+    });
+
+    const res = await fetch(`/admin/user-manage?handler=GetUsers&${params}`);
+    if (!res.ok) throw new Error();
+
+    const dto = await res.json();
+
+    Page.users = dto.users;
+    Page.totalCount = dto.totalCount;
+
+    renderUsers();
+}
+
+// ── Rendering ────────────────────────────────────────────────────
+
+function renderUsers() {
+
+    renderStats();
+
+    renderTable();
+
+    renderPagination();
+}
+
+function renderStats() {
+
+    const statNumbers = document.querySelectorAll(".stat-number");
+    if (statNumbers.length < 2) return;
+
+    statNumbers[0].textContent = Page.users.length;
+
+    if (Page.totalCount === 0) {
+        statNumbers[1].textContent = "0";
+        return;
+    }
+
+    const start = Page.paging.offset + 1;
+    const end = Math.min(Page.paging.offset + Page.users.length, Page.totalCount);
+
+    statNumbers[1].textContent = `${start}–${end}`;
+
+    document.getElementById("totalUserCount").textContent = Page.totalCount;
+}
+
+function renderTable() {
+
+    const tbody = document.getElementById("userTable").querySelector("tbody");
+
+    if (Page.users.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="um-empty">
+                    <i class="fas fa-users-slash"></i>
+                    <p>No users found matching your filters.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = Page.users.map(renderUserRow).join("");
+}
+
+function renderUserRow(user) {
+    const rowClass = user.isDeleted ? "row-deleted" :
+        user.isActive ? "" : "row-disabled";
+
+    const avatar = user.fullName ? user.fullName[0].toUpperCase() : "?";
+    const shortId = user.id.substring(0, 8);
+    const updatedAt = user.updatedAt;
+
+    let statusHtml;
+
+    if (user.isDeleted) {
+        statusHtml = `
+<span class="status-badge status-deleted">
+    <i class="fas fa-trash"></i>
+    Deleted
+</span>`;
+
+    }
+    else if (!user.isActive) {
+        statusHtml = `
+<span class="status-badge status-disabled">
+    <i class="fas fa-ban"></i>
+    Disabled
+</span>`;
+
+    }
+    else {
+        statusHtml = `
+<span class="status-badge status-active">
+    <i class="fas fa-check-circle"></i>
+    Active
+</span>`;
+    }
+
+    let actions;
+
+    if (user.isDeleted) {
+        actions = `<span class="no-actions">—</span>`;
+    }
+    else {
+        actions = `
+<button class="action-btn btn-edit"
+        title="Edit"
+        onclick="openEditModal('${user.id}','${escapeJs(user.fullName)}','${escapeJs(user.email)}','${user.role}','${updatedAt}')">
+    <i class="fas fa-pen"></i>
+</button>
+${user.isActive
+                ? `
+<button class="action-btn btn-disable"
+        title="Disable account"
+        onclick="confirmDisable('${user.id}','${escapeJs(user.fullName)}','${updatedAt}')">
+    <i class="fas fa-ban"></i>
+</button>
+`
+                : `
+<button class="action-btn btn-reactivate"
+        title="Reactivate account"
+        onclick="confirmReactivate('${user.id}','${escapeJs(user.fullName)}','${updatedAt}')">
+    <i class="fas fa-play-circle"></i>
+</button>
+`
+            }
+<button class="action-btn btn-delete"
+        title="Delete account"
+        onclick="confirmDelete('${user.id}','${escapeJs(user.fullName)}')">
+    <i class="fas fa-trash-alt"></i>
+</button>`;
+    }
+
+    return `
+<tr class="${rowClass}" data-user-id="${user.id}">
+    <td class="col-user">
+        <div class="user-cell">
+            <div class="user-avatar">${avatar}</div>
+
+            <div class="user-info">
+                <span class="user-name">${escapeHtml(user.fullName)}</span>
+                <span class="user-id">${shortId}…</span>
+            </div>
+        </div>
+    </td>
+
+    <td class="col-email">
+        ${escapeHtml(user.email)}
+    </td>
+
+    <td class="col-role">
+        <span class="role-badge role-${user.role.toLowerCase()}">
+            ${escapeHtml(user.role)}
+        </span>
+    </td>
+
+    <td class="col-status">
+        ${statusHtml}
+    </td>
+
+    <td class="col-actions">
+        ${actions}
+    </td>
+</tr>`;
+}
+
+function renderPagination() {
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const info = document.querySelector(".pg-info");
+
+    const page = Math.floor(Page.paging.offset / Page.paging.limit) + 1;
+
+    info.textContent = `Page ${page}`;
+
+    btnPrev.disabled = Page.paging.offset === 0;
+    btnPrev.classList.toggle("pg-disabled", btnPrev.disabled);
+
+    btnNext.disabled = Page.paging.offset + Page.paging.limit >= Page.totalCount;
+    btnNext.classList.toggle("pg-disabled", btnNext.disabled);
+}
+
 // ── CREATE ────────────────────────────────────────────────────
 
 function openImportModal() {
@@ -150,7 +422,7 @@ async function submitCreate() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ fullName: name, email, password, role })
         });
@@ -159,7 +431,7 @@ async function submitCreate() {
         if (data.success) {
             closeModal('createModal');
             showToast('success', `Account created. Login credentials sent to ${email}.`);
-            setTimeout(() => location.reload(), 2500);
+            await loadUsers();
         } else {
             showAlert('createAlert', 'error', data.error ?? 'Failed to create user.');
         }
@@ -217,7 +489,7 @@ async function submitUpdate() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ userId, fullName, email, role, updatedAt })
         });
@@ -226,7 +498,7 @@ async function submitUpdate() {
         if (data.success) {
             closeModal('editModal');
             showToast('success', 'User updated successfully.');
-            setTimeout(() => location.reload(), 1800);
+            await loadUsers();
         } else {
             showAlert('editAlert', 'error', data.error ?? 'Failed to update user.');
         }
@@ -254,7 +526,7 @@ async function submitDelete() {
             method: 'DELETE',
             headers: {
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             }
         });
         const data = await res.json();
@@ -262,7 +534,7 @@ async function submitDelete() {
         if (data.success) {
             closeModal('deleteModal');
             showToast('success', 'User deleted. Notification email sent.');
-            setTimeout(() => location.reload(), 1800);
+            await loadUsers();
         } else {
             closeModal('deleteModal');
             showToast('error', data.error ?? 'Failed to delete user.');
@@ -295,7 +567,7 @@ async function submitDisable() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ updatedAt })
         });
@@ -304,7 +576,7 @@ async function submitDisable() {
         if (data.success) {
             closeModal('disableModal');
             showToast('success', 'Account disabled. User notified via email.');
-            setTimeout(() => location.reload(), 1800);
+            await loadUsers();
         } else {
             closeModal('disableModal');
             showToast('error', data.error ?? 'Failed to disable account.');
@@ -337,7 +609,7 @@ async function submitReactivate() {
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': getAntiForgery(),
-                'CallerSignalRConnectionId': connId,
+                'CallerConnectionId': connId,
             },
             body: JSON.stringify({ updatedAt })
         });
@@ -346,7 +618,7 @@ async function submitReactivate() {
         if (data.success) {
             closeModal('reactivateModal');
             showToast('success', 'Account reactivated successfully.');
-            setTimeout(() => location.reload(), 1800);
+            await loadUsers();
         } else {
             closeModal('reactivateModal');
             showToast('error', data.error ?? 'Failed to reactivate account.');
@@ -371,9 +643,9 @@ resConn.on(
     "ResourceChanged",
     async function (resUpd) {
         switch (resUpd.resourceType) {
-            case "user":
+            case ResourceType.User:
                 showToast('info', `${resUpd.resourceName ? "User [" + resUpd.resourceName + "] has" : "Users have"} been updated.`);
-                setTimeout(() => location.reload(), 1800);
+                await loadUsers();
                 break;
         }
     }
@@ -381,6 +653,12 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinGroup", "user-manage", null))
+    .then(() => resConn.invoke(HubMethod.JoinResourceType, ResourceType.User))
     .then(() => window.connId = resConn.connectionId)
+    .then(() =>
+        $("<input>")
+            .attr("type", "hidden")
+            .attr("name", "CallerConnectionId")
+            .val(connId)
+            .appendTo($("form")))
     .catch(console.error);

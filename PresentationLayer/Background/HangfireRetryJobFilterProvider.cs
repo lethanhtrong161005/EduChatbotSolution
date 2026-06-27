@@ -3,7 +3,7 @@ using Hangfire;
 using Hangfire.Common;
 using System.Reflection;
 
-namespace Presentation.Filters;
+namespace Presentation.Background;
 
 public class HangfireRetryJobFilterProvider : IJobFilterProvider
 {
@@ -13,7 +13,8 @@ public class HangfireRetryJobFilterProvider : IJobFilterProvider
         var retryAttr = job.Method.GetCustomAttribute<RetryAttribute>();
 
         return retryAttr != null
-            ? [
+            ?
+            [
             new JobFilter(
                 new AutomaticRetryAttribute { Attempts = retryAttr.Retries },
                 JobFilterScope.Method,

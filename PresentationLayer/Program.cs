@@ -22,22 +22,21 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
+using Presentation.Background;
 using Presentation.Constants;
 using Presentation.Extensions;
-using Presentation.Filters;
 using Presentation.Middleware;
 using Presentation.Options;
-using Presentation.RealtimeWeb;
+using Presentation.Realtime;
 using Presentation.Routing;
 using StackExchange.Redis;
 using System.Reflection;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = builder.Environment.IsStaging()
-                  ? "Tailscale"
-                  : (builder.Environment.IsDevelopment() ? "Docker" : "Default");
+var connStrName = builder.Environment.IsDevelopment() ? "Container" : "Hosted";
 
 var connStr = builder.Configuration.GetConnectionString(connStrName)
               ?? throw new KeyNotFoundException("Connection string not configured.");
@@ -170,7 +169,14 @@ builder.Services.AddAuthentication()
 builder.Services.AddAuthorization();
 
 // ── Real-time Web ──────────────────────────────────────────────
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.PayloadSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+    });
+
+builder.Services.AddScoped<IResourceRealtimeNotifier, SignalRResourceRealtimeNotifier>();
 
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();
@@ -229,7 +235,7 @@ app.UseAuthorization();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    Authorization = [new HangfireAuthFilter()],
+    Authorization = [new HangfireDashboardAuthorizationFilter()],
 });
 
 app.MapRazorPages();
@@ -237,5 +243,6 @@ app.MapRazorPages();
 app.MapHub<DocumentStatusHub>("/documents/status");
 app.MapHub<AiChatHub>("/chat/answer");
 app.MapHub<ResourceHub>("/resource");
+app.MapHub<CommentHub>("/documents/comments");
 
 app.Run();

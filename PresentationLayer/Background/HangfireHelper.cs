@@ -1,6 +1,6 @@
 ﻿using Hangfire;
 
-namespace Presentation.Utils;
+namespace Presentation.Background;
 
 public static class HangfireHelper
 {

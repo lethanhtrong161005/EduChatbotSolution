@@ -1,13 +1,13 @@
 using AutoMapper;
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.SignalR;
 using Presentation.Extensions;
-using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Documents;
@@ -19,12 +19,13 @@ namespace Presentation.Pages.Documents;
 public class EditModel(
     IDocumentService documentService,
     ISubjectService subjectService,
-    IHubContext<ResourceHub, IResourceClient> hub,
-    IMapper mapper) : PageModel
+    IResourceRealtimeNotifier notifier,
+    IMapper mapper)
+    : PageModel
 {
     private readonly IDocumentService _documentService = documentService;
     private readonly ISubjectService _subjectService = subjectService;
-    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
@@ -39,18 +40,10 @@ public class EditModel(
 
     public Guid UploaderId { get; set; }
 
+    public string ViewerMembershipId { get; set; } = string.Empty;
+
     [FromForm]
-    public string CallerSignalRConnectionId { get; set; } = string.Empty;
-
-    private static List<string> OtherDocumentGroups(Guid docId, int subjectId, Guid uploaderId)
-    {
-        var groups = NotificationTargets.Document(docId, subjectId, uploaderId).ToList();
-        groups.Remove(ThisGroup(docId));
-        return groups;
-    }
-
-    private static string ThisGroup(Guid docId) =>
-        HubGroups.Resource(PageTypes.DocumentEdit, docId.ToString());
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads document data into the edit form.
@@ -60,30 +53,39 @@ public class EditModel(
     /// <returns>The edit page or not found when the document does not exist.</returns>
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(
-            id,
-            includeProperties: [nameof(Document.Chapter)],
-            cancellationToken: cxlTkn);
-
-        if (doc == null)
+        try
         {
-            return NotFound();
+            var doc = await _documentService.GetByIdAsync(
+                    id,
+                    includeProperties: [nameof(Document.Chapter)],
+                    cancellationToken: cxlTkn);
+
+            if (doc == null)
+                return NotFound();
+
+            var userId = User.GetUserId();
+            var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+
+            if (!isAdmin)
+            {
+                var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+                if (membership == null || membership.Role != MembershipRole.Chief)
+                    return Forbid();
+
+                ViewerMembershipId = membership.Id.ToString();
+            }
+
+            ViewModel = _mapper.Map<DocumentEditVm>(doc);
+            SubjectId = doc.Chapter.Id;
+            ChapterId = doc.ChapterId;
+            UploaderId = doc.UploaderId;
+
+            return Page();
         }
-
-        var userId = User.GetUserId();
-        var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
-
-        if (!isChief)
+        catch (UserClaimException)
         {
-            return Forbid();
+            return Challenge();
         }
-
-        ViewModel = _mapper.Map<DocumentEditVm>(doc);
-        SubjectId = doc.Chapter.Id;
-        ChapterId = doc.ChapterId;
-        UploaderId = doc.UploaderId;
-
-        return Page();
     }
 
     /// <summary>
@@ -108,36 +110,35 @@ public class EditModel(
             return NotFound();
 
         var userId = User.GetUserId();
-        var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
 
-        if (!isChief)
-            return Forbid();
+        if (!User.IsInRole(nameof(UserRole.Admin)))
+        {
+            var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (!isChief)
+                return Forbid();
+        }
 
         doc.Title = ViewModel.Title;
         doc.Description = ViewModel.Description;
 
         await _documentService.UpdateAsync(doc, cxlTkn);
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = ResourceTypes.Comment,
-            Action = Actions.Deleted,
+            ResourceType = ResourceType.Document,
+            Action = ResourceAction.Updated,
             ResourceId = doc.Id.ToString(),
             ResourceName = doc.Title,
             Properties =
             {
                 { nameof(Document.Chapter.SubjectId) , doc.Chapter.SubjectId.ToString() },
+                { nameof(Document.ChapterId) , doc.ChapterId.ToString() },
+                { nameof(Document.Chapter.ChapterNumber) , doc.Chapter.ChapterNumber?.ToString() ?? ""},
                 { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
             },
         };
 
-        await _hub.Clients
-            .Groups(OtherDocumentGroups(doc.Id, doc.Chapter.SubjectId, doc.UploaderId))
-            .ResourceChanged(upd);
-
-        await _hub.Clients
-            .GroupExcept(ThisGroup(doc.Id), CallerSignalRConnectionId)
-            .ResourceChanged(upd);
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return RedirectToPage("/Documents/Details", new { id = doc.Id });
     }

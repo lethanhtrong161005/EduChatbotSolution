@@ -259,7 +259,7 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
     /// <param name="fullName">The user's display name.</param>
     /// <param name="bcryptHash">BCrypt hash produced during OTP initiation — stored as-is.</param>
     /// <returns><c>null</c> on success, or an error message on failure.</returns>
-    public async Task<string?> CreateVerifiedAccountAsync(string email, string fullName, string bcryptHash)
+    public async Task<(ApplicationUser? User, string? Errors)> CreateVerifiedAccountAsync(string email, string fullName, string bcryptHash)
     {
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(fullName);
@@ -278,8 +278,10 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
         var createResult = await _userManager.CreateAsync(user);
         if (!createResult.Succeeded)
         {
-            return createResult.Errors.FirstOrDefault()?.Description
+            var errors = createResult.Errors.FirstOrDefault()?.Description
                    ?? "Failed to create the account. Please try again.";
+
+            return (null, errors);
         }
 
         await _userManager.AddToRoleAsync(user, UserRole.Student.ToString());
@@ -291,7 +293,7 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
             new(ClaimTypes.Role, UserRole.Student.ToString()),
         ]);
 
-        return null;
+        return (user, null);
     }
 
     /// <summary>

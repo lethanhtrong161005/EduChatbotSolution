@@ -109,7 +109,7 @@ public class DocumentIndexer(
                     });
                 }
 
-                _ = _notifier.UpdateStatus(new DocumentStatusUpdate
+                _ = _notifier.Notify(new DocumentStatusUpdate
                 {
                     Id = doc.Id,
                     Status = DocumentStatus.Chunking,
@@ -239,7 +239,7 @@ public class DocumentIndexer(
             UpdatedAt = DateTime.UtcNow,
         };
 
-        _ = _notifier.UpdateStatus(docStatusUpd);
+        _ = _notifier.Notify(docStatusUpd);
     }
 
     private async Task SaveFailure(

@@ -10,8 +10,8 @@ resConn.on(
     "ResourceChanged",
     function (resUpd) {
         switch (resUpd.resourceType) {
-            case "user":
-                if (resUpd.resourceId === HomePage.userId)
+            case ResourceType.User:
+                if (resUpd.resourceId === Page.userId)
                     promptReload();
                 break;
         }
@@ -26,7 +26,12 @@ function promptReload() {
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinGroup", "home", HomePage.userId))
-    .then(() => resConn.invoke("JoinGroup", "home", null))
+    .then(() => resConn.invoke(HubMethod.JoinResource, ResourceType.User, Page.userId))
     .then(() => window.connId = resConn.connectionId)
+    .then(() =>
+        $("<input>")
+            .attr("type", "hidden")
+            .attr("name", "CallerConnectionId")
+            .val(connId)
+            .appendTo($("form")))
     .catch(console.error);

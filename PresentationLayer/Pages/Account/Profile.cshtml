@@ -293,12 +293,12 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership-pane" type="button" role="tab" aria-controls="membership-pane" aria-selected="false">
+            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership-panel" type="button" role="tab" aria-controls="membership-panel" aria-selected="false">
                 <i class="fas fa-graduation-cap me-2"></i>Memberships (@Model.Memberships.Count)
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-pane" type="button" role="tab" aria-controls="docs-pane" aria-selected="false">
+            <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-panel" type="button" role="tab" aria-controls="docs-panel" aria-selected="false">
                 <i class="fas fa-folder-open me-2"></i>My Documents (@Model.MyDocuments.Count)
             </button>
         </li>
@@ -382,7 +382,7 @@
         </div>
 
         <!-- Tab 2: Membership -->
-        <div class="tab-pane fade" id="membership-pane" role="tabpanel" aria-labelledby="membership-tab">
+        <div class="tab-pane fade" id="membership-panel" role="tabpanel" aria-labelledby="membership-tab">
             <div class="profile-card">
                 <h2 class="card-title-custom">
                     <i class="fas fa-university text-primary"></i> Assigned Course Memberships
@@ -436,7 +436,7 @@
         </div>
 
         <!-- Tab 3: My Documents -->
-        <div class="tab-pane fade" id="docs-pane" role="tabpanel" aria-labelledby="docs-tab">
+        <div class="tab-pane fade" id="docs-panel" role="tabpanel" aria-labelledby="docs-tab">
             <div class="profile-card">
                 <h2 class="card-title-custom">
                     <i class="fas fa-copy text-primary"></i> Uploaded Course Documents
@@ -468,6 +468,12 @@
                                         <td>
                                             <span class="badge bg-secondary me-1">@doc.SubjectCode</span>
                                             <span class="text-muted small">@doc.ChapterName</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-dark">@doc.FileType</span>
+                                            <span class="text-muted small ms-1">
+                                                @(doc.FileSize.HasValue ? $"{(doc.FileSize.Value / 1024.0):N1} KB" : "N/A")
+                                            </span>
                                         </td>
                                         <td>
                                             <span class="badge bg-dark">@doc.FileType</span>
@@ -532,9 +538,10 @@
 
 
     <script>
-        window.ProfilePage = {
+        window.Razor = {
             userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
-            membershipIds: '@JsonSerializer.Serialize(Model.Memberships.Select(e => e.Id))',
+            subjectIds: @Html.Raw(JsonSerializer.Serialize(Model.Memberships.Select(e => e.SubjectId.ToString()))),
+            documentIds: @Html.Raw(JsonSerializer.Serialize(Model.MyDocuments.Select(e => e.Id))),
         };
     </script>
 

@@ -1,11 +1,13 @@
 using AutoMapper;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
+using Domain.Entities;
 using Domain.Exceptions;
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Presentation.Constants;
+using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
 using Presentation.ViewModels;
@@ -20,16 +22,22 @@ namespace Presentation.Pages.Chat;
 public class IndexModel(
     IChatPersistenceService chatPersistenceService,
     ISubjectService subjectService,
-    IMapper mapper) : PageModel
+    IResourceRealtimeNotifier notifier,
+    IMapper mapper)
+    : PageModel
 {
     private readonly IChatPersistenceService _chatPersistenceService = chatPersistenceService;
     private readonly ISubjectService _subjectService = subjectService;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
     /// Gets the chat page view model rendered by the page.
     /// </summary>
     public ChatPageVm ViewModel { get; private set; } = new();
+
+    [FromHeader]
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads the chat page for the current user and optional session.
@@ -147,6 +155,21 @@ public class IndexModel(
                     : $"Session {DateTime.UtcNow:f}",
                 cxlTkn);
 
+            var update = new ResourceUpdate
+            {
+                ResourceType = ResourceType.ChatSession,
+                Action = ResourceAction.Created,
+                ResourceId = session.Id.ToString(),
+                ResourceName = session.Title,
+                Properties =
+                {
+                    { nameof(ChatSession.UserId), session.UserId },
+                    { nameof(ChatSession.SubjectId), session.SubjectId },
+                },
+            };
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
+
             var res = _mapper.Map<CreateChatSessionResponse>(session);
             return new JsonResult(res);
         }
@@ -157,7 +180,7 @@ public class IndexModel(
 
         static string GetMessageSnippet(string content)
         {
-            content = content[..Math.Min(30, content.Length)];
+            content = content[..Math.Min(40, content.Length)];
             return content[..content.LastIndexOf(' ')];
         }
     }

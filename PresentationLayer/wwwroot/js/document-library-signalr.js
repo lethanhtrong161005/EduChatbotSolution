@@ -42,11 +42,11 @@ resConn.on(
     "ResourceChanged",
     function (resUpd) {
         switch (resUpd.resourceType) {
-            case "subject":
-            case "chapter":
-            case "document":
-            case "user": // Uploader details
-            case "membership": // of current user
+            case ResourceType.Subject:
+            case ResourceType.Chapter:
+            case ResourceType.Document:
+            case ResourceType.User: // Uploader details
+            case ResourceType.Membership: // of current user
                 $(document).trigger("resource:changed", resUpd);
                 break;
         }
@@ -55,6 +55,23 @@ resConn.on(
 
 resConn
     .start()
-    .then(() => resConn.invoke("JoinGroup", "document-library", null))
+    .then(async () => {
+
+        const promises = [];
+
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Subject));
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Chapter));
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Document));
+        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.User));
+        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.User, Page.userId, ResourceType.Membership));
+
+        await Promise.all(promises);
+    })
     .then(() => window.connId = resConn.connectionId)
+    .then(() =>
+        $("<input>")
+            .attr("type", "hidden")
+            .attr("name", "CallerConnectionId")
+            .val(connId)
+            .appendTo($("form")))
     .catch(console.error);

@@ -1,10 +1,9 @@
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.SignalR;
-using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Admin;
@@ -16,11 +15,11 @@ namespace Presentation.Pages.Admin;
 [Authorize(Roles = "Admin")]
 public class SubjectManageModel(
     ISubjectService subjectService,
-    IHubContext<ResourceHub, IResourceClient> hub
-    ) : PageModel
+    IResourceRealtimeNotifier notifier)
+    : PageModel
 {
     private readonly ISubjectService _subjectService = subjectService;
-    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
 
     /// <summary>
     /// Gets the subject management view model rendered by the page.
@@ -28,30 +27,7 @@ public class SubjectManageModel(
     public AdminSubjectListVm ViewModel { get; private set; } = new();
 
     [FromHeader]
-    public string CallerSignalRConnectionId { get; set; } = string.Empty;
-
-    private static List<string> OtherSubjectGroups(int subjectId, Guid[] userIds, Guid[] docIds)
-    {
-        var groups = NotificationTargets.Subject(subjectId, userIds, docIds).ToList();
-        groups.Remove(ThisGroup());
-        return groups;
-    }
-
-    private static List<string> OtherChapterGroups(int chapterId, Guid[] docIds)
-    {
-        var groups = NotificationTargets.Chapter(chapterId, docIds).ToList();
-        groups.Remove(ThisGroup());
-        return groups;
-    }
-
-    private static List<string> OtherMembershipGroups(int subjectId, Guid userId, Guid[] docIds)
-    {
-        var groups = NotificationTargets.Membership(subjectId, userId, docIds).ToList();
-        groups.Remove(ThisGroup());
-        return groups;
-    }
-
-    private static string ThisGroup() => HubGroups.Resource(PageTypes.SubjectManage);
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads subjects for the subject management page.
@@ -75,6 +51,19 @@ public class SubjectManageModel(
         };
     }
 
+    public async Task<IActionResult> OnGetGetSubjectsAsync(string? code, string? name, int limit = 10, int offset = 0)
+    {
+        try
+        {
+            var subjects = await _subjectService.GetPagedSubjectsAsync(code, name, limit, offset);
+            return new JsonResult(subjects);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Creates a new subject.
     /// </summary>
@@ -87,15 +76,15 @@ public class SubjectManageModel(
         {
             var subject = await _subjectService.CreateSubjectAsync(vm.SubjectCode, vm.SubjectName, vm.Description);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "subject",
-                Action = "created",
+                ResourceType = ResourceType.Subject,
+                Action = ResourceAction.Created,
                 ResourceId = subject.Id.ToString(),
                 ResourceName = subject.Name,
             };
-            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true, subject });
         }
@@ -123,15 +112,15 @@ public class SubjectManageModel(
         {
             var subject = await _subjectService.UpdateSubjectAsync(vm.Id, vm.SubjectCode, vm.SubjectName, vm.Description);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "subject",
-                Action = "updated",
+                ResourceType = ResourceType.Subject,
+                Action = ResourceAction.Updated,
                 ResourceId = subject.Id.ToString(),
                 ResourceName = subject.Name,
             };
-            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true, subject });
         }
@@ -156,15 +145,15 @@ public class SubjectManageModel(
             if (subject == null) return NotFound();
             await _subjectService.DeleteSubjectAsync(id);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "subject",
-                Action = "deleted",
+                ResourceType = ResourceType.Subject,
+                Action = ResourceAction.Deleted,
                 ResourceId = id.ToString(),
                 ResourceName = subject.Name,
             };
-            await _hub.Clients.Groups(OtherSubjectGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true });
         }
@@ -202,16 +191,20 @@ public class SubjectManageModel(
         {
             var chapter = await _subjectService.CreateChapterAsync(vm.SubjectId, vm.ChapterName, vm.ChapterNumber);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "chapter",
-                Action = "created",
+                ResourceType = ResourceType.Chapter,
+                Action = ResourceAction.Created,
                 ResourceId = chapter.Id.ToString(),
-                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
                 ResourceName = chapter.Name,
+                Properties =
+                {
+                    { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
+                },
             };
-            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true, chapter });
         }
@@ -239,16 +232,20 @@ public class SubjectManageModel(
         {
             var chapter = await _subjectService.UpdateChapterAsync(vm.Id, vm.ChapterName, vm.ChapterNumber);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "chapter",
-                Action = "updated",
+                ResourceType = ResourceType.Chapter,
+                Action = ResourceAction.Updated,
                 ResourceId = chapter.Id.ToString(),
-                AlternateResourceId = [chapter.SubjectId.ToString(), chapter.ChapterNumber.ToString() ?? string.Empty],
                 ResourceName = chapter.Name,
+                Properties =
+                {
+                    { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
+                },
             };
-            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true, chapter });
         }
@@ -274,19 +271,20 @@ public class SubjectManageModel(
 
             await _subjectService.DeleteChapterAsync(id);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "chapter",
-                Action = "deleted",
+                ResourceType = ResourceType.Chapter,
+                Action = ResourceAction.Deleted,
                 ResourceId = id.ToString(),
                 ResourceName = chapter.Name,
                 Properties =
                 {
                     { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
                 },
             };
-            await _hub.Clients.Groups(OtherChapterGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true });
         }
@@ -357,10 +355,10 @@ public class SubjectManageModel(
         {
             var membership = await _subjectService.AssignMemberAsync(subjectId, vm.UserId, membershipRole);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = ResourceTypes.Membership,
-                Action = Actions.Created,
+                ResourceType = ResourceType.Membership,
+                Action = ResourceAction.Created,
                 ResourceId = membership.Id.ToString(),
                 ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
                 Properties =
@@ -370,15 +368,7 @@ public class SubjectManageModel(
                 },
             };
 
-            var docsInSubject = /* WHAT NOW? */;
-
-            await _hub.Clients.Groups(
-                OtherMembershipGroups(membership.SubjectId, membership.UserId, docsInSubject))
-                .ResourceChanged(upd);
-
-            await _hub.Clients
-                .GroupExcept(ThisGroup(), CallerSignalRConnectionId)
-                .ResourceChanged(upd);
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true });
         }
@@ -401,10 +391,10 @@ public class SubjectManageModel(
         {
             var membership = await _subjectService.RemoveMemberAsync(subjectId, userId);
 
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "subject_membership",
-                Action = "deleted",
+                ResourceType = ResourceType.Membership,
+                Action = ResourceAction.Deleted,
                 ResourceId = membership.Id.ToString(),
                 ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
                 Properties =
@@ -413,8 +403,8 @@ public class SubjectManageModel(
                     { nameof(SubjectMembership.UserId), membership.UserId.ToString() },
                 },
             };
-            await _hub.Clients.Groups(OtherMembershipGroups()).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { success = true });
         }

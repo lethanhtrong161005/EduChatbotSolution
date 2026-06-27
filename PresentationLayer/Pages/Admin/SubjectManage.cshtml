@@ -21,12 +21,12 @@
             </div>
             <input type="hidden" name="limit" value="@Model.ViewModel.Limit" />
             <input type="hidden" name="offset" value="0" />
-            <button type="submit" class="btn-filter">
+            <button type="submit" class="btn-filter" id="btnSubmit">
                 <i class="fas fa-filter"></i> Filter
             </button>
-            <a asp-page="/Admin/SubjectManage" class="btn-reset">
+            <button type="button" class="btn-reset" id="btnReset">
                 <i class="fas fa-times"></i> Reset
-            </a>
+            </button>
         </form>
         <button class="btn-add-subject" id="btnAddSubject" onclick="openCreateSubjectModal()">
             <i class="fas fa-plus-circle"></i>

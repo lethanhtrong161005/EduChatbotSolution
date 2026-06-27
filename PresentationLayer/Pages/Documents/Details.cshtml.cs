@@ -2,12 +2,12 @@ using AutoMapper;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.SignalR;
 using Presentation.DTOs;
-using Presentation.RealtimeWeb;
+using Presentation.Extensions;
 using Presentation.ViewModels;
 using System.Security.Claims;
 
@@ -21,14 +21,15 @@ namespace Presentation.Pages.Documents;
 public class DetailsModel(
     ISubjectService subjectService,
     IDocumentService documentService,
-    IHubContext<ResourceHub, IResourceClient> hub,
-    IMapper mapper) : PageModel
+    IResourceRealtimeNotifier notifier,
+    IMapper mapper)
+    : PageModel
 {
     private const int PageSize = 10;
 
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IDocumentService _documentService = documentService;
-    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
     /// <summary>
@@ -43,18 +44,10 @@ public class DetailsModel(
     /// </summary>
     public bool CanEdit { get; private set; } = false;
 
+    public string ViewerMembershipId { get; set; } = string.Empty;
+
     [FromForm]
-    public string CallerSignalRConnectionId { get; set; } = string.Empty;
-
-    public static List<string> OtherCommentGroups(Guid commentId, Guid docId, Guid userId)
-    {
-        var groups = NotificationTargets.Comment(commentId, docId, userId).ToList();
-        groups.Remove(ThisGroup(docId));
-        return groups;
-    }
-
-    public static string ThisGroup(Guid docId) =>
-        HubGroups.Resource(PageTypes.DocumentDetails, docId.ToString());
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads document metadata, chunks, and comments.
@@ -64,47 +57,50 @@ public class DetailsModel(
     /// <returns>The details page or not found when the document does not exist.</returns>
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(
-            id,
-            includeProperties:
-            [
-                nameof(Document.Chapter),
-                nameof(Document.Uploader),
-                nameof(Document.Chunks),
-                nameof(Document.Comments),
-                nameof(Document.Comments) + "." + nameof(DocumentComment.User),
-                nameof(Document.Comments) + "." + nameof(DocumentComment.User) + "." + nameof(ApplicationUser.SubjectMemberships),
-                nameof(Document.ParsedSections),
-            ], cxlTkn);
-        if (doc == null)
-            return NotFound();
-
-        IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && System.IO.File.Exists(doc.FilePath);
-
-        // Verify if the user has permission to access this document
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out var userId))
+        try
         {
-            return Challenge();
-        }
+            var doc = await _documentService.GetByIdAsync(
+                    id,
+                    includeProperties:
+                    [
+                        nameof(Document.Chapter),
+                        nameof(Document.Uploader),
+                        nameof(Document.Chunks),
+                        nameof(Document.Comments),
+                        nameof(Document.Comments) + "." + nameof(DocumentComment.User),
+                        nameof(Document.Comments) + "." + nameof(DocumentComment.User) + "." + nameof(ApplicationUser.SubjectMemberships),
+                        nameof(Document.ParsedSections),
+                    ], cxlTkn);
 
-        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
-        if (!isAdmin)
-        {
-            var isMember = await _subjectService.IsMemberAsync(doc.Chapter.SubjectId, userId, cxlTkn);
-            if (!isMember)
-                return Forbid();
-        }
+            if (doc == null)
+                return NotFound();
 
-        var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && System.IO.File.Exists(doc.FilePath);
 
-        CanEdit = isChief;
+            // Verify if the user has permission to access this document
+            var isAdmin = User.IsInRole(nameof(UserRole.Admin));
 
-        var vm = _mapper.Map<DocumentDetailsVm>(doc);
+            if (!isAdmin)
+            {
+                var userId = User.GetUserId();
+                var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+                if (membership == null)
+                    return Forbid();
 
-        if (doc.ParsedSections != null && doc.ParsedSections.Count > 0)
-        {
-            vm.ParsedSections = [.. doc.ParsedSections
+                ViewerMembershipId = membership?.Id.ToString() ?? string.Empty;
+                CanEdit = membership?.Role == MembershipRole.Chief;
+            }
+            else
+            {
+                CanEdit = isAdmin;
+            }
+
+
+            var vm = _mapper.Map<DocumentDetailsVm>(doc);
+
+            if (doc.ParsedSections != null && doc.ParsedSections.Count > 0)
+            {
+                vm.ParsedSections = [.. doc.ParsedSections
                 .OrderBy(s => s.SectionIndex)
                 .Select(s => new ParsedSectionVm
                 {
@@ -114,28 +110,33 @@ public class DetailsModel(
                     Text = s.Text
                 })];
 
-            vm.ExtractedText = string.Join("\n\n", doc.ParsedSections.OrderBy(s => s.SectionIndex).Select(s => s.Text));
-        }
+                vm.ExtractedText = string.Join("\n\n", doc.ParsedSections.OrderBy(s => s.SectionIndex).Select(s => s.Text));
+            }
 
-        // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
-        if (string.IsNullOrWhiteSpace(vm.ExtractedText) && System.IO.File.Exists(doc.FilePath))
-        {
-            try
+            // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
+            if (string.IsNullOrWhiteSpace(vm.ExtractedText) && System.IO.File.Exists(doc.FilePath))
             {
-                if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+                try
                 {
-                    vm.ExtractedText = await System.IO.File.ReadAllTextAsync(doc.FilePath, cxlTkn);
+                    if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+                    {
+                        vm.ExtractedText = await System.IO.File.ReadAllTextAsync(doc.FilePath, cxlTkn);
+                    }
+                }
+                catch
+                {
+                    // Ignore read errors
                 }
             }
-            catch
-            {
-                // Ignore read errors
-            }
+
+            ViewModel = vm;
+
+            return Page();
         }
-
-        ViewModel = vm;
-
-        return Page();
+        catch (UserClaimException)
+        {
+            return Challenge();
+        }
     }
 
     /// <summary>
@@ -207,24 +208,18 @@ public class DetailsModel(
 
         var comment = await _documentService.AddCommentAsync(targetDocumentId, userId, content);
 
-        var upd = new ResourceUpdate
-        {
-            ResourceType = ResourceTypes.Comment,
-            Action = Actions.Created,
-            ResourceId = comment.Id.ToString(),
-            Properties = {
-                { nameof(DocumentComment.UserId), comment.UserId.ToString() },
-                { nameof(DocumentComment.DocumentId), comment.DocumentId.ToString() },
-            },
-        };
+        //var update = new ResourceUpdate
+        //{
+        //	ResourceType = ResourceType.Comment,
+        //	Action = ResourceAction.Created,
+        //	ResourceId = comment.Id.ToString(),
+        //	Properties = {
+        //		{ nameof(DocumentComment.DocumentId), comment.DocumentId.ToString() },
+        //		{ nameof(DocumentComment.UserId), comment.UserId.ToString() },
+        //	},
+        //};
 
-        await _hub.Clients
-            .Groups(OtherCommentGroups(comment.Id, comment.UserId, comment.DocumentId))
-            .ResourceChanged(upd);
-
-        await _hub.Clients
-            .GroupExcept(ThisGroup(comment.DocumentId), CallerSignalRConnectionId)
-            .ResourceChanged(upd);
+        //await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return RedirectToPage(new { id = targetDocumentId });
     }

@@ -86,6 +86,7 @@
 
         if (!_activeSession) { // Landing session
             _scopeSubjectHeaders = [];
+            updateDom_SubjectSelectList();
         }
         else { // Existing session
             const subjectId = _activeSession.subjectId;
@@ -194,6 +195,20 @@
             .addClass("chat-session-item-active");
     }
 
+    function updateDom_SubjectSelectList() {
+
+        // On:
+        // * _scopeSubjectHeaders
+
+        _subjectHeaders.sort((a, b) =>
+            a.code - b.code);
+
+        $("#chat-message-input-container").html(
+            ChatTemplates.renderChatMessageInput(_subjectHeaders));
+
+        clearInput();
+    }
+
     function updateDom_AssistantMessage(message) {
 
         // On:
@@ -240,13 +255,25 @@
 
     async function init() {
 
+        await ResourceSignalR.start();
         await ChatSignalR.start();
 
         bindEvents();
 
-        await loadSubjectList();
-        await loadSessionList();
-        await loadSession(ChatPage.activeSessionId ?? null, false);
+        const conTkn = _concurrencyToken = crypto.randomUUID();
+
+        await loadSubjectList(conTkn);
+        await loadSessionList(conTkn);
+        await loadSession(conTkn, Page.activeSessionId ?? null, false);
+
+        await subscribeToResourceGroups();
+    }
+
+    async function subscribeToResourceGroups() {
+
+        // Subjects & Sessions are subscribed to on load
+
+        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Page.userId, ResourceType.ChatSession);
     }
 
     /* ==========================================================
@@ -278,7 +305,7 @@
             "click",
             "#btn-new-chat",
             () => {
-                loadSession();
+                loadSession(_concurrencyToken = crypto.randomUUID());
             });
 
         $(document).on(
@@ -289,7 +316,7 @@
                 const sessionId =
                     $(this).data("session-id");
 
-                await loadSession(sessionId);
+                await loadSession(_concurrencyToken = crypto.randomUUID(), sessionId);
             });
 
         window.addEventListener(
@@ -302,6 +329,7 @@
                     /^\/chat\/([0-9a-fA-F-]+)$/);
 
                 await loadSession(
+                    _concurrencyToken = crypto.randomUUID(),
                     match ? match[1] : null,
                     false);
             });
@@ -591,11 +619,12 @@
     function bindSignalREvents() {
 
         $(document).on(
-            "chat:title",
-            async function (_, sessionId, title) {
+            "resource:changed",
+            async function (_, resUpd) {
 
-                await onTitleGenerated(sessionId, title);
-            });
+                onResourceChanged(resUpd);
+            }
+        );
 
         $(document).on(
             "chat:stream",
@@ -624,27 +653,50 @@
 
                 onGenerationFailed(assistantMessageId, assistantMessageClientId, error);
             });
-
     }
 
     /* ==========================================================
        Sidebar
        ========================================================== */
 
-    async function loadSubjectList() {
+    async function loadSubjectList(conTkn) {
+
+        const oldSubjectHeaders = _subjectHeaders;
 
         const subjectHeaderDtos =
-            await $.getJSON({
+            await $.ajax({
                 url: `/chat?handler=GetSubjectHeaders`,
                 method: "GET",
+                headers: {
+                    CallerConnectionId: callerConnectionId,
+                },
             });
 
-        _subjectHeaders =
+        if (_concurrencyToken != conTkn)
+            return;
+
+        const newSubjectHeaders =
             subjectHeaderDtos
                 .map(normalizeSubjectHeader)
                 .sort((a, b) => a.code - b.code);
 
+        await updateResourceSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders);
+
+        _subjectHeaders = newSubjectHeaders;
+
         updateState_ScopeSubjectHeaders();
+    }
+
+    async function updateResourceSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders) {
+
+        const { added, removed } = diffById(oldSubjectHeaders, newSubjectHeaders);
+
+        await Promise.all([
+            ...added.map(x =>
+                ResourceSignalR.subscribeToResource(ResourceType.Subject, x.id)),
+            ...removed.map(x =>
+                ResourceSignalR.unsubscribeFromResource(ResourceType.Subject, x.id)),
+        ]);
     }
 
     function normalizeSubjectHeader(subjectHeader) {
@@ -654,15 +706,27 @@
         return subjectHeader;
     }
 
-    async function loadSessionList() {
+    async function loadSessionList(conTkn) {
+
+        const oldSessionHeaders = _sessionHeaders;
 
         const sessionHeaderDtos =
-            await $.getJSON({
+            await $.ajax({
                 url: `/chat?handler=GetSessionHeaders`,
                 method: "GET",
+                headers: {
+                    CallerConnectionId: callerConnectionId,
+                },
             });
 
-        _sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
+        if (_concurrencyToken != conTkn)
+            return;
+
+        const newSessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
+
+        await updateResourceSubscriptions_Session(oldSessionHeaders, newSessionHeaders);
+
+        _sessionHeaders = newSessionHeaders;
 
         updateDom_SidebarSessionList();
     }
@@ -674,18 +738,34 @@
         return sessionHeader;
     }
 
+    async function updateResourceSubscriptions_Session(oldSessionHeaders, newSessionHeaders) {
+
+        const { added, removed } = diffById(oldSessionHeaders, newSessionHeaders);
+
+        await Promise.all([
+            ...added.map(x =>
+                ResourceSignalR.subscribeToResource(ResourceType.ChatSession, x.id)),
+            ...removed.map(x =>
+                ResourceSignalR.unsubscribeFromResource(ResourceType.ChatSession, x.id)),
+        ]);
+    }
+
     /* ==========================================================
        Session Loading
        ========================================================== */
 
     async function loadSession(
+        conTkn,
         sessionId = null,
         pushHistory = true) {
 
         if (!sessionId)
             await loadLandingSession(pushHistory);
         else
-            await loadExistingSession(sessionId, pushHistory);
+            await loadExistingSession(conTkn, sessionId, pushHistory);
+
+        if (_concurrencyToken != conTkn)
+            return;
 
         updateState_ScopeSubjectHeaders();
         updateDom_ActiveSessionHighlight();
@@ -715,22 +795,23 @@
     }
 
     /* WARN: Always call through loadSession(sessionId) */
-    async function loadExistingSession(sessionId, pushHistory) {
-
-        const reqToken = crypto.randomUUID();
-        _concurrencyToken = reqToken;
+    async function loadExistingSession(conTkn, sessionId, pushHistory) {
 
         const dto =
-            await $.getJSON({
+            await $.ajax({
                 url: `/chat?handler=GetSession&id=${sessionId}`,
+                method: "GET",
+                headers: {
+                    CallerConnectionId: callerConnectionId,
+                },
             });
 
-        if (_concurrencyToken !== reqToken)
+        if (_concurrencyToken !== conTkn)
             return;
 
         await ChatSignalR.switchSession(sessionId);
 
-        if (_concurrencyToken !== reqToken)
+        if (_concurrencyToken !== conTkn)
             return;
 
         _activeSession = normalizeSession(dto);
@@ -969,6 +1050,7 @@
                 method: "POST",
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
                 },
                 data: {
                     sessionId: _activeSession.id,
@@ -1019,6 +1101,7 @@
                 method: "POST",
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
                 },
                 data: {
                     subjectId,
@@ -1026,8 +1109,10 @@
                 },
             });
 
-        await loadSessionList();
-        await loadSession(response.sessionId);
+        const conTkn = _concurrencyToken = crypto.randomUUID();
+
+        await loadSessionList(conTkn);
+        await loadSession(conTkn, response.sessionId);
     }
 
     function appendUserMessage(content) {
@@ -1076,12 +1161,31 @@
        SignalR Handlers
        ========================================================== */
 
-    async function onTitleGenerated(sessionId, title) {
+    async function onResourceChanged(resUpd) {
+
+        switch (resUpd.resourceType) {
+            case ResourceType.Subject:
+                await loadSubjectList(_concurrencyToken = crypto.randomUUID());
+                break;
+            case ResourceType.Membership:
+                if (resUpd.action !== ResourceAction.Updated)
+                    await loadSubjectList(_concurrencyToken = crypto.randomUUID());
+                break;
+            case ResourceType.ChatSession:
+                if (resUpd.action === ResourceAction.Updated)
+                    await handleTitleGenerated(resUpd.resourceId, resUpd.resourceName);
+                else
+                    await loadSessionList(_concurrencyToken = crypto.randomUUID());
+                break;
+        }
+    }
+
+    async function handleTitleGenerated(sessionId, title) {
 
         const sessionHeader = _sessionHeaders.find(x => x.id === sessionId);
 
         if (!sessionHeader) {
-            await loadSessionList();
+            await loadSessionList(_concurrencyToken = crypto.randomUUID());
             return;
         }
 
@@ -1495,6 +1599,17 @@
 
     function getAntiForgery() {
         return $("input[name='__RequestVerificationToken']").val() ?? "";
+    }
+
+    function diffById(oldItems, newItems) {
+
+        const oldIds = new Set(oldItems.map(x => x.id));
+        const newIds = new Set(newItems.map(x => x.id));
+
+        return {
+            added: newItems.filter(x => !oldIds.has(x.id)),
+            removed: oldItems.filter(x => !newIds.has(x.id)),
+        };
     }
 
     /* ==========================================================

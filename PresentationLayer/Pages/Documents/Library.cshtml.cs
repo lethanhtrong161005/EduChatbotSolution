@@ -2,6 +2,7 @@ using AutoMapper;
 using Business.Services.AI.Indexing;
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
 using Domain.Utils;
@@ -10,12 +11,9 @@ using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.SignalR;
-using Presentation.Constants;
+using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
-using Presentation.RealtimeWeb;
-using Presentation.Utils;
 
 namespace Presentation.Pages.Documents;
 
@@ -29,8 +27,9 @@ public class LibraryModel(
     ISubjectService subjectService,
     IChapterService chapterService,
     IDocumentService documentService,
-    IHubContext<ResourceHub, IResourceClient> hub,
-    IMapper mapper) : PageModel
+    IResourceRealtimeNotifier notifier,
+    IMapper mapper)
+    : PageModel
 {
     private const int PageSize = 10;
 
@@ -55,23 +54,11 @@ public class LibraryModel(
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
     private readonly IDocumentService _documentService = documentService;
-    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
     [FromHeader]
-    public string CallerSignalRConnectionId { get; set; } = string.Empty;
-
-    private static List<string> OtherDocumentGroups
-    {
-        get
-        {
-            var groups = NotificationTargets.DocumentGroups.ToList();
-            groups.Remove(ThisGroup);
-            return groups;
-        }
-    }
-
-    private static string ThisGroup => HubGroups.Resource("document-library");
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads subjects available to the current user.
@@ -211,10 +198,10 @@ public class LibraryModel(
 
         foreach (var doc in newDocs)
         {
-            var upd = new ResourceUpdate
+            var update = new ResourceUpdate
             {
-                ResourceType = "document",
-                Action = "deleted",
+                ResourceType = ResourceType.Document,
+                Action = ResourceAction.Created,
                 ResourceId = doc.Id.ToString(),
                 ResourceName = doc.Title,
                 Properties =
@@ -222,8 +209,7 @@ public class LibraryModel(
                     { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
                 },
             };
-            await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
-            await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
         }
 
         foreach (var doc in newDocs)
@@ -270,10 +256,10 @@ public class LibraryModel(
 
         System.IO.File.Delete(doc.FilePath);
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "document",
-            Action = "deleted",
+            ResourceType = ResourceType.Document,
+            Action = ResourceAction.Deleted,
             ResourceId = doc.Id.ToString(),
             ResourceName = doc.Title,
             Properties =
@@ -281,8 +267,8 @@ public class LibraryModel(
                 { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
             },
         };
-        await _hub.Clients.Groups(OtherDocumentGroups).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success = true });
     }

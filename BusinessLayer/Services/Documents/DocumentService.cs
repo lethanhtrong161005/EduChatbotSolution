@@ -94,6 +94,18 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
             cancellationToken: cxlTkn);
     }
 
+    public async Task<IEnumerable<Document>> GetByUploaderAsync(Guid uploaderId, CancellationToken cxlTkn = default)
+    {
+        return await _unitOfWork.Documents.GetAsync(
+            filter: e => e.UploaderId == uploaderId,
+            includeProperties:
+            [
+                nameof(Document.Uploader),
+                nameof(Document.Chapter) + "." + nameof(Chapter.Subject),
+            ],
+            cancellationToken: cxlTkn);
+    }
+
     public async Task<IEnumerable<Chunk>> GetChunksAsync(
         Guid documentId,
         int pageSize = 10, int pageIndex = 1,

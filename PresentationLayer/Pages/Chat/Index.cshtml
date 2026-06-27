@@ -1,4 +1,5 @@
 @page "{id:guid?}/{handler?}"
+@using System.Security.Claims
 @model Presentation.Pages.Chat.IndexModel
 @{
     ViewData["Title"] = "AI Assistant";
@@ -342,8 +343,9 @@
     @Html.AntiForgeryToken()
 
     <script>
-        window.ChatPage = {
+        window.Page = {
             activeSessionId: '@Model.ViewModel.ActiveSessionId',
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
         };
     </script>
 
@@ -355,6 +357,7 @@
 
     <script src="~/lib/marked/lib/marked.umd.js" asp-append-version="true"></script>
 
+    <script src="~/js/site.js"></script>
     <script src="~/js/chat/chat-enums.js"></script>
     <script src="~/js/chat/chat-templates.js"></script>
     <script src="~/js/chat/chat-signalr.js"></script>

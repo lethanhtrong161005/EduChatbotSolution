@@ -528,33 +528,28 @@ $(document).on(
     "resource:changed",
     async function (_, resUpd) {
         switch (resUpd.resourceType) {
-            case "document":
-                if (resUpd.resourceId === DocumentDetailsPage.documentId)
+            case ResourceType.Document:
+                if (resUpd.resourceId === Page.documentId)
                     promptReload();
                 break;
-            case "chapter":
-                if (resUpd.resourceId === DocumentDetailsPage.chapterId)
+            case ResourceType.Chapter:
+                if (resUpd.resourceId === Page.chapterId)
                     promptReload();
                 break;
-            case "subject":
-                if (resUpd.resourceId === DocumentDetailsPage.subjectId)
+            case ResourceType.Subject:
+                if (resUpd.resourceId === Page.subjectId)
                     promptReload();
                 break;
-            case "user":
-                if (resUpd.resourceId === DocumentDetailsPage.uploaderId)
+            case ResourceType.User:
+                if (resUpd.resourceId === Page.uploaderId)
                     promptReload();
                 break;
-            case "membership":
+            case ResourceType.Membership:
                 if (resUpd.action === "deleted"
-                    && resUpd.properties["subjectId"] === DocumentDetailsPage.subjectId
-                    && resUpd.properties["userId"] === DocumentDetailsPage.userId) {
+                    && resUpd.properties["subjectId"] === Page.subjectId
+                    && resUpd.properties["userId"] === Page.userId) {
                     denyAccess();
-                } else {
-                    // loadComments();
                 }
-                break;
-            case "comment":
-                // loadComments()
                 break;
         }
     }

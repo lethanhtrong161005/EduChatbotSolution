@@ -4,5 +4,5 @@ namespace Domain.Contracts;
 
 public interface IDocumentStatusRealtimeNotifier
 {
-    Task UpdateStatus(DocumentStatusUpdate documentStatusUpdate);
+    Task Notify(DocumentStatusUpdate documentStatusUpdate);
 }

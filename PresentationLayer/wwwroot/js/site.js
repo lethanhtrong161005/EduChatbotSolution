@@ -1,4 +1,27 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿const HubMethod = Object.freeze({
+    JoinResourceType: "SubscribeToResourceType",
+    JoinResource: "SubscribeToResource",
+    JoinResourceCollection: "SubscribeToResourceCollection",
 
-// Write your JavaScript code.
+    LeaveResourceType: "UnsubscribeFromResourceType",
+    LeaveResource: "UnsubscribeFromResource",
+    LeaveResourceCollection: "UnsubscribeFromResourceCollection",
+});
+
+const ResourceType = Object.freeze({
+    User: "user",
+    Membership: "membership",
+    Subject: "subject",
+    Chapter: "chapter",
+    Document: "document",
+    Comment: "comment",
+    ChatSession: "chat-session",
+});
+
+const ResourceAction = Object.freeze({
+    Created: "created",
+    Updated: "updated",
+    Deleted: "deleted",
+    Disabled: "disabled",
+    Enabled: "enabled",
+});

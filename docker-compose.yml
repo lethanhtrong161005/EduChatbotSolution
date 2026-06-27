@@ -45,8 +45,9 @@ services:
       - "8080:8080"
       - "8081:8081"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Staging
-      - ConnectionStrings__Default=Host=100.109.127.96;Port=5432;Database=rag_chatbot_db;Username=postgres;Password=Sansnope281121;Include Error Detail=true
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Container=Host=db;Port=5432;Database=educhatai_db;Username=edu_admin;Password=12345678;Include Error Detail=true
+      - ConnectionStrings__Hosted=Host=100.109.127.96;Port=5432;Database=rag_chatbot_db;Username=postgres;Password=Sansnope281121;Include Error Detail=true
       - OpenAI__ApiKey=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       - Redis__ConnectionString=redis:6379
       - Ollama__Endpoint=http://ollama:11434

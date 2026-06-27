@@ -93,6 +93,10 @@ public interface ISubjectService
         MembershipRole role,
         string? search);
 
+    Task<SubjectMembership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<SubjectMembership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cancellationToken = default);
+
     Task<bool> IsMemberAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
 
     Task<bool> IsChiefAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);

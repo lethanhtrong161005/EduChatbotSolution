@@ -1,9 +1,8 @@
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.SignalR;
-using Presentation.RealtimeWeb;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Admin;
@@ -15,11 +14,11 @@ namespace Presentation.Pages.Admin;
 [Authorize(Roles = "Admin")]
 public class UserManageModel(
     IUserManagementService userManagementService,
-    IHubContext<ResourceHub, IResourceClient> hub)
+    IResourceRealtimeNotifier notifier)
     : PageModel
 {
     private readonly IUserManagementService _userManagementService = userManagementService;
-    private readonly IHubContext<ResourceHub, IResourceClient> _hub = hub;
+    private readonly IResourceRealtimeNotifier _notifier = notifier;
 
     /// <summary>
     /// Gets the user management view model rendered by the page.
@@ -27,16 +26,7 @@ public class UserManageModel(
     public AdminUserListVm ViewModel { get; private set; } = new();
 
     [FromHeader]
-    public string CallerSignalRConnectionId { get; set; } = string.Empty;
-
-    private static List<string> OtherUserGroups(Guid? userId = null, Guid? docId = null)
-    {
-        var groups = NotificationTargets.UserGroups(userId, docId).ToList();
-        groups.Remove(ThisGroup);
-        return groups;
-    }
-
-    private static string ThisGroup => HubGroups.Resource("user-manage");
+    public string CallerConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads users and roles for the user management page.
@@ -64,6 +54,19 @@ public class UserManageModel(
         };
     }
 
+    public async Task<IActionResult> OnGetGetUsersAsync(string? name, string? email, string? role, int limit = 10, int offset = 0)
+    {
+        var users = await _userManagementService.GetPagedUsersAsync(name, email, role, limit, offset);
+
+        var dto = new
+        {
+            Users = users,
+            TotalCount = users.Count,
+        };
+
+        return new JsonResult(dto);
+    }
+
     /// <summary>
     /// Creates a new active user account and emails the initial login credentials.
     /// Returns JSON so the page can show inline success/error without a full reload.
@@ -80,15 +83,15 @@ public class UserManageModel(
         if (!success)
             return StatusCode(500, new { success, error });
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "user",
-            Action = "created",
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Created,
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, error });
     }
@@ -116,15 +119,15 @@ public class UserManageModel(
             ? "Changes saved! A verification email has been sent to the new email address."
             : "Changes saved successfully!";
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "user",
-            Action = "updated",
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Updated,
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, message });
     }
@@ -137,15 +140,15 @@ public class UserManageModel(
     {
         var (success, user, error) = await _userManagementService.SoftDeleteUserAsync(id);
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "user",
-            Action = "deleted",
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Deleted,
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, error });
     }
@@ -159,15 +162,15 @@ public class UserManageModel(
     {
         var (success, user, error) = await _userManagementService.DisableUserAsync(id, body.UpdatedAt);
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "user",
-            Action = "updated",
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Disabled,
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, error });
     }
@@ -181,15 +184,15 @@ public class UserManageModel(
     {
         var (success, user, error) = await _userManagementService.ReactivateUserAsync(id, body.UpdatedAt);
 
-        var upd = new ResourceUpdate
+        var update = new ResourceUpdate
         {
-            ResourceType = "user",
-            Action = "updated",
+            ResourceType = ResourceType.User,
+            Action = ResourceAction.Enabled,
             ResourceId = user!.Id.ToString(),
             ResourceName = user.FullName,
         };
-        await _hub.Clients.Groups(OtherUserGroups(user.Id)).ResourceChanged(upd);
-        await _hub.Clients.GroupExcept(ThisGroup, CallerSignalRConnectionId).ResourceChanged(upd);
+
+        await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, error });
     }

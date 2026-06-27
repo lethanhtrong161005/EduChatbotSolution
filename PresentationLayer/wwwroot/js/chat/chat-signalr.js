@@ -11,14 +11,6 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.on("TitleGenerated",
-            (sessionId, title) => {
-
-                $(document).trigger(
-                    "chat:title",
-                    [sessionId, title]);
-            });
-
         connection.on("StreamingStarted",
             (assistantMessageId, assistantMessageClientId) => {
 
@@ -70,6 +62,73 @@
     return {
         start,
         switchSession,
+    };
+
+})();
+
+window.ResourceSignalR = (function () {
+
+    let connection = null;
+
+    let activeSessionId = null;
+
+    async function start() {
+
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl(`/resource`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on(
+            "ResourceChanged",
+            async function (resUpd) {
+                switch (resUpd.resourceType) {
+                    case ResourceType.Subject:
+                    case ResourceType.Membership:
+                    case ResourceType.ChatSession:
+                        $(document).trigger("resource:changed", resUpd);
+                        break;
+                }
+            }
+        );
+
+        await connection.start();
+
+        window.callerConnectionId = connection.connectionId;
+    }
+
+    async function subscribeToResourceType(resourceType) {
+        await connection.invoke(HubMethod.JoinResourceType, resourceType);
+    }
+
+    async function subscribeToResource(resourceType, resourceId) {
+        await connection.invoke(HubMethod.JoinResource, resourceType, resourceId + "");
+    }
+
+    async function subscribeToResourceCollection(principalType, principalId, dependentType) {
+        await connection.invoke(HubMethod.JoinResourceCollection, principalType, principalId + "", dependentType);
+    }
+
+    async function unsubscribeFromResourceType(resourceType) {
+        await connection.invoke(HubMethod.LeaveResourceType, resourceType);
+    }
+
+    async function unsubscribeFromResource(resourceType, resourceId) {
+        await connection.invoke(HubMethod.LeaveResource, resourceType, resourceId + "");
+    }
+
+    async function unsubscribeFromResourceCollection(principalType, principalId, dependentType) {
+        await connection.invoke(HubMethod.LeaveResourceCollection, principalType, principalId + "", dependentType);
+    }
+
+    return {
+        start,
+        subscribeToResourceType,
+        subscribeToResource,
+        subscribeToResourceCollection,
+        unsubscribeFromResourceType,
+        unsubscribeFromResource,
+        unsubscribeFromResourceCollection,
     };
 
 })();

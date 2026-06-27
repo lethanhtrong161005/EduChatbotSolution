@@ -217,7 +217,7 @@ public class SubjectService(
     public async Task<List<SubjectMembership>> GetMembershipsBySubjectIdAsync(int subjectId)
     {
         var memberships = await _unitOfWork.SubjectMemberships.GetAsync(
-            includeProperties: ["User"],
+            includeProperties: [nameof(SubjectMembership.User)],
             filter: m => m.SubjectId == subjectId,
             orderBy: q => q.OrderBy(m => m.Role).ThenBy(m => m.User.FullName)
         );
@@ -359,6 +359,25 @@ public class SubjectService(
         return await _unitOfWork.Subjects.GetAsync(
             filter: e => isAdmin || e.Memberships.Any(d => d.UserId == userId),
             orderBy: e => e.OrderBy(e => e.Code),
+            cancellationToken: cxlTkn);
+    }
+
+    public async Task<SubjectMembership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cxlTkn = default)
+    {
+        return (await _unitOfWork.SubjectMemberships.GetAsync(
+            filter: e => e.SubjectId == subjectId && e.UserId == userid,
+            includeProperties: [nameof(SubjectMembership.Subject)],
+            asNoTracking: true,
+            cancellationToken: cxlTkn))
+            .FirstOrDefault();
+    }
+
+    public async Task<IEnumerable<SubjectMembership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cxlTkn = default)
+    {
+        return await _unitOfWork.SubjectMemberships.GetAsync(
+            filter: e => e.UserId == userid,
+            includeProperties: [nameof(SubjectMembership.Subject)],
+            asNoTracking: true,
             cancellationToken: cxlTkn);
     }
 

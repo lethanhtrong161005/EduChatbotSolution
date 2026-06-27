@@ -18,6 +18,7 @@ public interface IDocumentService
 
     Task<IEnumerable<Document>> GetBySubjectAsync(int subjectid, CancellationToken cancellationToken = default);
     Task<IEnumerable<Document>> GetByChapterAsync(int chapterId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Document>> GetByUploaderAsync(Guid uploaderId, CancellationToken cancellationToken = default);
 
     Task<DocumentComment> AddCommentAsync(Guid documentId, Guid userId, string content);
 

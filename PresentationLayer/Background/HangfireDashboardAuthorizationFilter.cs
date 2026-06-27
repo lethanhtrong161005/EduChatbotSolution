@@ -1,9 +1,9 @@
 ﻿using Domain.Common;
 using Hangfire.Dashboard;
 
-namespace Presentation.Filters;
+namespace Presentation.Background;
 
-public class HangfireAuthFilter : IDashboardAuthorizationFilter
+public class HangfireDashboardAuthorizationFilter : IDashboardAuthorizationFilter
 {
     public bool Authorize(DashboardContext context)
     {

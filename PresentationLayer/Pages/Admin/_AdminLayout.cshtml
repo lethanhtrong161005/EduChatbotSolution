@@ -115,7 +115,10 @@
     <!-- Overlay for mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <script src="~/js/admin-layout.js" asp-append-version="true"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+
+    <script src="~/js/site.js"></script>
+    <script src="~/js/admin-layout.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

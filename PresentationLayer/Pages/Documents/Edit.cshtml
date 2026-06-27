@@ -179,12 +179,13 @@
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
 
     <script>
-        window.DocumentEditPage = {
+        window.Page = {
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
             documentId: '@Model.ViewModel.Id',
             chapterId: '@Model.ChapterId',
             subjectId: '@Model.SubjectId',
             uploaderId: '@Model.UploaderId',
-            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+            viewerMembershipId: '@Model.ViewerMembershipId',
         };
     </script>
 

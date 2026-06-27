@@ -1286,9 +1286,9 @@
 <script>
     // Global data passed from model safely
     const docType = "@extensionClean.ToUpper()";
-    const rawTextContent = @Html.Raw(Json.Serialize(Model.ViewModel.ExtractedText ?? ""))
+    const rawTextContent = @Html.Raw(Json.Serialize(Model.ViewModel.ExtractedText ?? ""));
     const docFilePath = "/documents/download/@Model.ViewModel.Id";
-    const pptxSlides = @Html.Raw(Json.Serialize(Model.ViewModel.ParsedSections))
+    const pptxSlides = @Html.Raw(Json.Serialize(Model.ViewModel.ParsedSections));
 </script>
 
 @section Scripts {
@@ -1296,13 +1296,13 @@
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
 
     <script>
-        window.DocumentDetailsPage = {
+        window.Page = {
+            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
             documentId: '@Model.ViewModel.Id',
-            documentStatus: '@Model.ViewModel.Status',
             chapterId: '@Model.ViewModel.ChapterId',
             subjectId: '@Model.ViewModel.SubjectId',
             uploaderId: '@Model.ViewModel.UploaderId',
-            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+            viewerMembershipId: '@Model.ViewerMembershipId',
         };
     </script>
 
