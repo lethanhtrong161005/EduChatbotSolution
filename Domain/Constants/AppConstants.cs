@@ -1,4 +1,4 @@
-namespace Domain.Common;
+namespace Domain.Constants;
 
 /// <summary>
 /// Provides application-wide constant values used across all layers.

@@ -1,6 +1,7 @@
 using AutoMapper;
 using Business.Services.AI.Indexing;
 using Domain.Common;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;

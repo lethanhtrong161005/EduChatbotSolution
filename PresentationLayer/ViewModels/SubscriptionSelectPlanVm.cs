@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+﻿using Domain.Constants;
 using Domain.Entities;
 
 namespace Presentation.ViewModels;

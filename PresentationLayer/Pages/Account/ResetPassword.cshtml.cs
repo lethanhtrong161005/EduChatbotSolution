@@ -1,4 +1,4 @@
-using Domain.Common;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;

@@ -1,5 +1,5 @@
 using DataAccess.UnitOfWork;
-using Domain.Common;
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

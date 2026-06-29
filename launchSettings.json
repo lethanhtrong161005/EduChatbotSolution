@@ -3,8 +3,15 @@
     "Docker Compose": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
+      "composeLaunchAction": "LaunchBrowser",
+      "composeLaunchServiceName": "web",
+      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}",
       "serviceActions": {
-        "presentationlayer": "StartDebugging"
+        "db": "StartWithoutDebugging",
+        "ollama": "StartWithoutDebugging",
+        "redis": "StartWithoutDebugging",
+        "redis-ui": "StartWithoutDebugging",
+        "web": "StartDebugging"
       }
     }
   }

@@ -1,18 +1,18 @@
-﻿using Domain.Common;
+﻿using Domain.Constants;
 
 namespace Domain.Entities;
 
 public class GlobalAiConfiguration : CategoryLikeEntity
 {
-    public string ChunkingStrategy { get; set; } = "FixedLength";
+    public string ChunkingStrategy { get; set; } = Constants.ChunkingStrategy.FixedLength;
 
-    public string EmbeddingModel { get; set; } = EmbeddingModelNames.BgeM3;
+    public string EmbeddingModel { get; set; } = EmbeddingModelName.NemotronEmbedVL_Free;
 
     public int TopK { get; set; } = 15;
 
     public double SimilarityThreshold { get; set; } = 0.6;
 
-    public string LlmModel { get; set; } = ChatModelNames.Qwen3;
+    public string LlmModel { get; set; } = ChatModelName.OpenRouterFree;
 
     public float ChatTemperature { get; set; } = 0.3F;
 
