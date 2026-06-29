@@ -271,8 +271,9 @@
 
     async function subscribeToResourceGroups() {
 
-        // Subjects & Sessions are subscribed to on load
+        // Subjects are subscribed to whenever they are loaded
 
+        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Page.userId, ResourceType.Membership);
         await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Page.userId, ResourceType.ChatSession);
     }
 
@@ -680,14 +681,14 @@
                 .map(normalizeSubjectHeader)
                 .sort((a, b) => a.code - b.code);
 
-        await updateResourceSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders);
+        await adjustSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders);
 
         _subjectHeaders = newSubjectHeaders;
 
         updateState_ScopeSubjectHeaders();
     }
 
-    async function updateResourceSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders) {
+    async function adjustSubscriptions_Subject(oldSubjectHeaders, newSubjectHeaders) {
 
         const { added, removed } = diffById(oldSubjectHeaders, newSubjectHeaders);
 
@@ -708,8 +709,6 @@
 
     async function loadSessionList(conTkn) {
 
-        const oldSessionHeaders = _sessionHeaders;
-
         const sessionHeaderDtos =
             await $.ajax({
                 url: `/chat?handler=GetSessionHeaders`,
@@ -722,11 +721,7 @@
         if (_concurrencyToken != conTkn)
             return;
 
-        const newSessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
-
-        await updateResourceSubscriptions_Session(oldSessionHeaders, newSessionHeaders);
-
-        _sessionHeaders = newSessionHeaders;
+        _sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
 
         updateDom_SidebarSessionList();
     }
@@ -736,18 +731,6 @@
         sessionHeader._clientId ??= crypto.randomUUID();
 
         return sessionHeader;
-    }
-
-    async function updateResourceSubscriptions_Session(oldSessionHeaders, newSessionHeaders) {
-
-        const { added, removed } = diffById(oldSessionHeaders, newSessionHeaders);
-
-        await Promise.all([
-            ...added.map(x =>
-                ResourceSignalR.subscribeToResource(ResourceType.ChatSession, x.id)),
-            ...removed.map(x =>
-                ResourceSignalR.unsubscribeFromResource(ResourceType.ChatSession, x.id)),
-        ]);
     }
 
     /* ==========================================================

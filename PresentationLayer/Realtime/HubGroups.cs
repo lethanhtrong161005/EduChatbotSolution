@@ -18,7 +18,9 @@ public static class HubGroups
 
     public static string Resource(string resourceType, string? resourceId = null) => $"resource:{resourceType}:{resourceId ?? "*"}";
 
-    public static string ResourceCollections(string principalType, string principalId, string dependentType) => $"resource:{principalType}:{principalId}:{dependentType}-collection";
+    public static string ResourceCollection(string principalType, string? principleId, string dependentType) => $"resource:{principalType}:{principleId ?? "*"}:{dependentType}-collection";
+
+    public static string ResourceCollection(string principalType, string dependentType) => ResourceCollection(principalType, null, dependentType);
 
     #endregion
 

@@ -136,11 +136,11 @@ public class ProfileModel(
             var dto = memberships.Select(e => new
             {
                 e.Id,
-                e.SubjectId,
                 e.UserId,
-                e.Role,
+                SubjectId = e.SubjectId.ToString(),
                 SubjectCode = e.Subject.Code,
                 SubjectName = e.Subject.Name,
+                e.Role,
                 e.AssignedAt,
                 e.CreatedAt,
                 e.UpdatedAt,
@@ -170,7 +170,7 @@ public class ProfileModel(
                 e.Id,
                 e.Title,
                 e.Description,
-                e.Chapter.SubjectId,
+                SubjectId = e.Chapter.SubjectId.ToString(),
                 SubjectCode = e.Chapter.Subject.Code,
                 ChapterName = e.Chapter.Name,
                 e.FileName,

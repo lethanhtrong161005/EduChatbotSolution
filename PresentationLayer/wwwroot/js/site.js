@@ -1,10 +1,12 @@
 ﻿const HubMethod = Object.freeze({
     JoinResourceType: "SubscribeToResourceType",
     JoinResource: "SubscribeToResource",
+    JoinResourceTypeCollection: "SubscribeToResourceTypeCollection",
     JoinResourceCollection: "SubscribeToResourceCollection",
 
     LeaveResourceType: "UnsubscribeFromResourceType",
     LeaveResource: "UnsubscribeFromResource",
+    LeaveResourceTypeCollection: "UnsubscribeFromResourceTypeCollection",
     LeaveResourceCollection: "UnsubscribeFromResourceCollection",
 });
 

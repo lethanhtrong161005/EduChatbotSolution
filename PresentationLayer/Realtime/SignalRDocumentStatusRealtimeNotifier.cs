@@ -10,7 +10,7 @@ public class SignalRDocumentStatusRealtimeNotifier(
 {
     private readonly IHubContext<DocumentStatusHub, IDocumentClient> _docHub = documentHub;
 
-    public async Task Notify(DocumentStatusUpdate docStatusUpd)
+    public async Task PushUpdateAsync(DocumentStatusUpdate docStatusUpd)
     {
         var libGroup = HubGroups.DocumentStatus();
         var detailsGroup = HubGroups.DocumentStatus(docStatusUpd.Id);

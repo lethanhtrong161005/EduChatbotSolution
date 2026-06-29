@@ -15,9 +15,14 @@ public class ResourceHub : Hub<IResourceClient>
         await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.Resource(resourceType, resourceId));
     }
 
+    public async Task SubscribeToResourceTypeCollection(string principalType, string dependentType)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.ResourceCollection(principalType, dependentType));
+    }
+
     public async Task SubscribeToResourceCollection(string principalType, string principalId, string dependentType)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.ResourceCollections(principalType, principalId, dependentType));
+        await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.ResourceCollection(principalType, principalId, dependentType));
     }
 
     public async Task UnsubscribeFromResourceType(string resourceType)
@@ -30,9 +35,14 @@ public class ResourceHub : Hub<IResourceClient>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.Resource(resourceType, resourceId));
     }
 
+    public async Task UnsubscribeFromResourceTypeCollection(string principalType, string dependentType)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.ResourceCollection(principalType, dependentType));
+    }
+
     public async Task UnsubscribeFromResourceCollection(string principalType, string principalId, string dependentType)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.ResourceCollections(principalType, principalId, dependentType));
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.ResourceCollection(principalType, principalId, dependentType));
     }
 }
 

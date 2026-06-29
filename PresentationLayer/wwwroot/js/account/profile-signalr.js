@@ -15,27 +15,36 @@ window.Page = {
 
 // ── Loading ────────────────────────────────────────────────────
 
+let _concurrencyToken = null;
+
 async function loadAll() {
     await Promise.all([
-        loadProfile(),
-        loadMemberships(),
-        loadDocuments()
+        loadProfile(_concurrencyToken = crypto.randomUUID()),
+        loadMemberships(_concurrencyToken),
+        loadDocuments(_concurrencyToken),
     ]);
 }
 
-async function loadProfile() {
+async function loadProfile(conTkn) {
+
     const dto = await $.getJSON("/account/profile?handler=GetProfile");
+
+    if (_concurrencyToken !== conTkn) return;
+
     Page.user = dto;
+
     renderProfile();
 }
 
-async function loadMemberships() {
+async function loadMemberships(conTkn) {
 
     const oldSubjectIds = [...Page.subjectIds];
 
     const memberships = await $.getJSON("/account/profile?handler=GetMemberships");
 
-    memberships.forEach(x => x.subjectId += "");
+    if (_concurrencyToken !== conTkn) return;
+
+    memberships.forEach(x => x.subjectId);
 
     Page.memberships = memberships;
     Page.subjectIds = memberships.map(x => x.subjectId);
@@ -55,26 +64,14 @@ async function loadMemberships() {
     renderMemberships();
 }
 
-async function loadDocuments() {
-
-    const oldDocumentIds = [...Page.documentIds];
+async function loadDocuments(conTkn) {
 
     const documents = await $.getJSON("/account/profile?handler=GetDocuments");
 
+    if (_concurrencyToken !== conTkn) return;
+
     Page.documents = documents;
     Page.documentIds = Page.documents.map(x => x.id);
-
-    // Adjust subscriptions
-
-    const newDocumentIds = [...Page.documentIds];
-
-    const { added, removed } = diff(oldDocumentIds, newDocumentIds);
-
-    for (const id of added)
-        await resConn.invoke(HubMethod.JoinResource, ResourceType.Document, id);
-
-    for (const id of removed)
-        await resConn.invoke(HubMethod.LeaveResource, ResourceType.Document, id);
 
     renderDocuments();
 }
@@ -199,18 +196,15 @@ function renderMemberships() {
 
 function renderDocuments() {
 
-    const tab =
-        document.querySelector("#docs-tab");
+    const tab = document.querySelector("#docs-tab");
 
     tab.innerHTML =
         `<i class="fas fa-folder-open me-2"></i>
          My Documents (${Page.documents.length})`;
 
-    const panel =
-        document.querySelector("#docs-panel .profile-card");
+    const panel = document.querySelector("#docs-panel .profile-card");
 
     if (!Page.documents.length) {
-
         panel.innerHTML = `
             <h2 class="card-title-custom">
                 <i class="fas fa-copy text-primary"></i>
@@ -222,7 +216,6 @@ function renderDocuments() {
                 <p>You have not uploaded any documents yet.</p>
             </div>
         `;
-
         return;
     }
 
@@ -316,19 +309,20 @@ resConn.on(
         switch (resUpd.resourceType) {
             case ResourceType.User:
                 if (resUpd.resourceId === Page.userId)
-                    await loadProfile();
+                    await loadProfile(_concurrencyToken = crypto.randomUUID());
                 break;
             case ResourceType.Subject:
-                if (Page.subjectIds.includes(resUpd.resourceId))
-                    await Promise.all([loadMemberships(), loadDocuments()]);
+                if (Page.subjectIds.includes(resUpd.resourceId)) {
+                    await Promise.all([loadMemberships(_concurrencyToken = crypto.randomUUID()), loadDocuments(_concurrencyToken)]);
+                }
                 break;
             case ResourceType.Membership:
                 if (resUpd.properties["userId"] === Page.userId)
-                    await Promise.all([loadMemberships(), loadDocuments()]);
+                    await Promise.all([loadMemberships(_concurrencyToken = crypto.randomUUID()), loadDocuments(_concurrencyToken)]);
                 break;
             case ResourceType.Document:
                 if (resUpd.properties["uploaderId"] === Page.userId)
-                    await loadDocuments();
+                    await loadDocuments(_concurrencyToken = crypto.randomUUID());
                 break;
         }
     }
