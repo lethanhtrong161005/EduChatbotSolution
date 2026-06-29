@@ -10,7 +10,7 @@
 
 // ── State ───────────────────────────────────────────────────
 
-const Page = {
+window.Page = {
     filters: {
         name: "",
         email: "",

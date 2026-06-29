@@ -11,7 +11,7 @@ resConn.on(
     function (resUpd) {
         switch (resUpd.resourceType) {
             case ResourceType.User:
-                if (resUpd.resourceId === Page.userId)
+                if (resUpd.resourceId === Razor.userId)
                     promptReload();
                 break;
         }
@@ -26,7 +26,7 @@ function promptReload() {
 
 resConn
     .start()
-    .then(() => resConn.invoke(HubMethod.JoinResource, ResourceType.User, Page.userId))
+    .then(() => resConn.invoke(HubMethod.JoinResource, ResourceType.User, Razor.userId))
     .then(() => window.connId = resConn.connectionId)
     .then(() =>
         $("<input>")

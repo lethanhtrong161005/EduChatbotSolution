@@ -529,25 +529,25 @@ $(document).on(
     async function (_, resUpd) {
         switch (resUpd.resourceType) {
             case ResourceType.Document:
-                if (resUpd.resourceId === Page.documentId)
+                if (resUpd.resourceId === Razor.documentId)
                     promptReload();
                 break;
             case ResourceType.Chapter:
-                if (resUpd.resourceId === Page.chapterId)
+                if (resUpd.resourceId === Razor.chapterId)
                     promptReload();
                 break;
             case ResourceType.Subject:
-                if (resUpd.resourceId === Page.subjectId)
+                if (resUpd.resourceId === Razor.subjectId)
                     promptReload();
                 break;
             case ResourceType.User:
-                if (resUpd.resourceId === Page.uploaderId)
+                if (resUpd.resourceId === Razor.uploaderId)
                     promptReload();
                 break;
             case ResourceType.Membership:
                 if (resUpd.action === "deleted"
-                    && resUpd.properties["subjectId"] === Page.subjectId
-                    && resUpd.properties["userId"] === Page.userId) {
+                    && resUpd.properties["subjectId"] === Razor.subjectId
+                    && resUpd.properties["userId"] === Razor.userId) {
                     denyAccess();
                 }
                 break;

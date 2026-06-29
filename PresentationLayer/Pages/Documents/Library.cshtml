@@ -145,15 +145,15 @@
 @section Scripts {
 
     <script>
-        window.Page = {
+        window.Razor = {
             userId: '@Model.User.FindFirstValue(ClaimTypes.NameIdentifier)',
         };
     </script>
 
     <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
 
-    <script src="~/js/status-badge.js"></script>
-    <script src="~/js/document-library-signalr.js"></script>
-    <script src="~/js/document-library.js"></script>
+    <script src="~/js/documents/status-badge.js"></script>
+    <script src="~/js/documents/document-library-signalr.js"></script>
+    <script src="~/js/documents/document-library.js"></script>
 
 }

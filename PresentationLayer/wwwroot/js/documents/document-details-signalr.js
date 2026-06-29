@@ -4,7 +4,7 @@
 
 const conn =
     new signalR.HubConnectionBuilder()
-        .withUrl(`/documents/status?page=details&document-id=${Page.documentId}`)
+        .withUrl(`/documents/status?page=details&document-id=${Razor.documentId}`)
         .withAutomaticReconnect()
         .build();
 
@@ -15,7 +15,7 @@ conn.on(
     "UpdateStatus",
     function (update) {
 
-        if (update.id !== Page.documentId)
+        if (update.id !== Razor.documentId)
             return;
 
         updateBadge(update);
@@ -98,13 +98,13 @@ resConn
 
         const promises = [];
 
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Page.documentId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Page.chapterId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Page.subjectId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Page.uploaderId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Razor.documentId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Razor.chapterId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Razor.subjectId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Razor.uploaderId));
 
-        if (Page.viewerMembershipId)
-            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Page.uploaderId));
+        if (Razor.viewerMembershipId)
+            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Razor.uploaderId));
 
         await Promise.all(promises);
     })

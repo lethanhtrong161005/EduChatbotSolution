@@ -264,7 +264,7 @@
 
         await loadSubjectList(conTkn);
         await loadSessionList(conTkn);
-        await loadSession(conTkn, Page.activeSessionId ?? null, false);
+        await loadSession(conTkn, Razor.activeSessionId ?? null, false);
 
         await subscribeToResourceGroups();
     }
@@ -273,8 +273,8 @@
 
         // Subjects are subscribed to whenever they are loaded
 
-        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Page.userId, ResourceType.Membership);
-        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Page.userId, ResourceType.ChatSession);
+        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Razor.userId, ResourceType.Membership);
+        await ResourceSignalR.subscribeToResourceCollection(ResourceType.User, Razor.userId, ResourceType.ChatSession);
     }
 
     /* ==========================================================

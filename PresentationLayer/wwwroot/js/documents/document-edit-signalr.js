@@ -11,25 +11,25 @@ resConn.on(
     function (resUpd) {
         switch (resUpd.resourceType) {
             case ResourceType.Document:
-                if (resUpd.resourceId === DocumentEditPage.documentId)
+                if (resUpd.resourceId === Razor.documentId)
                     promptReload();
                 break;
             case ResourceType.Chapter:
-                if (resUpd.resourceId === DocumentEditPage.chapterId)
+                if (resUpd.resourceId === Razor.chapterId)
                     promptReload();
                 break;
             case ResourceType.Subject:
-                if (resUpd.resourceId === DocumentEditPage.subjectId)
+                if (resUpd.resourceId === Razor.subjectId)
                     promptReload();
                 break;
             case ResourceType.User:
-                if (resUpd.resourceId === DocumentEditPage.uploaderId)
+                if (resUpd.resourceId === Razor.uploaderId)
                     promptReload();
                 break;
             case ResourceType.Membership:
                 if (resUpd.action === "deleted"
-                    && resUpd.properties["subjectId"] === DocumentEditPage.subjectId
-                    && resUpd.properties["userId"] === DocumentEditPage.userId) {
+                    && resUpd.properties["subjectId"] === Razor.subjectId
+                    && resUpd.properties["userId"] === Razor.userId) {
                     denyAccess();
                 }
                 break;
@@ -55,13 +55,13 @@ resConn
 
         const promises = [];
 
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Page.documentId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Page.chapterId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Page.subjectId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Page.uploaderId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Razor.documentId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Razor.chapterId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Razor.subjectId));
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Razor.uploaderId));
 
-        if (Page.viewerMembershipId)
-            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Page.uploaderId));
+        if (Razor.viewerMembershipId)
+            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Razor.uploaderId));
 
         await Promise.all(promises);
     })

@@ -343,7 +343,7 @@
     @Html.AntiForgeryToken()
 
     <script>
-        window.Page = {
+        window.Razor = {
             activeSessionId: '@Model.ViewModel.ActiveSessionId',
             userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
         };

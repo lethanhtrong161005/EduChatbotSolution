@@ -63,7 +63,7 @@ resConn
         promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Chapter));
         promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Document));
         promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.User));
-        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.User, Page.userId, ResourceType.Membership));
+        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.User, Razor.userId, ResourceType.Membership));
 
         await Promise.all(promises);
     })

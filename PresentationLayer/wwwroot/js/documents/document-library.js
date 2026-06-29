@@ -720,7 +720,7 @@ Are you sure you wish to upload them?
                     refreshTable();
                     break;
                 case ResourceType.Membership: // Current user may have gained/lost membership(s)
-                    if (resUpd.properties["userId"] === Page.userId) {
+                    if (resUpd.properties["userId"] === Razor.userId) {
                         await loadSubjects(++concurrencyToken);
                         refreshTable();
                     }
