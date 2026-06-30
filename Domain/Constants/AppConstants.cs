@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Domain.Constants;
 
 /// <summary>
@@ -41,9 +43,28 @@ public static class AppConstants
 
     public const int UnlimitedQuota = -1;
 
-    public const string AppDir = "EduChatAI";
-    public const string FileSubdirUploaded = "uploaded";
-    public const string FileSubdirProcessing = "processing";
-    public const string FileSubdirIndexed = "indexed";
-    public const string FileSubdirFailed = "failed";
+    public static readonly ImmutableHashSet<string> AllowedExtensions =
+    [
+        "pdf",
+        "docx",
+        "pptx",
+        "txt",
+        "html",
+    ];
+
+    public static readonly ImmutableHashSet<string> AllowedMimeTypes =
+    [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "text/plain",
+        "text/html",
+    ];
+
+    public const string AppDir = "educhatai";
+    public const string FileDirBuffer = "buffer";
+    public const string FileDirUploaded = "uploaded";
+    public const string FileDirProcessing = "processing";
+    public const string FileDirIndexed = "indexed";
+    public const string FileDirFailed = "failed";
 }

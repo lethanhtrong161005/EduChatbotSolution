@@ -1,14 +1,11 @@
 using AutoMapper;
 using Business.Services.AI.Indexing;
 using Domain.Common;
-using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
-using Domain.Utils;
 using Hangfire;
-using HeyRed.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -23,38 +20,24 @@ namespace Presentation.Pages.Documents;
 /// Handles document API endpoints via handlers.
 /// </summary>
 [Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
-[RequestSizeLimit(100L * 1024 * 1024)]
+[RequestSizeLimit(50L * 1024 * 1024)]
 public class LibraryModel(
     ISubjectService subjectService,
     IChapterService chapterService,
     IDocumentService documentService,
+    ITemporaryStorageService tempStorageService,
+    IDocumentFileService fileService,
     IResourceRealtimeNotifier notifier,
     IMapper mapper)
     : PageModel
 {
     private const int PageSize = 10;
 
-    private static readonly HashSet<string> AllowedExtensions =
-    [
-        ".pdf",
-        ".docx",
-        ".pptx",
-        ".txt",
-        ".html",
-    ];
-
-    private static readonly HashSet<string> AllowedMimeTypes =
-    [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "text/plain",
-        "text/html",
-    ];
-
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
     private readonly IDocumentService _documentService = documentService;
+    private readonly ITemporaryStorageService _tempStorageService = tempStorageService;
+    private readonly IDocumentFileService _fileService = fileService;
     private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
@@ -150,50 +133,36 @@ public class LibraryModel(
             return Forbid();
 
         var docs = new List<Document>();
+        var problems = new List<string>();
 
         foreach (var file in files)
         {
-            var extension = Path.GetExtension(file.FileName);
-            var storageName = $"{Guid.NewGuid()}{extension}";
+            await using var fs = file.OpenReadStream();
+            var result = await _tempStorageService.ValidateAndSave(fs, file.FileName, cxlTkn);
 
-            if (!AllowedExtensions.Contains(extension))
-                return BadRequest($"{file.FileName} is not supported");
-
-            var tempDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirUploaded);
-            Directory.CreateDirectory(tempDir);
-
-            var fullPath = Path.Combine(tempDir, storageName);
-            await using var fs = System.IO.File.Create(fullPath);
-            await file.CopyToAsync(fs, cxlTkn);
-
-            var mime = MimeGuesser.GuessFileType(fullPath);
-            if (mime is { MimeType: "inode/x-empty", Extension: "bin" })
-                mime = new FileType("text/plain", "txt");
-
-            if (!AllowedMimeTypes.Contains(mime.MimeType))
+            if (!result.Success)
             {
-                System.IO.File.Delete(fullPath);
-                foreach (var d in docs)
-                    System.IO.File.Delete(d.FilePath);
-                return BadRequest($"{file.FileName} is not supported.");
+                problems.Add($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
+                continue;
             }
 
-            var doc = new Document
+            docs.Add(new Document
             {
                 ChapterId = chapterId,
                 UploaderId = userId,
                 Title = Path.GetFileNameWithoutExtension(file.FileName),
-                FileName = storageName,
+                FileName = Path.GetFileName(result.FilePath),
                 OriginalFileName = file.FileName,
-                FileType = FileHelper.ParseFileType(extension),
-                FilePath = fullPath,
+                FileType = result.FileType.Value,
+                FilePath = result.FilePath,
                 FileSize = file.Length,
                 Status = DocumentStatus.Uploaded,
                 UploadedAt = DateTime.UtcNow,
-            };
-
-            docs.Add(doc);
+            });
         }
+
+        if (problems.Count > 0)
+            return BadRequest(problems);
 
         var newDocs = await _documentService.CreateRange(docs, cxlTkn);
 
@@ -215,7 +184,12 @@ public class LibraryModel(
 
         foreach (var doc in newDocs)
         {
-            var parseJobId = BackgroundJob.Enqueue<IDocumentIndexer>(
+            var uploadJobId = BackgroundJob.Enqueue<IDocumentFileService>(
+                HangfireConstants.LowPriorityQueue,
+                e => e.Upload(doc.Id));
+
+            var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                uploadJobId,
                 HangfireConstants.LowPriorityQueue,
                 e => e.ParseAsync(doc.Id));
 
@@ -230,8 +204,8 @@ public class LibraryModel(
                 e => e.EmbedAsync(doc.Id));
         }
 
-        var result = _mapper.Map<List<DocumentFileDto>>(newDocs);
-        return new JsonResult(result);
+        var dtos = _mapper.Map<List<DocumentFileDto>>(newDocs);
+        return new JsonResult(dtos);
     }
 
     /// <summary>
@@ -253,9 +227,13 @@ public class LibraryModel(
             nameof(DocumentIndexer.EmbedAsync)
         ]);
 
-        await _documentService.DeleteAsync(doc.Id, cxlTkn);
+        var result = await _fileService.Delete(doc.Id, cxlTkn);
+        if (!result.Success)
+        {
+            // Log and move on
+        }
 
-        System.IO.File.Delete(doc.FilePath);
+        await _documentService.DeleteAsync(doc.Id, cxlTkn);
 
         var update = new ResourceUpdate
         {

@@ -341,19 +341,19 @@
                 .querySelector(`#delete-file-${file.id}`)
                 .addEventListener(
                     "click",
-                    promptDeleteDocument);
+                    e => promptDeleteDocument(e));
         });
     }
 
-    async function promptDeleteDocument() {
+    async function promptDeleteDocument(e) {
 
-        fileId = deleteBtn.dataset.fileId;
+        fileId = e.currentTarget.dataset.fileId;
         if (!fileId) return;
 
         const conf = confirm("Are you sure you wish to delete this file?");
         if (!conf) return;
 
-        var response = await fetch(`/documents/library/${file.id}`, {
+        var response = await fetch(`/documents/library/${fileId}`, {
             method: "DELETE",
             headers: {
                 "RequestVerificationToken": getAntiForgery(),
@@ -362,7 +362,6 @@
         });
 
         if (response.ok) {
-
             loadDocuments(subjectSelect.value, ++concurrencyToken)
                 .then(refreshTable);
         }

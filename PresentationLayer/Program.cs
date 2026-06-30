@@ -6,6 +6,7 @@ using Business.Services.AI.Indexing.Chunking;
 using Business.Services.AI.Indexing.Embedding;
 using Business.Services.AI.Indexing.Parsing;
 using Business.Services.Documents;
+using Business.Services.Documents.File;
 using Business.Services.ExternalPayment;
 using Business.Services.SubscriptionPlan;
 using DataAccess.Data;
@@ -21,6 +22,8 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using MimeDetective;
+using MimeDetective.Storage;
 using OllamaSharp;
 using OpenAI;
 using Presentation.Background;
@@ -32,6 +35,7 @@ using Presentation.Realtime;
 using Presentation.Routing;
 using StackExchange.Redis;
 using System.ClientModel;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.Json;
 
@@ -77,7 +81,6 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
-builder.Services.AddScoped<IDocumentStatusRealtimeNotifier, SignalRDocumentStatusRealtimeNotifier>();
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
@@ -90,6 +93,66 @@ builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
 builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
 builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
+
+// ── File Storage ──────────────────────────────────────
+var supabaseOpts = builder.Configuration.GetSection("BlobStorage:Supabase").Get<SupabaseOptions>()
+                   ?? throw new KeyNotFoundException("Supabase is not configured.");
+
+builder.Services.AddSingleton(_ => new Supabase.Client(supabaseOpts.ApiUrl, supabaseOpts.ApiSecretKey, new Supabase.SupabaseOptions
+{
+    AutoRefreshToken = true,
+}));
+
+builder.Services.Configure<FileStorageOptions>(opts =>
+{
+    opts.AppDirectory = AppConstants.AppDir;
+    opts.FileDirectoryBuffer = AppConstants.FileDirBuffer;
+    opts.FileDirectoryUploaded = AppConstants.FileDirUploaded;
+    opts.FileDirectoryProcessing = AppConstants.FileDirProcessing;
+    opts.FileDirectoryIndexed = AppConstants.FileDirIndexed;
+    opts.FileDirectoryFailed = AppConstants.FileDirFailed;
+});
+
+//builder.Services.AddScoped<IDocumentFileService, LocalHardDriveDocumentFileService>();
+builder.Services.AddScoped<IDocumentFileService, SupabaseDocumentFileService>();
+
+// ── File Validation ──────────────────────────────────────
+
+var allDefinitions = MimeDetective.Definitions.DefaultDefinitions.All();
+
+var extensions = AppConstants.AllowedExtensions.WithComparer(StringComparer.InvariantCultureIgnoreCase);
+
+var scopedDefinitions = allDefinitions
+    .ScopeExtensions(extensions)
+    .TrimMeta()
+    .TrimCategories()
+    .TrimDescription()
+    .ToImmutableArray();
+
+var inspector = new ContentInspectorBuilder
+{
+    Definitions = scopedDefinitions,
+}.Build();
+
+builder.Services.AddSingleton(inspector);
+
+var fileExtensionToMimeTypes = new FileExtensionToMimeTypeLookupBuilder()
+{
+    Definitions = scopedDefinitions,
+}.Build();
+
+var mimeTypes = extensions
+    .Select(e => fileExtensionToMimeTypes.TryGetValue(e) ?? string.Empty)
+    .Where(e => !string.IsNullOrEmpty(e))
+    .ToImmutableHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+builder.Services.Configure<FileValidationOptions>(opts =>
+{
+    opts.AllowedExtensions = extensions;
+    opts.AllowedMimeType = mimeTypes;
+});
+
+builder.Services.AddSingleton<ITemporaryStorageService, TempPathStorageService>();
 
 // ── AI Model Providers ──────────────────────────────────────
 var ollamaOpts = builder.Configuration.GetSection("AI:Ollama").Get<OllamaOptions>()
@@ -145,6 +208,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
+builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetRequiredSection("BlobStorage:Supabase"));
 
 // ── Identity Authentication ───────────────────────────────────
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
@@ -193,6 +257,7 @@ builder.Services.AddSignalR()
     });
 
 builder.Services.AddScoped<IResourceRealtimeNotifier, SignalRResourceRealtimeNotifier>();
+builder.Services.AddScoped<IDocumentStatusRealtimeNotifier, SignalRDocumentStatusRealtimeNotifier>();
 
 // ── HTTP Pipeline ──────────────────────────────────────────────
 builder.Services.AddScoped<CustomExceptionMiddleware>();

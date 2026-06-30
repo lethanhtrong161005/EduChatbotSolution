@@ -21,6 +21,7 @@ namespace Presentation.Pages.Documents;
 public class DetailsModel(
     ISubjectService subjectService,
     IDocumentService documentService,
+    IDocumentFileService fileService,
     IResourceRealtimeNotifier notifier,
     IMapper mapper)
     : PageModel
@@ -29,6 +30,7 @@ public class DetailsModel(
 
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IDocumentService _documentService = documentService;
+    private readonly IDocumentFileService _fileService = fileService;
     private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
@@ -75,7 +77,7 @@ public class DetailsModel(
             if (doc == null)
                 return NotFound();
 
-            IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && System.IO.File.Exists(doc.FilePath);
+            IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && await _fileService.Exists(doc.Id, cxlTkn);
 
             // Verify if the user has permission to access this document
             var isAdmin = User.IsInRole(nameof(UserRole.Admin));
@@ -92,9 +94,9 @@ public class DetailsModel(
             }
             else
             {
-                CanEdit = isAdmin;
+                ViewerMembershipId = string.Empty;
+                CanEdit = true;
             }
-
 
             var vm = _mapper.Map<DocumentDetailsVm>(doc);
 
@@ -114,13 +116,15 @@ public class DetailsModel(
             }
 
             // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
-            if (string.IsNullOrWhiteSpace(vm.ExtractedText) && System.IO.File.Exists(doc.FilePath))
+            if (string.IsNullOrWhiteSpace(vm.ExtractedText) && await _fileService.Exists(doc.Id, cxlTkn))
             {
                 try
                 {
                     if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
                     {
-                        vm.ExtractedText = await System.IO.File.ReadAllTextAsync(doc.FilePath, cxlTkn);
+                        var result = await _fileService.Download(doc.Id, cxlTkn);
+                        if (result.Success)
+                            vm.ExtractedText = await System.IO.File.ReadAllTextAsync(result.FilePath, cxlTkn);
                     }
                 }
                 catch

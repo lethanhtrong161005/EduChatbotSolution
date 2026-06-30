@@ -10,9 +10,13 @@ namespace Presentation.Pages.Documents;
 /// Handles document download requests.
 /// </summary>
 [Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
-public class DownloadModel(IDocumentService documentService) : PageModel
+public class DownloadModel(
+    IDocumentService documentService,
+    IDocumentFileService fileService)
+    : PageModel
 {
     private readonly IDocumentService _documentService = documentService;
+    private readonly IDocumentFileService _fileService = fileService;
 
     /// <summary>
     /// Downloads the original document file.
@@ -27,8 +31,12 @@ public class DownloadModel(IDocumentService documentService) : PageModel
         if (doc == null)
             return NotFound();
 
+        var result = await _fileService.Download(doc.Id, cxlTkn);
+        if (!result.Success)
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve document file.");
+
         return File(
-            fileStream: System.IO.File.OpenRead(doc.FilePath),
+            fileStream: System.IO.File.OpenRead(result.FilePath),
             contentType: doc.ContentType,
             fileDownloadName: doc.OriginalFileName);
     }

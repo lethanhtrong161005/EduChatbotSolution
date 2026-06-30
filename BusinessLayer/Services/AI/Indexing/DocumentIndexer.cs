@@ -1,5 +1,4 @@
 using DataAccess.UnitOfWork;
-using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -11,27 +10,26 @@ public class DocumentIndexer(
     IDocumentParser parser,
     IDocumentChunker chunker,
     IEmbeddingService embedder,
+    IDocumentFileService fileService,
+    IAiConfigurationResolver aiConfigResolver,
     IUnitOfWork unitOfWork,
-    IDocumentStatusRealtimeNotifier notifier,
-    IAiConfigurationResolver aiConfigResolver) : IDocumentIndexer
+    IDocumentStatusRealtimeNotifier notifier)
+    : IDocumentIndexer
 {
     private readonly IDocumentParser _parser = parser;
     private readonly IDocumentChunker _chunker = chunker;
     private readonly IEmbeddingService _embedder = embedder;
+    private readonly IDocumentFileService _fileService = fileService;
+    private readonly IAiConfigurationResolver _aiConfigResolver = aiConfigResolver;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IDocumentStatusRealtimeNotifier _notifier = notifier;
-    private readonly IAiConfigurationResolver _aiConfigResolver = aiConfigResolver;
-
-    private readonly string _processingDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirProcessing);
-    private readonly string _indexedDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirIndexed);
-    private readonly string _failedDir = Path.Combine(Path.GetTempPath(), AppConstants.AppDir, AppConstants.FileSubdirFailed);
 
     private const int BatchSize = 50;
 
     public async Task ParseAsync(Guid documentId, CancellationToken cxlTkn = default)
     {
         var doc = await _unitOfWork.Documents.FindByIdAsync(documentId, cxlTkn)
-                  ?? throw new EntityNotFoundException("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find target document.");
 
         if (doc.Status >= DocumentStatus.Parsed
             || await _unitOfWork.ParsedSections.ExistsAsync(e => e.DocumentId == doc.Id, cxlTkn))
@@ -40,18 +38,23 @@ public class DocumentIndexer(
         try
         {
             doc.IndexingErrors = null;
-            MoveToDir(doc, _processingDir);
+
+            await MoveToDir(doc, DocumentFileDirectory.Processing);
+
+            var result = await _fileService.Download(doc.Id, cxlTkn);
+            if (!result.Success)
+                throw new FileNotFoundException("Failed to download document file.");
+
             doc.ParserUsed = _parser.ParserName;
             await SaveAndUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cancellationToken: cxlTkn);
 
-            var parsedDoc = await _parser.ParseAsync(doc.FilePath, doc.FileType, cxlTkn);
+            var parsedDoc = await _parser.ParseAsync(result.FilePath, doc.FileType, cxlTkn);
 
             foreach (var section in parsedDoc.Sections)
             {
                 section.DocumentId = doc.Id;
                 _unitOfWork.ParsedSections.Insert(section);
             }
-
 
             await SaveAndUpdate(doc, DocumentStatus.Parsed, cancellationToken: cxlTkn);
         }
@@ -67,7 +70,7 @@ public class DocumentIndexer(
                                                         includeProperties: [nameof(Document.ParsedSections), nameof(Document.Chapter)],
                                                         cancellationToken: cxlTkn))
                                               .FirstOrDefault()
-                  ?? throw new EntityNotFoundException("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find target document.");
 
         if (doc.Status >= DocumentStatus.Chunked
             || await _unitOfWork.Chunks.ExistsAsync(e => e.DocumentId == doc.Id, cxlTkn))
@@ -76,7 +79,7 @@ public class DocumentIndexer(
         try
         {
             doc.IndexingErrors = null;
-            MoveToDir(doc, _processingDir);
+            await MoveToDir(doc, DocumentFileDirectory.Processing);
             await SaveAndUpdate(doc, DocumentStatus.Chunking, chunkCount: 0, cancellationToken: cxlTkn);
 
             var sections = doc.ParsedSections.OrderBy(e => e.SectionIndex);
@@ -133,7 +136,7 @@ public class DocumentIndexer(
                                                         includeProperties: [nameof(Document.Chunks), nameof(Document.Chapter)],
                                                         cancellationToken: cxlTkn))
                                               .FirstOrDefault()
-                  ?? throw new EntityNotFoundException("Could not find the queued document.");
+                  ?? throw new EntityNotFoundException("Could not find target document.");
 
         if (doc.Status >= DocumentStatus.Indexed
             && doc.Chunks.All(c => c.Embedding != null))
@@ -148,7 +151,7 @@ public class DocumentIndexer(
         {
             // TODO: Log WARN
             doc.IndexingErrors = null;
-            MoveToDir(doc, _indexedDir);
+            await MoveToDir(doc, DocumentFileDirectory.Indexed);
             await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
             return;
         }
@@ -162,7 +165,7 @@ public class DocumentIndexer(
             var progress = 100d * cur / total;
 
             doc.IndexingErrors = null;
-            MoveToDir(doc, _processingDir);
+            await MoveToDir(doc, DocumentFileDirectory.Processing);
             await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, embeddingModel: aiConfig.EmbeddingModel, cancellationToken: cxlTkn);
 
             foreach (var batch in pendingChunks.Chunk(BatchSize))
@@ -191,7 +194,7 @@ public class DocumentIndexer(
                 await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, cancellationToken: cxlTkn);
             }
 
-            MoveToDir(doc, _indexedDir);
+            await MoveToDir(doc, DocumentFileDirectory.Indexed);
             await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
         }
         catch (Exception ex)
@@ -200,20 +203,11 @@ public class DocumentIndexer(
         }
     }
 
-    private static void MoveToDir(Document doc, string dir)
+    private async Task MoveToDir(Document doc, DocumentFileDirectory dir)
     {
-        if (!File.Exists(doc.FilePath))
-        {
+        if (!await _fileService.Exists(doc.Id))
             throw new FileNotFoundException($"Could not locate document file at '{doc.FilePath}'");
-        }
-
-        if (doc.FilePath != dir)
-        {
-            Directory.CreateDirectory(dir);
-            var path = Path.Combine(dir, doc.FileName);
-            File.Move(doc.FilePath, path);
-            doc.FilePath = path;
-        }
+        await _fileService.Move(doc.Id, dir);
     }
 
     private async Task SaveAndUpdate(
@@ -239,7 +233,7 @@ public class DocumentIndexer(
             UpdatedAt = DateTime.UtcNow,
         };
 
-        _ = _notifier.PushUpdateAsync(docStatusUpd);
+        await _notifier.PushUpdateAsync(docStatusUpd);
     }
 
     private async Task SaveFailure(
@@ -248,7 +242,7 @@ public class DocumentIndexer(
         CancellationToken cxlTkn)
     {
         doc.IndexingErrors = ex.ToString();
-        MoveToDir(doc, _failedDir);
+        await MoveToDir(doc, DocumentFileDirectory.Failed);
         await SaveAndUpdate(doc, DocumentStatus.Failed, cancellationToken: cxlTkn);
     }
 }
