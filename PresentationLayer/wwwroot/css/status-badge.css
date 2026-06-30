@@ -21,8 +21,8 @@
 }
 
 .status-parsed {
-    background: rgba(46,204,113,.15);
-    color: var(--color-success);
+    background: rgba(26,188,156,.15);
+    color: #16a085;
 }
 
 .status-chunking {
@@ -43,6 +43,7 @@
 .status-indexed {
     background: rgba(46,204,113,.15);
     color: var(--color-success);
+    font-weight: 600;
 }
 
 .status-failed {

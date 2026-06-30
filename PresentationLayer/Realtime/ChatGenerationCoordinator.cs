@@ -68,8 +68,8 @@ public class ChatGenerationCoordinator(
             ResourceName = updatedSession.Title,
             Properties =
             {
-                { nameof(ChatSession.UserId), updatedSession.UserId },
-                { nameof(ChatSession.SubjectId), updatedSession.SubjectId },
+                { nameof(ChatSession.UserId), updatedSession.UserId.ToString() },
+                { nameof(ChatSession.SubjectId), updatedSession.SubjectId.ToString() },
             },
         };
 
@@ -105,7 +105,7 @@ public class ChatGenerationCoordinator(
             {
                 await _chatHub.Clients
                            .Group(HubGroups.Chat(sessionId))
-                           .StreamingStarted(assistantMessageId, assistantMessageClientId);
+                           .GenerationStarted(assistantMessageId, assistantMessageClientId);
             }
 
             var result = await _chatGenerationService.GenerateChatAsync(

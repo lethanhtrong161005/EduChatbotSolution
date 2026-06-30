@@ -14,7 +14,7 @@ public record ResourceUpdate
 
     public string? ResourceName { get; init; }
 
-    public Dictionary<string, object?> Properties { get; init; } = [];
+    public Dictionary<string, string?> Properties { get; init; } = [];
 }
 
 public enum ResourceType

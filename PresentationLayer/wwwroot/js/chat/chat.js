@@ -628,10 +628,17 @@
         );
 
         $(document).on(
-            "chat:stream",
+            "chat:exchange",
+            function (_, userMessageId, userMessageClientId, assistantMessageId, assistantMessageClientId) {
+
+                onExchangeCreated(userMessageId, userMessageClientId, assistantMessageId, assistantMessageClientId);
+            });
+
+        $(document).on(
+            "chat:started",
             function (_, assistantMessageId, assistantMessageClientId) {
 
-                onStreamingStarted(assistantMessageId, assistantMessageClientId);
+                onGenerationStarted(assistantMessageId, assistantMessageClientId);
             });
 
         $(document).on(
@@ -888,20 +895,17 @@
 
     function renderMessages(messages) {
 
-        const $list =
-            $("#message-list");
+        const $list = $("#message-list");
 
         $list.empty();
 
         for (const message of messages) {
 
-            if (message.chatRole === 1) {
-
+            if (message.chatRole === ChatEnums.ChatRole.User) {
                 $list.append(
                     ChatTemplates.renderUserMessage(message));
             }
             else {
-
                 $list.append(
                     ChatTemplates.renderAssistantMessage(message));
             }
@@ -1034,6 +1038,7 @@
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
                 data: {
                     sessionId: _activeSession.id,
@@ -1151,32 +1156,41 @@
                 await loadSubjectList(_concurrencyToken = crypto.randomUUID());
                 break;
             case ResourceType.Membership:
-                if (resUpd.action !== ResourceAction.Updated)
+                if (resUpd.properties["userId"] === Razor.userId)
                     await loadSubjectList(_concurrencyToken = crypto.randomUUID());
                 break;
             case ResourceType.ChatSession:
-                if (resUpd.action === ResourceAction.Updated)
-                    await handleTitleGenerated(resUpd.resourceId, resUpd.resourceName);
-                else
+                if (resUpd.properties["userId"] === Razor.userId)
                     await loadSessionList(_concurrencyToken = crypto.randomUUID());
                 break;
         }
     }
 
-    async function handleTitleGenerated(sessionId, title) {
+    async function onExchangeCreated(userMessageId, userMessageClientId, assistantMessageId, assistantMessageClientId) {
 
-        const sessionHeader = _sessionHeaders.find(x => x.id === sessionId);
-
-        if (!sessionHeader) {
-            await loadSessionList(_concurrencyToken = crypto.randomUUID());
+        if (!_activeSession?.id)
             return;
-        }
 
-        sessionHeader.title = title;
-        updateDom_SidebarSessionList();
+        const conTkn = _concurrencyToken = crypto.randomUUID();
+
+        const dto =
+            await $.ajax({
+                url: `/chat?handler=GetSession&id=${_activeSession.id}`,
+                method: "GET",
+                headers: {
+                    CallerConnectionId: callerConnectionId,
+                },
+            });
+
+        if (_concurrencyToken !== conTkn)
+            return;
+
+        _activeSession = normalizeSession(dto);
+
+        renderMessages(_activeSession.messages);
     }
 
-    function onStreamingStarted(assistantMessageId, assistantMessageClientId) {
+    function onGenerationStarted(assistantMessageId, assistantMessageClientId) {
 
         if (!_activeSession?.id)
             return;

@@ -2,8 +2,6 @@
 
     let connection = null;
 
-    let activeSessionId = null;
-
     async function start() {
 
         connection = new signalR.HubConnectionBuilder()
@@ -11,11 +9,19 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.on("StreamingStarted",
+        connection.on("ExchangeCreated",
+            (userMessageId, userMessageClientId, assistantMessageId, assistantMessageClientId) => {
+
+                $(document).trigger(
+                    "chat:exchange",
+                    [userMessageId, userMessageClientId, assistantMessageId, assistantMessageClientId]);
+            });
+
+        connection.on("GenerationStarted",
             (assistantMessageId, assistantMessageClientId) => {
 
                 $(document).trigger(
-                    "chat:stream",
+                    "chat:started",
                     [assistantMessageId, assistantMessageClientId]);
             });
 
@@ -44,7 +50,11 @@
             });
 
         await connection.start();
+
+        window.chatConnectionId = connection.connectionId;
     }
+
+    let activeSessionId = null;
 
     async function switchSession(sessionId) {
 

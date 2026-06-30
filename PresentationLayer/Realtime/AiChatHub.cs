@@ -24,7 +24,9 @@ public class AiChatHub : Hub<IAiChatClient>
 
 public interface IAiChatClient
 {
-    Task StreamingStarted(Guid assistantMessageId, Guid assistantMessageClientId);
+    Task ExchangeCreated(Guid userMessageId, Guid userMessageClientId, Guid assistantMessageId, Guid assistantMessageClientId);
+
+    Task GenerationStarted(Guid assistantMessageId, Guid assistantMessageClientId);
 
     Task ReceiveToken(Guid assistantMessageId, Guid assistantMessageClientId, string token);
 

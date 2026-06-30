@@ -112,7 +112,7 @@ public class DocumentIndexer(
                     });
                 }
 
-                _ = _notifier.PushUpdateAsync(new DocumentStatusUpdate
+                await _notifier.PushUpdateAsync(new DocumentStatusUpdate
                 {
                     Id = doc.Id,
                     Status = DocumentStatus.Chunking,

@@ -7,9 +7,11 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
+using Presentation.Realtime;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Chat;
@@ -22,12 +24,14 @@ namespace Presentation.Pages.Chat;
 public class IndexModel(
     IChatPersistenceService chatPersistenceService,
     ISubjectService subjectService,
+    IHubContext<AiChatHub, IAiChatClient> chatHub,
     IResourceRealtimeNotifier notifier,
     IMapper mapper)
     : PageModel
 {
     private readonly IChatPersistenceService _chatPersistenceService = chatPersistenceService;
     private readonly ISubjectService _subjectService = subjectService;
+    private readonly IHubContext<AiChatHub, IAiChatClient> _chatHub = chatHub;
     private readonly IResourceRealtimeNotifier _notifier = notifier;
     private readonly IMapper _mapper = mapper;
 
@@ -38,6 +42,9 @@ public class IndexModel(
 
     [FromHeader]
     public string CallerConnectionId { get; set; } = string.Empty;
+
+    [FromHeader]
+    public string ChatConnectionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Loads the chat page for the current user and optional session.
@@ -163,8 +170,8 @@ public class IndexModel(
                 ResourceName = session.Title,
                 Properties =
                 {
-                    { nameof(ChatSession.UserId), session.UserId },
-                    { nameof(ChatSession.SubjectId), session.SubjectId },
+                    { nameof(ChatSession.UserId), session.UserId.ToString() },
+                    { nameof(ChatSession.SubjectId), session.SubjectId.ToString() },
                 },
             };
 
@@ -202,12 +209,16 @@ public class IndexModel(
             if (session == null || session.UserId != userId)
                 return NotFound();
 
-            var userMessage = await _chatPersistenceService.CreateUserMessageAsync(req.SessionId, req.Content, cxlTkn);
-            var assistantMessage = await _chatPersistenceService.CreateStreamingAssistantMessageAsync(req.SessionId, cxlTkn);
+            var userMessage = await _chatPersistenceService.CreateUserMessageAsync(session.Id, req.Content, cxlTkn);
+            var assistantMessage = await _chatPersistenceService.CreateStreamingAssistantMessageAsync(session.Id, cxlTkn);
+
+            await _chatHub.Clients
+                .GroupExcept(HubGroups.Chat(session.Id), ChatConnectionId)
+                .ExchangeCreated(userMessage.Id, req.UserMessageClientId, assistantMessage.Id, req.AssistantMessageClientId);
 
             var chatJob = BackgroundJob.Enqueue<IChatGenerationCoordinator>(
                 HangfireConstants.HighPriorityQueue,
-                e => e.GenerateChatAsync(req.SessionId, assistantMessage.Id, req.AssistantMessageClientId));
+                e => e.GenerateChatAsync(session.Id, assistantMessage.Id, req.AssistantMessageClientId));
 
             if (session.MessageCount == 0)
             {
