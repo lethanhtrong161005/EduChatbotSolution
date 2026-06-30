@@ -159,18 +159,28 @@ var ollamaOpts = builder.Configuration.GetSection("AI:Ollama").Get<OllamaOptions
                  ?? throw new KeyNotFoundException("Ollama is not configured.");
 
 var openRouterOpts = builder.Configuration.GetSection("AI:OpenRouter").Get<OpenRouterOptions>()
-                       ?? throw new KeyNotFoundException("OpenRouter is not configured.");
+                     ?? throw new KeyNotFoundException("OpenRouter is not configured.");
+
+var geminiOpts = builder.Configuration.GetSection("AI:Gemini").Get<GeminiOptions>()
+                 ?? throw new KeyNotFoundException("OpenRouter is not configured.");
 
 builder.Services.AddKeyedEmbeddingGenerator(
     EmbeddingModelName.BgeM3,
     new OllamaApiClient(ollamaOpts.Endpoint, EmbeddingModelName.BgeM3));
 
 builder.Services.AddKeyedEmbeddingGenerator(
-    EmbeddingModelName.NemotronEmbedVL_Free,
-    new OpenAI.Embeddings.EmbeddingClient(EmbeddingModelName.NemotronEmbedVL_Free, new ApiKeyCredential(openRouterOpts.ApiKey), new OpenAIClientOptions
+    EmbeddingModelName.NemotronEmbedVLFree,
+    new OpenAI.Embeddings.EmbeddingClient(EmbeddingModelName.NemotronEmbedVLFree, new ApiKeyCredential(openRouterOpts.ApiKey), new OpenAIClientOptions
     {
         Endpoint = new Uri(openRouterOpts.Endpoint),
     }).AsIEmbeddingGenerator(defaultModelDimensions: openRouterOpts.DefaultEmbeddingDimensions));
+
+builder.Services.AddKeyedEmbeddingGenerator(
+    EmbeddingModelName.GeminiEmbedding2,
+    new OpenAI.Embeddings.EmbeddingClient(EmbeddingModelName.GeminiEmbedding2, new ApiKeyCredential(geminiOpts.ApiKey), new OpenAIClientOptions
+    {
+        Endpoint = new Uri(geminiOpts.Endpoint),
+    }).AsIEmbeddingGenerator(defaultModelDimensions: geminiOpts.DefaultEmbeddingDimensions));
 
 builder.Services.AddKeyedChatClient(
     ChatModelName.Qwen3,
@@ -181,6 +191,20 @@ builder.Services.AddKeyedChatClient(
     new OpenAI.Chat.ChatClient(ChatModelName.OpenRouterFree, new ApiKeyCredential(openRouterOpts.ApiKey), new OpenAIClientOptions
     {
         Endpoint = new Uri(openRouterOpts.Endpoint),
+    }).AsIChatClient());
+
+builder.Services.AddKeyedChatClient(
+    ChatModelName.Gemini31ProPreview,
+    new OpenAI.Chat.ChatClient(ChatModelName.Gemini31ProPreview, new ApiKeyCredential(geminiOpts.ApiKey), new OpenAIClientOptions
+    {
+        Endpoint = new Uri(geminiOpts.Endpoint),
+    }).AsIChatClient());
+
+builder.Services.AddKeyedChatClient(
+    ChatModelName.Gemini35Flash,
+    new OpenAI.Chat.ChatClient(ChatModelName.Gemini35Flash, new ApiKeyCredential(geminiOpts.ApiKey), new OpenAIClientOptions
+    {
+        Endpoint = new Uri(geminiOpts.Endpoint),
     }).AsIChatClient());
 
 // ── Background Services ──────────────────────────────────────────────
