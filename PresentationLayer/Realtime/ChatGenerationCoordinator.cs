@@ -95,7 +95,7 @@ public class ChatGenerationCoordinator(
 
             var allowedSubjectIds = session.SubjectId.HasValue
                 ? [session.SubjectId.Value]
-                : (await _subjectService.GetAccessibleSubjectsAsync(session.UserId, cxlTkn))
+                : (await _subjectService.GetAccessibleSubjectsAsync(session.UserId, cancellationToken: cxlTkn))
                     .Select(e => e.Id);
 
             var request = await BuildChatGenerationRequest(session, targetAssistantMessage, allowedSubjectIds, cxlTkn);

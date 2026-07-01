@@ -1,28 +1,78 @@
 ﻿namespace Presentation.DTOs;
 
-public class SubjectLookupDto
+public sealed class SubjectSidebarDto
 {
     public int Id { get; set; }
 
     public string Code { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
+
+    public int ChapterCount { get; set; }
+
+    public int DocumentCount { get; set; }
+
+    public bool CanUpload { get; set; }
 }
 
-public class ChapterLookupDto
+public sealed class ChapterSidebarDto
 {
     public int Id { get; set; }
+
+    public int SubjectId { get; set; }
 
     public int? ChapterNumber { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    public int DocumentCount { get; set; }
 }
 
-public class DocumentFileDto
+public sealed class SubjectDetailsDto
+{
+    public int Id { get; set; }
+
+    public string Code { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
+    public int ChapterCount { get; set; }
+
+    public int DocumentCount { get; set; }
+
+    public int MemberCount { get; set; }
+
+    public IReadOnlyList<ChapterSidebarDto> Chapters { get; set; } = [];
+}
+
+public sealed class ChapterDetailsDto
+{
+    public int Id { get; set; }
+
+    public int SubjectId { get; set; }
+
+    public string SubjectCode { get; set; } = string.Empty;
+
+    public string SubjectName { get; set; } = string.Empty;
+
+    public int? ChapterNumber { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public int DocumentCount { get; set; }
+}
+
+public sealed class DocumentFileDto
 {
     public Guid Id { get; set; }
 
     public int ChapterId { get; set; }
+
+    public int ChapterNumber { get; set; }
+
+    public string ChapterName { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
 

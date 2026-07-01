@@ -1,77 +1,183 @@
 ﻿"use strict";
 
-const conn =
-    new signalR.HubConnectionBuilder()
-        .withUrl(`/documents/status?page=library`)
-        .withAutomaticReconnect()
-        .build();
+(() => {
 
-conn.start()
-    .catch(console.error);
+    const resourceHub =
+        new signalR.HubConnectionBuilder()
+            .withUrl("/resource")
+            .withAutomaticReconnect()
+            .build();
 
-conn.on(
-    "UpdateStatus",
-    function (docStatusUpd) {
-        const $badge = $(`#status-badge-${docStatusUpd.id}`);
-        if ($badge.length === 0) return;
+    let started = false;
 
-        const settings = StatusSettings[StatusNames[docStatusUpd.status]];
-        if (!settings) return;
+    async function start() {
 
-        const text =
-            docStatusUpd.progress
-                ? settings.text.replace("{{PROGRESS}}", docStatusUpd.progress.toFixed(2))
-                : settings.text.replace("({{PROGRESS}}%)", "").trim();
+        if (started)
+            return;
 
-        $badge.html(`
-            <i class="fas ${settings.iconClass}"></i>
-            ${text}
-        `);
+        started = true;
 
-        $badge.removeClass().addClass(`document-status-badge ${settings.className}`);
+        await resourceHub.start();
+
+        window.ResourceConnectionId = resourceHub.connectionId;
+
+        $(document).trigger("resourcehub:connected", {
+            connectionId: resourceHub.connectionId
+        });
+
+        await joinInitialGroups();
     }
-);
 
-const resConn =
-    new signalR.HubConnectionBuilder()
-        .withUrl(`/resource`)
-        .withAutomaticReconnect()
-        .build();
+    async function joinInitialGroups() {
 
-resConn.on(
-    "ResourceChanged",
-    function (resUpd) {
-        switch (resUpd.resourceType) {
-            case ResourceType.Subject:
-            case ResourceType.Chapter:
-            case ResourceType.Document:
-            case ResourceType.User: // Uploader details
-            case ResourceType.Membership: // of current user
-                $(document).trigger("resource:changed", resUpd);
-                break;
+        const tasks = [];
+
+        tasks.push(resourceHub.invoke(
+            HubMethod.JoinResourceType,
+            ResourceType.Subject));
+
+        tasks.push(resourceHub.invoke(
+            HubMethod.JoinResourceType,
+            ResourceType.Chapter));
+
+        tasks.push(resourceHub.invoke(
+            HubMethod.JoinResourceType,
+            ResourceType.Document));
+
+        tasks.push(resourceHub.invoke(
+            HubMethod.JoinResourceType,
+            ResourceType.User));
+
+        tasks.push(resourceHub.invoke(
+            HubMethod.JoinResourceCollection,
+            ResourceType.User,
+            Razor.userId,
+            ResourceType.Membership));
+
+        await Promise.all(tasks);
+    }
+
+    resourceHub.on(
+        "ResourceChanged",
+        resourceUpdate => {
+
+            $(document).trigger(
+                "resource:changed",
+                resourceUpdate);
+        });
+
+    resourceHub.onreconnected(async connectionId => {
+
+        window.ResourceConnectionId = connectionId;
+
+        await joinInitialGroups();
+
+        $(document).trigger(
+            "resourcehub:reconnected",
+            {
+                connectionId
+            });
+    });
+
+    resourceHub.onclose(() => {
+
+        $(document).trigger("resourcehub:disconnected");
+    });
+
+    //
+    // ------------------------------------------------------------
+    // Document indexing status hub
+    // ------------------------------------------------------------
+    //
+
+    const statusHub =
+        new signalR.HubConnectionBuilder()
+            .withUrl("/documents/status?page=library")
+            .withAutomaticReconnect()
+            .build();
+
+    statusHub.on(
+        "UpdateStatus",
+        update => {
+
+            $(document).trigger(
+                "document:statusChanged",
+                update);
+        });
+
+    statusHub.start()
+        .catch(console.error);
+
+    //
+    // ------------------------------------------------------------
+    // Convenience wrappers used by document-library.js
+    // ------------------------------------------------------------
+    //
+
+    window.LibraryRealtime = {
+
+        async joinType(type) {
+
+            await resourceHub.invoke(
+                HubMethod.JoinResourceType,
+                type);
+        },
+
+        async leaveType(type) {
+
+            await resourceHub.invoke(
+                HubMethod.JoinResourceType,
+                type);
+        },
+
+        async joinResource(type, id) {
+
+            if (!id)
+                return;
+
+            await resourceHub.invoke(
+                HubMethod.JoinResource,
+                type,
+                id);
+        },
+
+        async leaveResource(type, id) {
+
+            if (!id)
+                return;
+
+            await resourceHub.invoke(
+                HubMethod.LeaveResource,
+                type,
+                id);
+        },
+
+        async joinCollection(primaryType, primaryId, foreignType) {
+
+            if (!primaryId)
+                return;
+
+            await resourceHub.invoke(
+                HubMethod.JoinResourceCollection,
+                primaryType,
+                primaryId,
+                foreignType);
+        },
+
+        async leaveCollection(primaryType, primaryId, foreignType) {
+
+            if (!primaryId)
+                return;
+
+            await resourceHub.invoke(
+                HubMethod.LeaveResourceCollection,
+                primaryType,
+                primaryId,
+                foreignType);
         }
-    }
-);
+    };
 
-resConn
-    .start()
-    .then(async () => {
+    start()
+        .catch(console.error);
 
-        const promises = [];
-
-        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Subject));
-        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Chapter));
-        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.Document));
-        promises.push(resConn.invoke(HubMethod.JoinResourceType, ResourceType.User));
-        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.User, Razor.userId, ResourceType.Membership));
-
-        await Promise.all(promises);
-    })
-    .then(() => window.connId = resConn.connectionId)
-    .then(() =>
-        $("<input>")
-            .attr("type", "hidden")
-            .attr("name", "CallerConnectionId")
-            .val(connId)
-            .appendTo($("form")))
-    .catch(console.error);
+})();

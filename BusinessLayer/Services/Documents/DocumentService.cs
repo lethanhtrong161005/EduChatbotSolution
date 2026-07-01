@@ -78,31 +78,27 @@ public class DocumentService(IUnitOfWork unitOfWork) : IDocumentService
         return deletedEntities;
     }
 
-    public async Task<IEnumerable<Document>> GetBySubjectAsync(int subjectId, CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Document>> GetBySubjectAsync(int subjectId, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.Documents.GetAsync(
             filter: e => e.Chapter.SubjectId == subjectId,
-            includeProperties: [nameof(Document.Uploader)],
+            includeProperties: inclProps ?? [],
             cancellationToken: cxlTkn);
     }
 
-    public async Task<IEnumerable<Document>> GetByChapterAsync(int chapterId, CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Document>> GetByChapterAsync(int chapterId, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.Documents.GetAsync(
             filter: e => e.ChapterId == chapterId,
-            includeProperties: [nameof(Document.Uploader)],
+            includeProperties: inclProps ?? [],
             cancellationToken: cxlTkn);
     }
 
-    public async Task<IEnumerable<Document>> GetByUploaderAsync(Guid uploaderId, CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Document>> GetByUploaderAsync(Guid uploaderId, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.Documents.GetAsync(
             filter: e => e.UploaderId == uploaderId,
-            includeProperties:
-            [
-                nameof(Document.Uploader),
-                nameof(Document.Chapter) + "." + nameof(Chapter.Subject),
-            ],
+            includeProperties: inclProps ?? [],
             cancellationToken: cxlTkn);
     }
 

@@ -15,9 +15,22 @@ public class ChapterService(IUnitOfWork unitOfWork) : IChapterService
             cancellationToken: cxlTkn);
     }
 
-    public async Task<Chapter?> GetByIdAsync(int id, CancellationToken cxlTkn = default)
+    public async Task<Chapter?> GetByIdAsync(int id, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.Chapters.FindByIdAsync(id, cxlTkn);
+        return (await _unitOfWork.Chapters.GetAsync(
+            filter: e => e.Id == id,
+            includeProperties: inclProps ?? [],
+            cancellationToken: cxlTkn))
+            .FirstOrDefault();
+    }
+
+    public async Task<IEnumerable<Chapter>> GetBySubjectAsync(int subjectId, string[] inclProps = null!, CancellationToken cxlTkn = default)
+    {
+        return await _unitOfWork.Chapters.GetAsync(
+            filter: e => e.SubjectId == subjectId,
+            includeProperties: inclProps ?? [],
+            orderBy: q => q.OrderBy(e => e.ChapterNumber == null).ThenBy(e => e.ChapterNumber), // Order nulls last
+            cancellationToken: cxlTkn);
     }
 
     public async Task<Chapter?> CreateAsync(Chapter entity, CancellationToken cxlTkn = default)
@@ -39,13 +52,5 @@ public class ChapterService(IUnitOfWork unitOfWork) : IChapterService
         var deletedEntity = await _unitOfWork.Chapters.DeleteAsync(id, cxlTkn);
         await _unitOfWork.SaveAsync(cxlTkn);
         return deletedEntity;
-    }
-
-    public async Task<IEnumerable<Chapter>> GetBySubjectAsync(int subjectId, CancellationToken cxlTkn = default)
-    {
-        return await _unitOfWork.Chapters.GetAsync(
-            filter: e => e.SubjectId == subjectId,
-            orderBy: q => q.OrderBy(e => e.ChapterNumber == null).ThenBy(e => e.ChapterNumber), // Order nulls last
-            cancellationToken: cxlTkn);
     }
 }

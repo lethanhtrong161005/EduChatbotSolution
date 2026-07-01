@@ -1,373 +1,809 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿"use strict";
 
-    /* BROWSE DOCUMENT LIBRARY */
+(() => {
 
-    const fileTableBody = document.getElementById("fileTableBody");
-    const subjectSelect = document.getElementById("subjectSelect");
-    const chapterSelect = document.getElementById("chapterSelect");
-    const searchInput = document.getElementById("searchInput");
+    /* =========================================================
+       STATE
+       ========================================================= */
 
-    const initRow =
-        `
-        <tr>
-            <td colspan="7">
-                Select a subject.
-            </td>
-        </tr>
-        `;
-    const loadingRow =
-        `
-        <tr>
-            <td colspan="7">
-                Loading...
-            </td>
-        </tr>
-        `;
-    const emptyRow =
-        `
-        <tr>
-            <td colspan="7">
-                No documents found.
-            </td>
-        </tr>
-        `;
+    const state = {
+        callerConnectionId: null,
 
-    let currentFiles = [];
-    let concurrencyToken = 0;
+        subjects: [],
+        chapters: [],
+        documents: [],
 
-    subjectSelect.addEventListener(
-        "input",
-        loadLibrary);
+        selectedSubjectId: null,
+        selectedChapterId: null,
 
-    chapterSelect.addEventListener(
-        "input",
-        refreshTable);
+        selectedSubject: null,
+        selectedChapter: null,
 
-    searchInput.addEventListener(
-        "input",
-        refreshTable);
+        search: "",
+        pageIndex: 1,
+        pageSize: 10,
+        totalCount: 0,
+        totalPages: 1,
 
-    init();
+        canUpload: false,
+        showUploadPanel: true,
+
+        initialized: false,
+        loading: {
+            subjects: false,
+            chapters: false,
+            documents: false,
+        }
+    };
+
+    window.DocumentLibraryState = state;
+
+    /* =========================================================
+       DOM
+       ========================================================= */
+
+    const ui = {
+        subjectGrid: $("#subjectGrid"),
+        subjectSidebar: $("#subjectSidebar"),
+        chapterSidebar: $("#chapterSidebar"),
+
+        infoCard: $("#infoCard"),
+        documentDrawer: $("#documentDrawer"),
+
+        pagination: $("#pagination"),
+
+        search: $("#searchInput"),
+
+        uploadContainer: $("#uploadPanelContainer"),
+        uploadPanel: $("#uploadPanel"),
+        uploadOverlay: $("#uploadPanelOverlay"),
+        uploadToggle: $("#showUploadBtn")
+    };
+
+    /* =========================================================
+       STARTUP
+       ========================================================= */
+
+    $(document).ready(init);
 
     async function init() {
 
-        subjectSelect.disabled = true;
+        await waitForConnection();
 
-        if (!window.connId) {
-            setTimeout(init, 100);
-            return;
-        }
+        bindEvents();
 
-        await loadSubjects(++concurrencyToken);
+        await loadSubjects();
 
-        subjectSelect.disabled = false;
+        state.initialized = true;
     }
 
-    async function loadSubjects(conTkn) {
+    async function waitForConnection() {
 
-        const cachedId = subjectSelect.value;
+        while (!window.ResourceConnectionId) {
+            await delay(100);
+        }
 
-        subjectSelect.disabled = true;
+        state.callerConnectionId = window.ResourceConnectionId;
+    }
 
-        subjectSelect.innerHTML =
-            "<option value=''>Loading...</option>";
+    function delay(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
 
-        const response = await fetch(`/documents/library?handler=GetSubjects`, {
-            method: "GET",
-            headers: {
-                "CallerConnectionId": connId,
+    /* =========================================================
+       EVENT WIRING
+       ========================================================= */
+
+    function bindEvents() {
+
+        ui.search.on("input", onSearchChanged);
+
+        ui.subjectGrid.on(
+            "click",
+            "[data-subject-id]",
+            e => {
+
+                const id =
+                    Number($(e.currentTarget).data("subject-id"));
+
+                selectSubject(id);
+            });
+
+        ui.subjectSidebar.on(
+            "click",
+            "[data-subject-id]",
+            e => {
+
+                const id =
+                    Number($(e.currentTarget).data("subject-id"));
+
+                selectSubject(id);
+            });
+
+        ui.chapterSidebar.on(
+            "click",
+            "[data-chapter-id]",
+            e => {
+
+                const id =
+                    Number($(e.currentTarget).data("chapter-id"));
+
+                selectChapter(id);
+            });
+
+        ui.pagination.on(
+            "click",
+            "[data-page]",
+            e => {
+
+                const page =
+                    Number($(e.currentTarget).data("page"));
+
+                if (page === state.pageIndex)
+                    return;
+
+                state.pageIndex = page;
+
+                loadDocuments();
+            });
+
+        ui.uploadToggle.on(
+            "click",
+            () => {
+                state.showUploadPanel = !state.showUploadPanel;
+                updateUi_Upload();
+            });
+
+        $(document).on(
+            "resource:changed",
+            onRealtimeUpdate);
+    }
+
+    /* =========================================================
+       NAVIGATION
+       ========================================================= */
+
+    async function selectSubject(subjectId) {
+
+        if (subjectId === state.selectedSubjectId)
+            return;
+
+        state.selectedSubjectId = subjectId;
+        state.selectedChapterId = null;
+
+        state.selectedSubject =
+            state.subjects.find(x => x.id === subjectId) ?? null;
+
+        state.selectedChapter = null;
+
+        state.pageIndex = 1;
+
+        renderNavigationFrame();
+
+        await Promise.all([
+            loadSubjectDetails(),
+            loadDocuments(),
+        ]);
+    }
+
+    function selectChapter(chapterId) {
+
+        if (chapterId === state.selectedChapterId)
+            return;
+
+        state.selectedChapterId = chapterId;
+
+        state.selectedChapter =
+            state.chapters.find(x => x.id === chapterId) ?? null;
+
+        renderNavigationFrame();
+        renderDetailsCard();
+
+        state.pageIndex = 1;
+
+        loadDocuments();
+    }
+
+    function onSearchChanged() {
+
+        state.search = ui.search.val().trim();
+
+        state.pageIndex = 1;
+
+        loadDocuments();
+    }
+
+    /* =========================================================
+       LOADING
+       ========================================================= */
+
+    async function loadSubjects() {
+
+        state.loading.subjects = true;
+
+        try {
+
+            const response =
+                await fetch(
+                    "/documents/library?handler=Subjects",
+                    {
+                        headers: {
+                            "CallerConnectionId": state.callerConnectionId,
+                        }
+                    });
+
+            state.subjects = await response.json();
+
+            renderSubjectGrid();
+
+            if (state.selectedSubjectId) {
+
+                const stillExists =
+                    state.subjects.some(
+                        x => x.id === state.selectedSubjectId);
+
+                if (!stillExists) {
+
+                    state.selectedSubjectId = null;
+                    state.selectedSubject = null;
+
+                    renderNavigationFrame();
+                }
             }
-        });
 
-        const subjects = await response.json();
-
-        if (conTkn != concurrencyToken)
-            return;
-
-        subjectSelect.innerHTML =
-            "<option value=''>Select Subject</option>";
-
-        subjects.forEach(subject => {
-
-            subjectSelect.insertAdjacentHTML(
-                "beforeend",
-                `
-                <option value="${subject.id}"${subject.id === parseInt(cachedId) ? " selected" : ""}>
-                    ${subject.code} :: ${subject.name}
-                </option>
-                `);
-        });
-
-        subjectSelect.disabled = false;
-    }
-
-    async function loadLibrary() {
-
-        let subjectId = subjectSelect.value;
-
-        if (!subjectId) {
-            clearTable();
-            return;
-        };
-
-        const conTkn = ++concurrencyToken;
-
-        await getCanUpload(subjectId, conTkn);
-        await loadChapters(subjectId, conTkn);
-        await loadDocuments(subjectId, conTkn)
-
-        refreshTable();
-    }
-
-    function refreshTable() {
-
-        if (!subjectSelect.value) {
-            clearTable();
-            return;
         }
-
-        const chapterId =
-            parseInt(chapterSelect.value);
-
-        const searchTerm =
-            searchInput.value.toLowerCase();
-
-        let files =
-            [...currentFiles];
-
-        if (chapterId) {
-            files = files.filter(
-                x => x.chapterId === chapterId);
-        }
-
-        if (searchTerm) {
-            files = files.filter(
-                x => x.title
-                    .toLowerCase()
-                    .includes(searchTerm));
-        }
-
-        displayFiles(files);
-    }
-
-    function clearTable() {
-
-        currentFiles = [];
-
-        fileTableBody.innerHTML = initRow;
-
-        chapterSelect.innerHTML =
-            "<option value=''>Select Chapter</option>";
-
-        chapterSelect.disabled = true;
-
-        showUploadBtn.classList.add("d-none");
-        uploadPanel.classList.add("d-none");
-    }
-
-    async function getCanUpload(subjectId, conTkn) {
-
-        uploadPanelOverlay.classList.remove("d-none");
-
-        const response = await fetch(`/documents/library?handler=CanUpload&subjectId=${subjectId}`, {
-            method: "GET",
-            headers: {
-                "CallerConnectionId": connId,
-            }
-        });
-
-        const { canUpload } = await response.json();
-
-        if (conTkn != concurrencyToken)
-            return;
-
-        if (canUpload) {
-            showUploadBtn.classList.remove("d-none");
-            uploadPanel.classList.remove("d-none");
-        } else {
-            showUploadBtn.classList.add("d-none");
-            uploadPanel.classList.add("d-none");
-        }
-
-        uploadPanelOverlay.classList.add("d-none");
-    }
-
-    async function loadChapters(subjectId, conTkn) {
-
-        const cachedId = chapterSelect.value;
-
-        chapterSelect.disabled = true;
-
-        chapterSelect.innerHTML =
-            "<option value=''>Loading...</option>";
-
-        const response = await fetch(`/documents/library?handler=GetChapters&subjectId=${subjectId}`, {
-            method: "GET",
-            headers: {
-                "CallerConnectionId": connId,
-            }
-        });
-
-        const chapters = await response.json();
-
-        if (conTkn != concurrencyToken)
-            return;
-
-        chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-
-        chapterSelect.innerHTML =
-            "<option value=''>Select Chapter</option>";
-
-        chapters.forEach(chapter => {
-
-            chapterSelect.insertAdjacentHTML(
-                "beforeend",
-                `
-                <option value="${chapter.id}"${chapter.id === parseInt(cachedId) ? " selected" : ""}>
-                    ${chapter.chapterNumber} • ${chapter.name}
-                </option>
-                `);
-        });
-
-        chapterSelect.disabled = false;
-    }
-
-    async function loadDocuments(subjectId, conTkn) {
-
-        fileTableBody.innerHTML = loadingRow;
-
-        const response = await fetch(`/documents/library?handler=GetFiles&subjectId=${subjectId}`, {
-            method: "GET",
-            headers: {
-                "CallerConnectionId": connId,
-            }
-        });
-
-        currentFiles = await response.json();
-
-        if (conTkn != concurrencyToken)
-            return;
-
-        displayFiles(currentFiles);
-    }
-
-    function displayFiles(files) {
-
-        fileTableBody.innerHTML = "";
-
-        if (!files.length) {
-            fileTableBody.innerHTML = emptyRow;
-            return;
-        }
-
-        files.forEach(file => {
-
-            fileTableBody.insertAdjacentHTML(
-                "beforeend",
-                `
-<div class="document-card">
-
-    <div class="document-main">
-
-        <div class="document-icon">
-            <i class="fas ${getFileIcon(file.extension)}"></i>
-        </div>
-
-        <div class="document-info">
-
-         <div class="document-title-row">
-
-                <a href="/documents/download/${file.id}"
-                class="document-name">
-
-                    ${file.title + file.extension}
-
-                </a>
-
-                <span
-                    id="status-badge-${file.id}"
-                    class="document-status-badge status-${file.status.toLowerCase()}">
-
-                    <i class="fas ${StatusSettings[file.status].iconClass}"></i>
-
-                    ${file.status}
-
-                </span>
-
-            </div>
-
-            <div class="document-meta">
-
-                <span>${file.uploadedBy}</span>
-
-                <span>${formatDateTime(file.uploadedAt)}</span>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="document-actions">
-
-        <a href="/documents/download/${file.id}"
-           class="icon-btn">
-
-            <i class="fas fa-download"></i>
-
-        </a>
-
-        <a href="/documents/details/${file.id}"
-           class="icon-btn">
-
-            <i class="fas fa-eye"></i>
-
-        </a>
-
-        <button class="icon-btn danger"
-            id="delete-file-${file.id}"
-            data-file-id=${file.id}>
-
-            <i class="fas fa-trash"></i>
-
-        </button>
-
-    </div>
-
-</div>
-    `);
-
-            fileTableBody
-                .querySelector(`#delete-file-${file.id}`)
-                .addEventListener(
-                    "click",
-                    e => promptDeleteDocument(e));
-        });
-    }
-
-    async function promptDeleteDocument(e) {
-
-        fileId = e.currentTarget.dataset.fileId;
-        if (!fileId) return;
-
-        const conf = confirm("Are you sure you wish to delete this file?");
-        if (!conf) return;
-
-        var response = await fetch(`/documents/library/${fileId}`, {
-            method: "DELETE",
-            headers: {
-                "RequestVerificationToken": getAntiForgery(),
-                "CallerConnectionId": connId,
-            }
-        });
-
-        if (response.ok) {
-            loadDocuments(subjectSelect.value, ++concurrencyToken)
-                .then(refreshTable);
+        finally {
+            state.loading.subjects = false;
         }
     }
 
-    function formatDateTime(dateString) {
+    async function loadSubjectDetails() {
+
+        if (!state.selectedSubjectId)
+            return;
+
+        const response =
+            await fetch(
+                `/documents/library?handler=Subject&id=${state.selectedSubjectId}`,
+                {
+                    headers: {
+                        "CallerConnectionId": state.callerConnectionId,
+                    }
+                });
+
+        state.selectedSubject = await response.json();
+        state.chapters = state.selectedSubject.chapters ?? [];
+        state.canUpload = state.selectedSubject.canUpload ?? false;
+
+        renderDetailsCard();
+        updateState_Chapters();
+        updateUi_Upload();
+    }
+
+    function updateState_Chapters() {
+
+        state.chapters.sort((a, b) => {
+
+            const an =
+                a.chapterNumber ?? Number.MAX_SAFE_INTEGER;
+
+            const bn =
+                b.chapterNumber ?? Number.MAX_SAFE_INTEGER;
+
+            if (an !== bn)
+                return an - bn;
+
+            return a.name.localeCompare(b.name);
+        });
+
+        if (state.selectedChapterId) {
+
+            state.selectedChapter =
+                state.chapters.find(
+                    x => x.id === state.selectedChapterId)
+                ?? null;
+        }
+
+        renderChapterSidebar();
+    }
+
+    function updateUi_Upload() {
+
+        renderDetailsCard();
+        ui.uploadToggle.toggleClass("hidden", !state.canUpload);
+        ui.uploadPanel.toggleClass("hidden", !(state.canUpload && state.showUploadPanel));
+    }
+
+    async function loadChapters() {
+
+        if (!state.selectedSubjectId)
+            return;
+
+        state.loading.chapters = true;
+
+        try {
+
+            const response =
+                await fetch(
+                    `/documents/library?handler=Chapters&${qs}`,
+                    {
+                        headers: {
+                            "CallerConnectionId": state.callerConnectionId,
+                        }
+                    });
+
+            state.chapters = await response.json();
+
+            updateState_Chapters();
+        }
+        finally {
+            state.loading.chapters = false;
+        }
+    }
+
+    async function loadDocuments() {
+
+        if (!state.selectedSubjectId)
+            return;
+
+        state.loading.documents = true;
+
+        try {
+
+            const qs = new URLSearchParams();
+
+            qs.set("subjectId", state.selectedSubjectId);
+            qs.set("pageIndex", state.pageIndex);
+            qs.set("pageSize", state.pageSize);
+
+            if (state.selectedChapterId)
+                qs.set("chapterId", state.selectedChapterId);
+
+            if (state.search)
+                qs.set("search", state.search);
+
+            const response =
+                await fetch(
+                    `/documents/library?handler=Documents&${qs}`,
+                    {
+                        headers: {
+                            "CallerConnectionId": state.callerConnectionId,
+                        }
+                    });
+
+            const result = await response.json();
+
+            state.documents = result.items;
+            state.pageIndex = result.page;
+            state.pageSize = result.pageSize;
+            state.totalCount = result.totalCount;
+            state.totalPages = result.totalPages;
+
+            renderDocuments();
+            renderPagination();
+        }
+        finally {
+            state.loading.documents = false;
+        }
+    }
+
+    /* =========================================================
+       REALTIME
+       ========================================================= */
+
+    async function onRealtimeUpdate(_, update) {
+
+        switch (update.resourceType) {
+
+            case ResourceType.Subject:
+                await loadSubjects();
+
+                if (state.selectedSubjectId)
+                    await loadSubjectDetails();
+
+                break;
+
+            case ResourceType.Chapter:
+
+                if (update.properties["subjectId"] === state.selectedSubjectId)
+                    await loadSubjectDetails();
+
+                break;
+
+            case ResourceType.Document:
+            case ResourceType.User:
+
+                if (!state.selectedSubjectId)
+                    break;
+
+                await loadDocuments();
+
+                break;
+
+            case ResourceType.Membership:
+
+                if (update.properties["userId"] !== Razor.userId)
+                    break;
+
+                await loadSubjects();
+
+                break;
+        }
+    }
+
+    /* ==========================================================
+       RENDER ENTRY POINTS
+       ========================================================== */
+
+    function renderNavigationFrame() {
+
+        renderSubjectGrid();
+        renderSubjectSidebar();
+        renderChapterSidebar();
+        // renderDetailsCard();
+        // renderDocuments();
+        // renderPagination();
+    }
+
+    function renderSubjectGrid() {
+
+        ui.subjectGrid.html(
+
+            DocumentLibraryTemplates.renderSubjectGrid(
+                state.subjects,
+                state.selectedSubjectId));
+    }
+
+    function renderSubjectSidebar() {
+
+        ui.subjectSidebar.html(
+
+            DocumentLibraryTemplates.renderSubjectSidebar(
+                state.subjects,
+                state.selectedSubjectId,
+                !!state.selectedSubject));
+    }
+
+    function renderChapterSidebar() {
+
+        ui.chapterSidebar.html(
+
+            DocumentLibraryTemplates.renderChapterSidebar(
+                state.chapters,
+                state.selectedChapterId,
+                !!state.selectedSubject));
+    }
+
+    function renderDetailsCard() {
+
+        ui.infoCard.html(
+
+            DocumentLibraryTemplates.renderDetailsCard(
+                state.selectedSubject,
+                state.selectedChapter,
+                state.canUpload));
+    }
+
+    function renderDocuments() {
+
+        ui.documentDrawer.html(
+
+            DocumentLibraryTemplates.renderDocumentDrawer(
+                state.documents,
+                state.totalCount));
+
+        ui.documentDrawer
+            .find(".js-delete-document")
+            .off("click")
+            .on("click", promptDeleteDocument);
+    }
+
+    function renderPagination() {
+
+        ui.pagination.html(
+
+            DocumentLibraryTemplates.renderPagination(
+                state.pageIndex,
+                state.totalPages));
+
+        ui.pagination
+            .find(".js-page")
+            .off("click")
+            .on(
+                "click",
+                async function () {
+
+                    const page =
+                        Number($(this).data("page"));
+
+                    if (page === state.pageIndex)
+                        return;
+
+                    state.pageIndex = page;
+
+                    await loadDocuments();
+                });
+    }
+
+    /* ======================================================
+       SEARCH
+       ====================================================== */
+
+    async function performSearch() {
+
+        clearTimeout(searchTimer);
+
+        searchTimer =
+            setTimeout(
+                async () => {
+
+                    state.search =
+                        ui.search
+                            .val()
+                            .trim();
+
+                    state.pageIndex = 1;
+
+                    await loadDocuments();
+                },
+                250);
+    }
+
+    /* ======================================================
+       PAGINATION
+       ====================================================== */
+
+    async function refreshDocuments(resetPage = false) {
+
+        if (resetPage)
+            state.pageIndex = 1;
+
+        await loadDocuments();
+    }
+
+    /* ======================================================
+       DELETE
+       ====================================================== */
+
+    async function deleteDocument() {
+
+        const id =
+            $(this).data("id");
+
+        if (!id)
+            return;
+
+        if (!confirm("Delete this document?"))
+            return;
+
+        const response =
+            await fetch(
+                `/documents/library/${id}`,
+                {
+                    method: "DELETE",
+                    headers:
+                    {
+                        RequestVerificationToken:
+                            antiForgery(),
+
+                        CallerConnectionId:
+                            connId,
+                    }
+                });
+
+        if (!response.ok)
+            return;
+
+        if (
+            state.documents.length === 1 &&
+            state.pageIndex > 1) {
+            state.pageIndex--;
+        }
+
+        await loadDocuments();
+    }
+
+    /* ======================================================
+       UPLOAD
+       ====================================================== */
+
+    const uploadQueue = [];
+    let activeUploads = 0;
+    let outstandingUploads = 0;
+
+    const MAX_CONCURRENT_UPLOADS = 3;
+
+    function queueUploads(files) {
+
+        if (!state.selectedChapterId) {
+            alert("Select a chapter first.");
+            return;
+        }
+
+        [...files]
+            .filter(validateFile)
+            .forEach(file => {
+
+                file.uploadId =
+                    crypto.randomUUID();
+
+                uploadQueue.push(file);
+
+                outstandingUploads++;
+
+                $("#uploadQueue")
+                    .append(
+                        Templates.uploadRow(file));
+            });
+
+        processUploadQueue();
+    }
+
+    function processUploadQueue() {
+
+        while (
+            uploadQueue.length &&
+            activeUploads < MAX_CONCURRENT_UPLOADS) {
+            const file =
+                uploadQueue.shift();
+
+            upload(file);
+        }
+
+        if (outstandingUploads === 0) {
+            loadDocuments();
+        }
+    }
+
+    function upload(file) {
+
+        activeUploads++;
+
+        const form =
+            new FormData();
+
+        form.append(
+            "chapterId",
+            state.selectedChapterId);
+
+        form.append(
+            "files",
+            file);
+
+        const xhr =
+            new XMLHttpRequest();
+
+        xhr.open(
+            "POST",
+            "/documents/library?handler=Upload");
+
+        xhr.setRequestHeader(
+            "RequestVerificationToken",
+            antiForgery());
+
+        xhr.setRequestHeader(
+            "CallerConnectionId",
+            connId);
+
+        xhr.upload.addEventListener(
+            "progress",
+            e => {
+
+                if (!e.lengthComputable)
+                    return;
+
+                const pct =
+                    Math.round(
+                        e.loaded /
+                        e.total *
+                        100);
+
+                updateUploadProgress(
+                    file.uploadId,
+                    pct);
+            });
+
+        xhr.addEventListener(
+            "load",
+            () => {
+
+                if (
+                    xhr.status >= 200 &&
+                    xhr.status < 300) {
+                    updateUploadStatus(
+                        file.uploadId,
+                        "Completed");
+                }
+                else {
+                    updateUploadStatus(
+                        file.uploadId,
+                        "Failed",
+                        true);
+                }
+
+                activeUploads--;
+                outstandingUploads--;
+
+                processUploadQueue();
+            });
+
+        xhr.addEventListener(
+            "error",
+            () => {
+
+                updateUploadStatus(
+                    file.uploadId,
+                    "Failed",
+                    true);
+
+                activeUploads--;
+                outstandingUploads--;
+
+                processUploadQueue();
+            });
+
+        xhr.send(form);
+    }
+
+    function updateUploadProgress(id, percent) {
+
+        const row =
+            $(`#${id}`);
+
+        row.find(".upload-progress-bar")
+            .css(
+                "width",
+                `${percent}%`);
+
+        row.find(".upload-percent")
+            .text(`${percent}%`);
+    }
+
+    function updateUploadStatus(
+        id,
+        text,
+        failed = false) {
+
+        const row =
+            $(`#${id}`);
+
+        row.find(".upload-percent")
+            .text(text);
+
+        if (failed) {
+            row.find(".upload-progress-bar")
+                .addClass("bg-red-500");
+        }
+    }
+
+    function validateFile(file) {
+
+        const ext =
+            file.name
+                .split(".")
+                .pop()
+                .toLowerCase();
+
+        return [
+            "pdf",
+            "docx",
+            "pptx",
+            "txt",
+            "html"
+        ].includes(ext);
+    }
+
+    /* ======================================================
+       HELPERS
+       ====================================================== */
+
+    function antiForgery() {
+
+        return $("input[name='__RequestVerificationToken']")
+            .val();
+    }
+
+    function formatDate(date) {
 
         return new Intl.DateTimeFormat(
             "en-GB",
@@ -378,307 +814,12 @@
                 hour: "2-digit",
                 minute: "2-digit"
             })
-            .format(new Date(dateString));
+            .format(new Date(date));
     }
 
-    /* UPLOAD DOCUMENT */
+    function fileIcon(ext) {
 
-    const uploadPanel =
-        document.getElementById("uploadPanel");
-
-    const showUploadBtn =
-        document.getElementById("showUploadBtn");
-
-    const browseBtn =
-        document.getElementById("browseBtn");
-
-    const fileInput =
-        document.getElementById("fileInput");
-
-    const dropZone =
-        document.getElementById("dropZone");
-
-    const uploadQueue =
-        document.getElementById("uploadQueue");
-
-    showUploadBtn?.addEventListener(
-        "click",
-        () => {
-            uploadPanel.classList.toggle("d-none");
-        });
-
-    browseBtn?.addEventListener(
-        "click",
-        () => fileInput.click());
-
-    fileInput?.addEventListener(
-        "change",
-        e => {
-            uploadFiles(e.target.files);
-            e.target.value = "";
-        });
-
-    ["dragenter", "dragover"]
-        .forEach(eventName =>
-            dropZone?.addEventListener(
-                eventName,
-                e => {
-                    e.preventDefault();
-                    dropZone.classList.add("dragover");
-                }));
-
-    ["dragleave", "drop"]
-        .forEach(eventName =>
-            dropZone?.addEventListener(
-                eventName,
-                e => {
-                    e.preventDefault();
-                    dropZone.classList.remove("dragover");
-                }));
-
-    dropZone?.addEventListener(
-        "drop",
-        e => {
-            uploadFiles(e.dataTransfer.files);
-        });
-
-    const MAX_CONCURRENT_UPLOADS = 3;
-
-    let uploadQueueItems = [];
-    let activeUploads = 0;
-    let outstandingUploads = 0;
-
-    function uploadFiles(files) {
-
-        const chapterId = chapterSelect.value;
-        if (!chapterId) {
-            alert("You must first select a chapter!");
-            return;
-        }
-
-        let dupes = [];
-        let map = new Map();
-
-        currentFiles.forEach(f => {
-            map.set(f.title + f.extension, f);
-        });
-
-        [...files].forEach(f => {
-
-            if (map.get(f.name)) {
-                dupes.push(f.name);
-            }
-
-        });
-
-        if (dupes.length > 0) {
-
-            const dupeNames = dupes
-                .map(fname => "    > " + fname)
-                .reduce((fnamelist, fname) => fnamelist + '\n' + fname);
-
-            if (!confirm(`
-These files appear to already exist in the knowledge base.
-${dupeNames}
-Are you sure you wish to upload them?
-            `))
-                return;
-        }
-
-        uploadQueue.innerHTML = "";
-
-        [...files]
-            .filter(validateFile)
-            .forEach((file, idx) => {
-
-                uploadQueueItems.push(
-                    {
-                        chapterId,
-                        file
-                    });
-
-                createUploadRow(file);
-
-                outstandingUploads++;
-            });
-
-        processUploadQueue();
-    }
-
-    function createUploadRow(file) {
-
-        const uploadId = crypto.randomUUID();
-
-        file.uploadId = uploadId;
-
-        const row = document.createElement("div");
-
-        row.id = uploadId;
-        row.className = "upload-row";
-        row.innerHTML = `
-                <div class="upload-file">
-
-                    <div class="upload-file-header">
-
-                        <span class="upload-file-name">
-                            ${file.name}
-                        </span>
-
-                        <span class="upload-file-percent">
-                            Queued
-                        </span>
-
-                    </div>
-
-                    <div class="upload-progress">
-
-                        <div class="upload-progress-bar"></div>
-
-                    </div>
-
-                </div>
-            `;
-
-        uploadQueue.appendChild(row);
-    }
-
-    function processUploadQueue() {
-        while (uploadQueueItems.length > 0
-            && activeUploads < MAX_CONCURRENT_UPLOADS) {
-
-            activeUploads++;
-
-            const { file, chapterId } = uploadQueueItems.shift();
-
-            updateStatus(
-                file.uploadId,
-                "Starting...");
-
-            const formData = new FormData();
-            formData.append("chapterId", chapterId);
-            formData.append("files", file);
-
-            const xhr = new XMLHttpRequest();
-            xhr.open(
-                "POST",
-                "/documents/library?handler=Upload");
-
-            xhr.setRequestHeader("RequestVerificationToken", getAntiForgery());
-            xhr.setRequestHeader("CallerConnectionId", connId);
-
-            xhr.upload.addEventListener(
-                "progress",
-                e => {
-
-                    if (!e.lengthComputable)
-                        return;
-
-                    const percent = Math.round(e.loaded / e.total * 100);
-
-                    updateProgress(file.uploadId, percent);
-                });
-
-            xhr.addEventListener(
-                "load",
-                () => {
-                    if (xhr.status >= 200 &&
-                        xhr.status < 300) {
-
-                        updateProgress(
-                            file.uploadId,
-                            100);
-
-                        updateStatus(
-                            file.uploadId,
-                            "Upload Complete");
-                    }
-                    else {
-                        updateStatus(
-                            file.uploadId,
-                            "Upload Failed",
-                            "crimson");
-                    }
-
-                    activeUploads--;
-                    outstandingUploads--;
-
-                    processUploadQueue();
-                });
-
-            xhr.addEventListener(
-                "error",
-                () => {
-                    updateStatus(
-                        file.uploadId,
-                        "Upload Failed");
-
-                    activeUploads--;
-                    outstandingUploads--;
-
-                    processUploadQueue();
-                });
-
-            xhr.send(formData);
-        }
-
-        if (outstandingUploads === 0) {
-
-            loadDocuments(subjectSelect.value, ++concurrencyToken)
-                .then(refreshTable);
-        }
-    }
-
-    const allowedExtensions =
-        [
-            "pdf",
-            "docx",
-            "pptx",
-            "txt",
-            "html"
-        ];
-
-    function validateFile(file) {
-
-        const extension = file.name
-            .split(".")
-            .pop()
-            .toLowerCase();
-
-        if (!allowedExtensions.includes(extension)) {
-            alert(`${file.name} is not supported.`);
-            return false;
-        }
-
-        return true;
-    }
-
-    function updateProgress(uploadId, percent) {
-        const fileRow = document.getElementById(uploadId);
-        if (!fileRow) return;
-
-        fileRow.querySelector(".upload-progress-bar")
-            .style.width = `${percent}%`;
-
-        fileRow.querySelector(".upload-file-percent")
-            .textContent = `${percent}%`;
-    }
-
-    function updateStatus(uploadId, status, color = null) {
-        const fileRow = document.getElementById(uploadId);
-        if (!fileRow) return;
-
-        fileRow.querySelector(".upload-file-percent")
-            .textContent = status;
-
-        if (color)
-            fileRow.querySelector(".upload-progress-bar")
-                .style.background = "crimson";
-    }
-
-    function getFileIcon(type) {
-
-        switch (type?.toUpperCase()) {
-
+        switch ((ext ?? "").toUpperCase()) {
             case "PDF":
                 return "fa-file-pdf";
 
@@ -699,36 +840,4 @@ Are you sure you wish to upload them?
         }
     }
 
-    /* SIGNALR EVENTS */
-
-    $(document).on(
-        "resource:changed",
-        async function (_, resUpd) {
-            switch (resUpd.resourceType) {
-                case ResourceType.Subject:
-                    await loadSubjects(++concurrencyToken);
-                    refreshTable();
-                    break;
-                case ResourceType.Chapter:
-                    await loadChapters(subjectSelect.value, ++concurrencyToken);
-                    refreshTable();
-                    break;
-                case ResourceType.Document:
-                case ResourceType.User: // Uploader details may have changed
-                    await loadDocuments(subjectSelect.value, ++concurrencyToken);
-                    refreshTable();
-                    break;
-                case ResourceType.Membership: // Current user may have gained/lost membership(s)
-                    if (resUpd.properties["userId"] === Razor.userId) {
-                        await loadSubjects(++concurrencyToken);
-                        refreshTable();
-                    }
-                    break;
-            }
-        }
-    );
-
-    function getAntiForgery() {
-        return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
-    }
-});
+})();

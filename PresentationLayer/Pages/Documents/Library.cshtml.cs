@@ -31,7 +31,7 @@ public class LibraryModel(
     IMapper mapper)
     : PageModel
 {
-    private const int PageSize = 10;
+    private const int DefaultPageSize = 10;
 
     private readonly ISubjectService _subjectService = subjectService;
     private readonly IChapterService _chapterService = chapterService;
@@ -53,13 +53,15 @@ public class LibraryModel(
     {
     }
 
+    #region OBSOLETE
+
     public async Task<IActionResult> OnGetGetSubjectsAsync(CancellationToken cxlTkn)
     {
         try
         {
             var userId = User.GetUserId();
-            var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
-            return new JsonResult(_mapper.Map<List<SubjectLookupDto>>(accessibleSubjects));
+            var accessibleSubjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cancellationToken: cxlTkn);
+            return new JsonResult(_mapper.Map<List<SubjectSidebarDto>>(accessibleSubjects));
         }
         catch (UserClaimException)
         {
@@ -89,8 +91,8 @@ public class LibraryModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     public async Task<IActionResult> OnGetGetChaptersAsync([FromQuery] int subjectId, CancellationToken cxlTkn)
     {
-        var chapters = await _chapterService.GetBySubjectAsync(subjectId, cxlTkn);
-        return new JsonResult(_mapper.Map<List<ChapterLookupDto>>(chapters));
+        var chapters = await _chapterService.GetBySubjectAsync(subjectId, cancellationToken: cxlTkn);
+        return new JsonResult(_mapper.Map<List<ChapterSidebarDto>>(chapters));
     }
 
     /// <summary>
@@ -105,10 +107,188 @@ public class LibraryModel(
             return BadRequest(new { error = "Either subject or chapter ID must be provided." });
 
         var docs = chapterId.HasValue
-            ? await _documentService.GetByChapterAsync(chapterId.Value, cxlTkn)
-            : await _documentService.GetBySubjectAsync(subjectId!.Value, cxlTkn);
+            ? await _documentService.GetByChapterAsync(chapterId.Value, cancellationToken: cxlTkn)
+            : await _documentService.GetBySubjectAsync(subjectId!.Value, cancellationToken: cxlTkn);
 
         return new JsonResult(_mapper.Map<List<DocumentFileDto>>(docs));
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Returns all subjects accessible to the current user.
+    /// Used by the subject grid.
+    /// </summary>
+    public async Task<IActionResult> OnGetSubjectsAsync(
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+
+            // TODO: Move count to DB query
+            var subjects = await _subjectService.GetAccessibleSubjectsAsync(
+                userId,
+                [
+                    nameof(Subject.Chapters),
+                    nameof(Subject.Chapters) + "." + nameof(Chapter.Documents),
+                ],
+                cxlTkn);
+
+            return new JsonResult(_mapper.Map<List<SubjectSidebarDto>>(subjects));
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+    }
+
+    /// <summary>
+    /// Returns detailed information for a single subject.
+    /// Includes chapters for sidebar rendering.
+    /// </summary>
+    public async Task<IActionResult> OnGetSubjectAsync(
+        [FromQuery] int id,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest();
+
+            // TODO: Move count to DB query
+            var subject = await _subjectService.GetSubjectByIdAsync(
+                id,
+                [
+                    nameof(Subject.Chapters),
+                    nameof(Subject.Chapters) + "." + nameof(Chapter.Documents),
+                    nameof(Subject.Memberships),
+                ],
+                cxlTkn);
+
+            if (subject == null)
+                return NotFound();
+
+            var chapters = await _chapterService.GetBySubjectAsync(
+                id,
+                [nameof(Chapter.Documents)],
+                cxlTkn);
+
+            var canUpload = await _subjectService.IsChiefAsync(id, User.GetUserId(), cxlTkn);
+
+            return new JsonResult(new
+            {
+                Subject = _mapper.Map<SubjectDetailsDto>(subject),
+
+                Chapters = _mapper.Map<List<ChapterSidebarDto>>(
+                    chapters
+                    .OrderBy(x => x.ChapterNumber ?? int.MaxValue)
+                    .ThenBy(x => x.Name)),
+
+                CanUpload = canUpload,
+            });
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+    }
+
+    /// <summary>
+    /// Returns chapter headers for the chapter sidebar.
+    /// </summary>
+    public async Task<IActionResult> OnGetChaptersAsync(
+        [FromQuery] int id,
+        CancellationToken cxlTkn)
+    {
+        if (id <= 0)
+            return BadRequest();
+
+        var chapters = await _chapterService.GetBySubjectAsync(
+            id,
+            [nameof(Chapter.Documents)],
+            cxlTkn);
+
+        return new JsonResult(_mapper.Map<List<ChapterSidebarDto>>(
+            chapters
+            .OrderBy(x => x.ChapterNumber ?? int.MaxValue)
+            .ThenBy(x => x.Name)));
+    }
+
+    /// <summary>
+    /// Returns chapter details for the chapter card.
+    /// </summary>
+    public async Task<IActionResult> OnGetChapterAsync(
+        [FromQuery] int id,
+        CancellationToken cxlTkn)
+    {
+        if (id <= 0)
+            return BadRequest();
+
+        var chapter = await _chapterService.GetByIdAsync(
+            id,
+            [nameof(Chapter.Subject), nameof(Chapter.Documents)],
+            cxlTkn);
+
+        if (chapter == null)
+            return NotFound();
+
+        return new JsonResult(_mapper.Map<ChapterDetailsDto>(chapter));
+    }
+
+    /// <summary>
+    /// Returns paged documents for a subject.
+    /// Supports search.
+    /// </summary>
+    public async Task<IActionResult> OnGetDocumentsAsync(
+        [FromQuery] int subjectId,
+        [FromQuery] int? chapterId,
+        [FromQuery] int? pageSize,
+        [FromQuery] int? pageIndex,
+        [FromQuery] string? search = null,
+        CancellationToken cxlTkn = default)
+    {
+        if (subjectId <= 0)
+            return BadRequest();
+
+        // TODO: Move pagination to DB query
+        if (!pageSize.HasValue || pageSize <= 0)
+            pageSize = DefaultPageSize;
+
+        pageIndex = Math.Max(1, pageIndex ?? 1);
+
+        var docs = (await _documentService.GetBySubjectAsync(
+            subjectId,
+            [nameof(Document.Chapter), nameof(Document.Uploader)],
+            cxlTkn))
+            .ToList();
+
+        if (chapterId.HasValue)
+        {
+            docs = [.. docs.Where(e => e.ChapterId == chapterId.Value)];
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            docs = [.. docs.Where(x => x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))];
+        }
+
+        var totalCount = docs.Count;
+
+        var items = docs
+            .OrderByDescending(x => x.UploadedAt)
+            .Skip((pageIndex.Value - 1) * pageSize.Value)
+            .Take(pageSize.Value)
+            .ToList();
+
+        return new JsonResult(new
+        {
+            PageIndex = pageIndex,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize.Value),
+            Items = _mapper.Map<List<DocumentFileDto>>(items),
+        });
     }
 
     /// <summary>
@@ -119,93 +299,100 @@ public class LibraryModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     public async Task<IActionResult> OnPostUploadAsync([FromForm] int chapterId, [FromForm] List<IFormFile> files, CancellationToken cxlTkn)
     {
-        if (files.Count == 0)
-            return BadRequest("No files uploaded.");
-
-        var userId = User.GetUserId();
-
-        var chapter = await _chapterService.GetByIdAsync(chapterId, cxlTkn);
-        if (chapter == null)
-            return BadRequest("No such chapter.");
-
-        var canUpload = await _subjectService.IsChiefAsync(chapter.SubjectId, userId, cxlTkn);
-        if (!canUpload)
-            return Forbid();
-
-        var docs = new List<Document>();
-        var problems = new List<string>();
-
-        foreach (var file in files)
+        try
         {
-            await using var fs = file.OpenReadStream();
-            var result = await _tempStorageService.ValidateAndSave(fs, file.FileName, cxlTkn);
+            if (files.Count == 0)
+                return BadRequest("No files uploaded.");
 
-            if (!result.Success)
+            var userId = User.GetUserId();
+
+            var chapter = await _chapterService.GetByIdAsync(chapterId, cancellationToken: cxlTkn);
+            if (chapter == null)
+                return BadRequest("No such chapter.");
+
+            var canUpload = await _subjectService.IsChiefAsync(chapter.SubjectId, userId, cxlTkn);
+            if (!canUpload)
+                return Forbid();
+
+            var docs = new List<Document>();
+            var problems = new List<string>();
+
+            foreach (var file in files)
             {
-                problems.Add($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
-                continue;
+                await using var fs = file.OpenReadStream();
+                var result = await _tempStorageService.ValidateAndSave(fs, file.FileName, cxlTkn);
+
+                if (!result.Success)
+                {
+                    problems.Add($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
+                    continue;
+                }
+
+                docs.Add(new Document
+                {
+                    ChapterId = chapterId,
+                    UploaderId = userId,
+                    Title = Path.GetFileNameWithoutExtension(file.FileName),
+                    FileName = Path.GetFileName(result.FilePath),
+                    OriginalFileName = file.FileName,
+                    FileType = result.FileType.Value,
+                    FilePath = result.FilePath,
+                    FileSize = file.Length,
+                    Status = DocumentStatus.Uploaded,
+                    UploadedAt = DateTime.UtcNow,
+                });
             }
 
-            docs.Add(new Document
+            if (problems.Count > 0)
+                return BadRequest(problems);
+
+            var newDocs = await _documentService.CreateRange(docs, cxlTkn);
+
+            foreach (var doc in newDocs)
             {
-                ChapterId = chapterId,
-                UploaderId = userId,
-                Title = Path.GetFileNameWithoutExtension(file.FileName),
-                FileName = Path.GetFileName(result.FilePath),
-                OriginalFileName = file.FileName,
-                FileType = result.FileType.Value,
-                FilePath = result.FilePath,
-                FileSize = file.Length,
-                Status = DocumentStatus.Uploaded,
-                UploadedAt = DateTime.UtcNow,
-            });
-        }
-
-        if (problems.Count > 0)
-            return BadRequest(problems);
-
-        var newDocs = await _documentService.CreateRange(docs, cxlTkn);
-
-        foreach (var doc in newDocs)
-        {
-            var update = new ResourceUpdate
-            {
-                ResourceType = ResourceType.Document,
-                Action = ResourceAction.Created,
-                ResourceId = doc.Id.ToString(),
-                ResourceName = doc.Title,
-                Properties =
+                var update = new ResourceUpdate
+                {
+                    ResourceType = ResourceType.Document,
+                    Action = ResourceAction.Created,
+                    ResourceId = doc.Id.ToString(),
+                    ResourceName = doc.Title,
+                    Properties =
                 {
                     { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
                 },
-            };
-            await _notifier.PushUpdateAsync(update, CallerConnectionId);
-        }
+                };
+                await _notifier.PushUpdateAsync(update, CallerConnectionId);
+            }
 
-        foreach (var doc in newDocs)
+            foreach (var doc in newDocs)
+            {
+                var uploadJobId = BackgroundJob.Enqueue<IDocumentFileService>(
+                    HangfireConstants.LowPriorityQueue,
+                    e => e.Upload(doc.Id));
+
+                var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                    uploadJobId,
+                    HangfireConstants.LowPriorityQueue,
+                    e => e.ParseAsync(doc.Id));
+
+                var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                    parseJobId,
+                    HangfireConstants.LowPriorityQueue,
+                    e => e.ChunkAsync(doc.Id));
+
+                BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                    chunkJobId,
+                    HangfireConstants.LowPriorityQueue,
+                    e => e.EmbedAsync(doc.Id));
+            }
+
+            var dtos = _mapper.Map<List<DocumentFileDto>>(newDocs);
+            return new JsonResult(dtos);
+        }
+        catch (UserClaimException)
         {
-            var uploadJobId = BackgroundJob.Enqueue<IDocumentFileService>(
-                HangfireConstants.LowPriorityQueue,
-                e => e.Upload(doc.Id));
-
-            var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                uploadJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.ParseAsync(doc.Id));
-
-            var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                parseJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.ChunkAsync(doc.Id));
-
-            BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                chunkJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.EmbedAsync(doc.Id));
+            return Unauthorized();
         }
-
-        var dtos = _mapper.Map<List<DocumentFileDto>>(newDocs);
-        return new JsonResult(dtos);
     }
 
     /// <summary>

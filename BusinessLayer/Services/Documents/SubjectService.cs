@@ -66,9 +66,13 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Subject?> GetSubjectByIdAsync(int id)
+    public async Task<Subject?> GetSubjectByIdAsync(int id, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.Subjects.FindByIdAsync(id);
+        return (await _unitOfWork.Subjects.GetAsync(
+            filter: e => e.Id == id,
+            includeProperties: inclProps ?? [],
+            cancellationToken: cxlTkn))
+            .FirstOrDefault();
     }
 
     /// <inheritdoc/>
@@ -349,7 +353,7 @@ public class SubjectService(
         return query.Where(u => !assignedUserIds.Contains(u.Id)).ToList();
     }
 
-    public async Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, string[] inclProps = null!, CancellationToken cxlTkn = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString())
                    ?? throw new EntityNotFoundException("No user matched the provided ID.");
@@ -358,6 +362,7 @@ public class SubjectService(
 
         return await _unitOfWork.Subjects.GetAsync(
             filter: e => isAdmin || e.Memberships.Any(d => d.UserId == userId),
+            includeProperties: inclProps ?? [],
             orderBy: e => e.OrderBy(e => e.Code),
             cancellationToken: cxlTkn);
     }

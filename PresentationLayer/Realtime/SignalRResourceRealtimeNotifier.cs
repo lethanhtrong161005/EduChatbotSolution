@@ -83,30 +83,33 @@ public class SignalRResourceRealtimeNotifier(
             case ResourceType.User:
                 break;
             case ResourceType.Membership:
-                if (update.Properties.TryGetValue(nameof(ChatSession.SubjectId), out string? value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), value, nameof(ResourceType.Membership).ToKebabCaseLower());
-                if (update.Properties.TryGetValue(nameof(ChatSession.UserId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), value, nameof(ResourceType.Membership).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(ChatSession.SubjectId), out string? id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), id, nameof(ResourceType.Membership).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(ChatSession.UserId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), id, nameof(ResourceType.Membership).ToKebabCaseLower());
                 break;
             case ResourceType.Subject:
                 break;
             case ResourceType.Chapter:
-                if (update.Properties.TryGetValue(nameof(Chapter.SubjectId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), value, nameof(ResourceType.Chapter).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(Chapter.SubjectId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), id, nameof(ResourceType.Chapter).ToKebabCaseLower());
                 break;
             case ResourceType.Document:
-                if (update.Properties.TryGetValue(nameof(Document.Chapter.SubjectId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), value, nameof(ResourceType.Document).ToKebabCaseLower());
-                if (update.Properties.TryGetValue(nameof(Document.ChapterId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Chapter).ToKebabCaseLower(), value, nameof(ResourceType.Document).ToKebabCaseLower());
-                if (update.Properties.TryGetValue(nameof(Document.UploaderId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), value, nameof(ResourceType.Document).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(Document.Chapter.SubjectId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), id, nameof(ResourceType.Document).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(Document.ChapterId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Chapter).ToKebabCaseLower(), id, nameof(ResourceType.Document).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(Document.UploaderId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), id, nameof(ResourceType.Document).ToKebabCaseLower());
                 break;
             case ResourceType.ChatSession:
-                if (update.Properties.TryGetValue(nameof(ChatSession.UserId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), value, nameof(ResourceType.ChatSession).ToKebabCaseLower());
-                if (update.Properties.TryGetValue(nameof(ChatSession.SubjectId), out value) && !string.IsNullOrWhiteSpace(value))
-                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), value, nameof(ResourceType.ChatSession).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(ChatSession.UserId), out id) && !string.IsNullOrWhiteSpace(id))
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.User).ToKebabCaseLower(), id, nameof(ResourceType.ChatSession).ToKebabCaseLower());
+                if (update.Properties.TryGetValue(nameof(ChatSession.SubjectId), out id) && !string.IsNullOrWhiteSpace(id))
+                {
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), nameof(ResourceType.ChatSession).ToKebabCaseLower());
+                    yield return HubGroups.ResourceCollection(nameof(ResourceType.Subject).ToKebabCaseLower(), id, nameof(ResourceType.ChatSession).ToKebabCaseLower());
+                }
                 break;
         }
     }

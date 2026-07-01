@@ -83,7 +83,7 @@ public class IndexModel(
         try
         {
             var userId = User.GetUserId();
-            var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
+            var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cancellationToken: cxlTkn);
             var res = _mapper.Map<List<SubjectHeaderDto>>(subjects);
             return new JsonResult(res);
         }
@@ -143,7 +143,7 @@ public class IndexModel(
 
             if (!req.SubjectId.HasValue)
             {
-                var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cxlTkn);
+                var subjects = await _subjectService.GetAccessibleSubjectsAsync(userId, cancellationToken: cxlTkn);
                 if (!subjects.Any())
                     return BadRequest();
             }

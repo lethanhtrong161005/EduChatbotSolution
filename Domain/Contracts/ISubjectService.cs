@@ -19,12 +19,12 @@ public interface ISubjectService
         int limit,
         int offset);
 
-    Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Subject>> GetAccessibleSubjectsAsync(Guid userId, string[] includeProperties = null!, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a subject by its unique integer identifier.
     /// </summary>
-    Task<Subject?> GetSubjectByIdAsync(int id);
+    Task<Subject?> GetSubjectByIdAsync(int id, string[] includeProperties = null!, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new educational subject in the database.
