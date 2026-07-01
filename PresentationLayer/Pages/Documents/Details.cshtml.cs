@@ -72,7 +72,8 @@ public class DetailsModel(
                         nameof(Document.Comments) + "." + nameof(DocumentComment.User),
                         nameof(Document.Comments) + "." + nameof(DocumentComment.User) + "." + nameof(ApplicationUser.SubjectMemberships),
                         nameof(Document.ParsedSections),
-                    ], cxlTkn);
+                    ],
+                    cxlTkn);
 
             if (doc == null)
                 return NotFound();

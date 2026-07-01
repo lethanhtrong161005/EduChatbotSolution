@@ -76,6 +76,9 @@ public class TempPathStorageService(
         var invalidCharRegex = string.Format(@"([{0}]+)|(\s+)", invalidChars);
         fileName = Regex.Replace(fileName, invalidCharRegex, "_");
 
-        return Path.Combine(Path.GetTempPath(), _storageOpts.AppDirectory, _storageOpts.FileDirectoryBuffer, fileName);
+        var tempDir = Path.Combine(Path.GetTempPath(), _storageOpts.AppDirectory, _storageOpts.FileDirectoryBuffer);
+        Directory.CreateDirectory(tempDir);
+
+        return Path.Combine(tempDir, fileName);
     }
 }

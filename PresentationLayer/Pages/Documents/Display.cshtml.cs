@@ -28,7 +28,7 @@ public class DisplayModel(
     /// <returns>An inline file, download file, or not-found result.</returns>
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cxlTkn)
     {
-        var doc = await _documentService.GetByIdAsync(id, null!, cxlTkn);
+        var doc = await _documentService.GetByIdAsync(id, cancellationToken: cxlTkn);
 
         if (doc == null)
             return NotFound();

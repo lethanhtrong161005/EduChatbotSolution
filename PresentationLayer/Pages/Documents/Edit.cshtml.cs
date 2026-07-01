@@ -64,16 +64,12 @@ public class EditModel(
                 return NotFound();
 
             var userId = User.GetUserId();
-            var isAdmin = User.IsInRole(nameof(UserRole.Admin));
 
-            if (!isAdmin)
-            {
-                var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
-                if (membership == null || membership.Role != MembershipRole.Chief)
-                    return Forbid();
+            var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            if (membership == null || membership.Role != MembershipRole.Chief)
+                return Forbid();
 
-                ViewerMembershipId = membership.Id.ToString();
-            }
+            ViewerMembershipId = membership.Id.ToString();
 
             ViewModel = _mapper.Map<DocumentEditVm>(doc);
             SubjectId = doc.Chapter.Id;
