@@ -1,5 +1,4 @@
 using AutoMapper;
-using Domain.Common;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -15,7 +14,7 @@ namespace Presentation.Pages.Documents;
 /// <summary>
 /// Edits document title and description.
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Lecturer)}")]
 public class EditModel(
     IDocumentService documentService,
     ISubjectService subjectService,
@@ -36,7 +35,7 @@ public class EditModel(
 
     public int SubjectId { get; set; }
 
-    public int ChapterId { get; set; }
+    public IEnumerable<int> ChapterIds { get; set; } = [];
 
     public Guid UploaderId { get; set; }
 
@@ -56,24 +55,24 @@ public class EditModel(
         try
         {
             var doc = await _documentService.GetByIdAsync(
-                    id,
-                    includeProperties: [nameof(Document.Chapter)],
-                    cancellationToken: cxlTkn);
+                id,
+                includeProperties: [nameof(Document.DocumentChapters)],
+                cancellationToken: cxlTkn);
 
             if (doc == null)
                 return NotFound();
 
             var userId = User.GetUserId();
 
-            var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            var membership = await _subjectService.GetMembershipAsync(doc.SubjectId, userId, cxlTkn);
             if (membership == null || membership.Role != MembershipRole.Chief)
                 return Forbid();
 
             ViewerMembershipId = membership.Id.ToString();
 
             ViewModel = _mapper.Map<DocumentEditVm>(doc);
-            SubjectId = doc.Chapter.Id;
-            ChapterId = doc.ChapterId;
+            SubjectId = doc.SubjectId;
+            ChapterIds = doc.DocumentChapters.Select(e => e.ChapterId);
             UploaderId = doc.UploaderId;
 
             return Page();
@@ -99,7 +98,7 @@ public class EditModel(
 
         var doc = await _documentService.GetByIdAsync(
             id,
-            includeProperties: [nameof(Document.Chapter)],
+            includeProperties: [nameof(Document.Chapters)],
             cancellationToken: cxlTkn);
 
         if (doc == null)
@@ -109,7 +108,7 @@ public class EditModel(
 
         if (!User.IsInRole(nameof(UserRole.Admin)))
         {
-            var isChief = await _subjectService.IsChiefAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            var isChief = await _subjectService.IsChiefAsync(doc.SubjectId, userId, cxlTkn);
             if (!isChief)
                 return Forbid();
         }
@@ -127,10 +126,9 @@ public class EditModel(
             ResourceName = doc.Title,
             Properties =
             {
-                { nameof(Document.Chapter.SubjectId) , doc.Chapter.SubjectId.ToString() },
-                { nameof(Document.ChapterId) , doc.ChapterId.ToString() },
-                { nameof(Document.Chapter.ChapterNumber) , doc.Chapter.ChapterNumber?.ToString() ?? ""},
+                { nameof(Document.SubjectId) , doc.SubjectId.ToString() },
                 { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
+                { "ChapterIds" , doc.Chapters.Select(e => e.Id) },
             },
         };
 

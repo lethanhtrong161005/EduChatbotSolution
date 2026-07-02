@@ -27,7 +27,7 @@ async function loadAll() {
 
 async function loadProfile(conTkn) {
 
-    const dto = await $.getJSON("/account/profile?handler=GetProfile");
+    const dto = await $.getJSON("/account/profile?handler=Profile");
 
     if (_concurrencyToken !== conTkn) return;
 
@@ -40,7 +40,7 @@ async function loadMemberships(conTkn) {
 
     const oldSubjectIds = [...Page.subjectIds];
 
-    const memberships = await $.getJSON("/account/profile?handler=GetMemberships");
+    const memberships = await $.getJSON("/account/profile?handler=Memberships");
 
     if (_concurrencyToken !== conTkn) return;
 
@@ -66,7 +66,7 @@ async function loadMemberships(conTkn) {
 
 async function loadDocuments(conTkn) {
 
-    const documents = await $.getJSON("/account/profile?handler=GetDocuments");
+    const documents = await $.getJSON("/account/profile?handler=Documents");
 
     if (_concurrencyToken !== conTkn) return;
 
@@ -247,7 +247,7 @@ function renderDocuments() {
                 </td>
                 <td>
                     <span class="badge bg-secondary me-1">${d.subjectCode}</span>
-                    <span class="text-muted small">${d.chapterName}</span>
+                    <span class="text-muted small">${d.subjectName}</span>
                 </td>
                  <td>
                     <span class="badge bg-dark">${d.fileType}</span>
@@ -262,15 +262,15 @@ function renderDocuments() {
                      </span>
                 </td>
                 <td>
-                    ${d.isNoLongerAssigned
+                    ${d.isAssigned
             ? `
-                        <span class="status-badge-custom status-warning" title="Warning: You are no longer assigned to this subject.">
-                            <i class="fas fa-exclamation-triangle"></i> Not Assigned
+                        <span class="status-badge-custom status-active">
+                            <i class="fas fa-check-circle"></i> Assigned
                         </span>
                     `
             : `
-                        <span class="status-badge-custom status-active">
-                            <i class="fas fa-check-circle"></i> Assigned
+                        <span class="status-badge-custom status-warning" title="Warning: You are no longer assigned to this subject.">
+                            <i class="fas fa-exclamation-triangle"></i> Not Assigned
                         </span>
                     `}
                 </td>

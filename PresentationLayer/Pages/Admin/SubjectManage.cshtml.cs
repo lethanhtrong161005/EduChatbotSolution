@@ -200,7 +200,7 @@ public class SubjectManageModel(
                 Properties =
                 {
                     { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
-                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber.ToString() },
                 },
             };
 
@@ -241,7 +241,7 @@ public class SubjectManageModel(
                 Properties =
                 {
                     { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
-                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber.ToString() },
                 },
             };
 
@@ -280,7 +280,7 @@ public class SubjectManageModel(
                 Properties =
                 {
                     { nameof(Chapter.SubjectId), chapter.SubjectId.ToString() },
-                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber?.ToString() ?? "" },
+                    { nameof(Chapter.ChapterNumber), chapter.ChapterNumber.ToString() },
                 },
             };
 
@@ -363,8 +363,8 @@ public class SubjectManageModel(
                 ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
                 Properties =
                 {
-                    { nameof(SubjectMembership.SubjectId), membership.SubjectId.ToString() },
-                    { nameof(SubjectMembership.UserId), membership.UserId.ToString() },
+                    { nameof(Membership.SubjectId), membership.SubjectId.ToString() },
+                    { nameof(Membership.UserId), membership.UserId.ToString() },
                 },
             };
 
@@ -399,8 +399,8 @@ public class SubjectManageModel(
                 ResourceName = $"{membership.Subject.Name} <=> {membership.User.FullName}",
                 Properties =
                 {
-                    { nameof(SubjectMembership.SubjectId), membership.SubjectId.ToString() },
-                    { nameof(SubjectMembership.UserId), membership.UserId.ToString() },
+                    { nameof(Membership.SubjectId), membership.SubjectId.ToString() },
+                    { nameof(Membership.UserId), membership.UserId.ToString() },
                 },
             };
 

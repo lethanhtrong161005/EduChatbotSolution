@@ -17,5 +17,5 @@ public class TestQuestion : CategoryLikeEntity
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the experiment responses for this question.</summary>
-    public virtual ICollection<TestResponse> TestResponses { get; set; } = [];
+    public virtual ICollection<TestResponse> TestResponses { get; } = [];
 }

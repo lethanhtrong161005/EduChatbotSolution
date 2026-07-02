@@ -1,8 +1,8 @@
 ﻿using DataAccess.UnitOfWork;
-using Domain.Common;
+using Domain.Constants;
 using Domain.Entities;
 
-namespace Business.Services.SubscriptionPlan;
+namespace Business.Services.Subscriptions;
 
 public static class SubscriptionHelper
 {

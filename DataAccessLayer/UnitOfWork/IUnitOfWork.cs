@@ -1,5 +1,6 @@
 using DataAccess.Repositories;
 using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 
 namespace DataAccess.UnitOfWork;
 
@@ -9,6 +10,16 @@ namespace DataAccess.UnitOfWork;
 /// </summary>
 public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
+    // ── User ───────────────────────────────
+    /// <summary>Gets the repository for <see cref="ApplicationUser"/> entities.</summary>
+    GenericRepository<ApplicationUser> Users { get; }
+
+    /// <summary>Gets the repository for <see cref="ApplicationRole"/> entities.</summary>
+    GenericRepository<ApplicationRole> Roles { get; }
+
+    /// <summary>Gets the repository for <see cref="ApplicationUserRole"/> entities.</summary>
+    GenericRepository<ApplicationUserRole> UserRoles { get; }
+
     // ── Subscription & Payment ───────────────────────────────
     /// <summary>Gets the repository for <see cref="Plan"/> entities.</summary>
     GenericRepository<Plan> Plans { get; }
@@ -29,8 +40,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Subject"/> entities.</summary>
     GenericRepository<Subject> Subjects { get; }
 
-    /// <summary>Gets the repository for <see cref="SubjectMembership"/> entities.</summary>
-    GenericRepository<SubjectMembership> SubjectMemberships { get; }
+    /// <summary>Gets the repository for <see cref="Membership"/> entities.</summary>
+    GenericRepository<Membership> Memberships { get; }
 
     /// <summary>Gets the repository for <see cref="SubjectAiConfiguration"/> entities.</summary>
     GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations { get; }
@@ -43,6 +54,9 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     /// <summary>Gets the repository for <see cref="Document"/> entities.</summary>
     GenericRepository<Document> Documents { get; }
+
+    /// <summary>Gets the repository for <see cref="DocumentChapter"/> entities.</summary>
+    GenericRepository<DocumentChapter> DocumentChapters { get; }
 
     /// <summary>Gets the repository for <see cref="DocumentComment"/> entities.</summary>
     GenericRepository<DocumentComment> DocumentComments { get; }

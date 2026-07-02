@@ -1,5 +1,7 @@
 @page "{id:guid}/{handler?}"
 @using System.Security.Claims
+@using System.Text.Json
+@using Domain.Entities
 @model Presentation.Pages.Documents.DetailsModel
 @{
     ViewData["Title"] = Model.ViewModel.Title;
@@ -1095,53 +1097,37 @@
                                 commentIndex++;
                                 <div class="comment-item">
                                     <div class="avatar-wrapper">
-                                        <div class="avatar-circle @avatarBg" title="@(comment.User?.FullName ?? "User")">
-                                            @((comment.User?.FullName != null && comment.User.FullName.Length > 0) ? comment.User.FullName[0].ToString().ToUpper() : "U")
+                                        <div class="avatar-circle @avatarBg" title="@(comment.AuthorName)">
+                                            @(comment.AuthorName[0].ToString().ToUpper())
                                         </div>
                                     </div>
                                     <div class="comment-bubble">
                                         <div class="comment-meta">
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="commenter-name">@(comment.User?.FullName ?? "Người dùng ẩn danh")</span>
+                                                <span class="commenter-name">@(comment.AuthorName)</span>
                                                 <!-- Dynamic commenter role based on subject membership -->
                                                 @{
-                                                    var userRoleText = "Student";
-                                                    var badgeClass = "badge-student";
+                                                    string userRoleText = "";
+                                                    string badgeClass = "";
 
-                                                    if (comment.User != null)
+                                                    switch (comment.AuthorRole)
                                                     {
-                                                        if (comment.User.UserName == "admin")
-                                                        {
+                                                        case nameof(UserRole.Admin):
                                                             userRoleText = "Admin";
                                                             badgeClass = "badge-admin";
-                                                        }
-                                                        else
-                                                        {
-                                                            var membership = comment.User.SubjectMemberships?.FirstOrDefault(m => m.SubjectId == Model.ViewModel.SubjectId);
-                                                            if (membership != null)
-                                                            {
-                                                                if (membership.Role == Domain.Entities.MembershipRole.Chief)
-                                                                {
-                                                                    userRoleText = "Subject Leader";
-                                                                    badgeClass = "badge-chief";
-                                                                }
-                                                                else if (membership.Role == Domain.Entities.MembershipRole.Lecturer)
-                                                                {
-                                                                    userRoleText = "Lecturer";
-                                                                    badgeClass = "badge-lecturer";
-                                                                }
-                                                                else
-                                                                {
-                                                                    userRoleText = "Student";
-                                                                    badgeClass = "badge-student";
-                                                                }
-                                                            }
-                                                            else if (comment.User.Email == Model.ViewModel.UploadedBy)
-                                                            {
-                                                                userRoleText = "Lecturer";
-                                                                badgeClass = "badge-lecturer";
-                                                            }
-                                                        }
+                                                            break;
+                                                        case nameof(UserRole.Lecturer):
+                                                            userRoleText = "Lecturer";
+                                                            badgeClass = "badge-lecturer";
+                                                            break;
+                                                        case nameof(MembershipRole.Chief):
+                                                            userRoleText = "Subject Leader";
+                                                            badgeClass = "badge-chief";
+                                                            break;
+                                                        case nameof(UserRole.Student):
+                                                            userRoleText = "Student";
+                                                            badgeClass = "badge-student";
+                                                            break;
                                                     }
                                                 }
                                                 <span class="comment-badge-role @badgeClass">@userRoleText</span>
@@ -1192,8 +1178,8 @@
                     <span class="meta-row-val text-truncate" title="@Model.ViewModel.OriginalFileName">@Model.ViewModel.OriginalFileName</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-row-label">Chương học</span>
-                    <span class="meta-row-val">@Model.ViewModel.ChapterName</span>
+                    <span class="meta-row-label">Môn học</span>
+                    <span class="meta-row-val">@Model.ViewModel.SubjectName</span>
                 </div>
                 <div class="meta-row">
                     <span class="meta-row-label">Dung lượng</span>
@@ -1227,9 +1213,6 @@
                             <i class="fas fa-download"></i> Tải xuống tài liệu
                         </button>
                     }
-                    <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-secondary w-100" style="background: var(--color-surface); border: 1px solid var(--color-border-light); color: var(--color-text-primary); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <i class="fas fa-download"></i> Tải xuống tài liệu
-                    </a>
                     <button type="button" class="btn-action-secondary w-100" onclick="toggleChunkDrawer(true)">
                         <i class="fas fa-cubes"></i> Mở hộc Vector Chunks
                     </button>
@@ -1298,11 +1281,11 @@
     <script>
         window.Razor = {
             userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+            viewerMembershipId: '@Model.ViewerMembershipId',
             documentId: '@Model.ViewModel.Id',
-            chapterId: '@Model.ViewModel.ChapterId',
             subjectId: '@Model.ViewModel.SubjectId',
             uploaderId: '@Model.ViewModel.UploaderId',
-            viewerMembershipId: '@Model.ViewerMembershipId',
+            chapterIds: @Html.Raw(JsonSerializer.Serialize(Model.ViewModel.Chapters.Select(e => e.Id.ToString()))),
         };
     </script>
 

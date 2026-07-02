@@ -1,11 +1,4 @@
-﻿namespace Domain.Common;
-
-public enum UserRole
-{
-    Student,
-    Lecturer,
-    Admin,
-}
+﻿namespace Domain.Constants;
 
 public enum OrderType
 {

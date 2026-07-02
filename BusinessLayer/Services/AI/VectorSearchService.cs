@@ -20,7 +20,7 @@ public class VectorSearchService(
     {
         return
             [.. await _unitOfWork.Chunks.GetAsync(
-                preFilter: e => allowedSubjects.Contains(e.Document.Chapter.SubjectId),
+                preFilter: e => allowedSubjects.Contains(e.Document.SubjectId),
                 projection: e => new ChunkRetrieval
                 {
                     ChunkId = e.Id,

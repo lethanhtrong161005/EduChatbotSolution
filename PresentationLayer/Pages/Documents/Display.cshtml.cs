@@ -1,4 +1,3 @@
-using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +10,7 @@ namespace Presentation.Pages.Documents;
 /// <summary>
 /// Handles document display requests (inline or download).
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DisplayModel(
     IDocumentService documentService,
     IDocumentFileService fileService)

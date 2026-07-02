@@ -1,5 +1,6 @@
 @page "{id:guid}/{handler?}"
 @using System.Security.Claims
+@using System.Text.Json
 @model Presentation.Pages.Documents.EditModel
 
 @{
@@ -181,13 +182,13 @@
     <script>
         window.Razor = {
             userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+            viewerMembershipId: '@Model.ViewerMembershipId',
             documentId: '@Model.ViewModel.Id',
-            chapterId: '@Model.ChapterId',
             subjectId: '@Model.SubjectId',
             uploaderId: '@Model.UploaderId',
-            viewerMembershipId: '@Model.ViewerMembershipId',
+            chapterIds: @Html.Raw(JsonSerializer.Serialize(Model.ChapterIds.Select(e => e.ToString()))),
         };
     </script>
 
-    <script src="~/js/documents/document-edit-signalr.js"></script>
+    <script src="~/js/documents/document-edit.js"></script>
 }

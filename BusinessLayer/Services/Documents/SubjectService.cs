@@ -164,7 +164,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int? chapterNumber)
+    public async Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
@@ -187,7 +187,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<Chapter> UpdateChapterAsync(int id, string chapterName, int? chapterNumber)
+    public async Task<Chapter> UpdateChapterAsync(int id, string chapterName, int chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
             throw new BadRequestException("Chapter name cannot be empty.");
@@ -218,10 +218,10 @@ public class SubjectService(
     // ── Memberships Management ────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<List<SubjectMembership>> GetMembershipsBySubjectIdAsync(int subjectId)
+    public async Task<List<Membership>> GetMembershipsBySubjectIdAsync(int subjectId)
     {
-        var memberships = await _unitOfWork.SubjectMemberships.GetAsync(
-            includeProperties: [nameof(SubjectMembership.User)],
+        var memberships = await _unitOfWork.Memberships.GetAsync(
+            includeProperties: [nameof(Membership.User)],
             filter: m => m.SubjectId == subjectId,
             orderBy: q => q.OrderBy(m => m.Role).ThenBy(m => m.User.FullName)
         );
@@ -229,7 +229,7 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<SubjectMembership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
+    public async Task<Membership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role)
     {
         var subject = await _unitOfWork.Subjects.FindByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
@@ -254,8 +254,8 @@ public class SubjectService(
         }
 
         // Check if user is already a member
-        var existing = await _unitOfWork.SubjectMemberships.GetAsync(
-            includeProperties: [nameof(SubjectMembership.Subject), nameof(SubjectMembership.User)],
+        var existing = await _unitOfWork.Memberships.GetAsync(
+            includeProperties: [nameof(Membership.Subject), nameof(Membership.User)],
             filter: m => m.SubjectId == subjectId && m.UserId == userId);
 
         var existingList = existing.ToList();
@@ -268,7 +268,7 @@ public class SubjectService(
             // Changing roles: Enforce Chief uniqueness if target role is Chief
             if (role == MembershipRole.Chief)
             {
-                var currentChief = await _unitOfWork.SubjectMemberships.GetAsync(
+                var currentChief = await _unitOfWork.Memberships.GetAsync(
                     filter: m => m.SubjectId == subjectId && m.Role == MembershipRole.Chief && m.UserId != userId);
                 if (currentChief.Any())
                     throw new BadRequestException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.");
@@ -276,7 +276,7 @@ public class SubjectService(
 
             membership.Role = role;
             membership.AssignedAt = DateTime.UtcNow;
-            _unitOfWork.SubjectMemberships.Update(membership);
+            _unitOfWork.Memberships.Update(membership);
             await _unitOfWork.SaveAsync();
             return membership;
         }
@@ -285,13 +285,13 @@ public class SubjectService(
             // Adding new membership: Enforce Chief uniqueness if role is Chief
             if (role == MembershipRole.Chief)
             {
-                var currentChief = await _unitOfWork.SubjectMemberships.GetAsync(
+                var currentChief = await _unitOfWork.Memberships.GetAsync(
                     filter: m => m.SubjectId == subjectId && m.Role == MembershipRole.Chief);
                 if (currentChief.Any())
                     throw new BadRequestException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.");
             }
 
-            var newMembership = new SubjectMembership
+            var newMembership = new Membership
             {
                 SubjectId = subjectId,
                 UserId = userId,
@@ -300,7 +300,7 @@ public class SubjectService(
                 CreatedAt = DateTime.UtcNow
             };
 
-            _unitOfWork.SubjectMemberships.Insert(newMembership);
+            _unitOfWork.Memberships.Insert(newMembership);
             await _unitOfWork.SaveAsync();
 
             return newMembership;
@@ -308,16 +308,16 @@ public class SubjectService(
     }
 
     /// <inheritdoc/>
-    public async Task<SubjectMembership> RemoveMemberAsync(int subjectId, Guid userId)
+    public async Task<Membership> RemoveMemberAsync(int subjectId, Guid userId)
     {
-        var existing = (await _unitOfWork.SubjectMemberships
+        var existing = (await _unitOfWork.Memberships
             .GetAsync(
-                includeProperties: [nameof(SubjectMembership.Subject), nameof(SubjectMembership.User)],
+                includeProperties: [nameof(Membership.Subject), nameof(Membership.User)],
                 filter: m => m.SubjectId == subjectId && m.UserId == userId))
             .FirstOrDefault()
             ?? throw new EntityNotFoundException("No membership matched the provided IDs.");
 
-        _unitOfWork.SubjectMemberships.Delete(existing);
+        _unitOfWork.Memberships.Delete(existing);
         await _unitOfWork.SaveAsync();
         return existing;
     }
@@ -345,7 +345,7 @@ public class SubjectService(
         }
 
         // 4. Exclude users who are already members of this subject
-        var currentMembers = await _unitOfWork.SubjectMemberships.GetAsync(
+        var currentMembers = await _unitOfWork.Memberships.GetAsync(
             filter: m => m.SubjectId == subjectId);
 
         var assignedUserIds = currentMembers.Select(m => m.UserId).ToHashSet();
@@ -367,28 +367,28 @@ public class SubjectService(
             cancellationToken: cxlTkn);
     }
 
-    public async Task<SubjectMembership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cxlTkn = default)
+    public async Task<Membership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cxlTkn = default)
     {
-        return (await _unitOfWork.SubjectMemberships.GetAsync(
+        return (await _unitOfWork.Memberships.GetAsync(
             filter: e => e.SubjectId == subjectId && e.UserId == userid,
-            includeProperties: [nameof(SubjectMembership.Subject)],
+            includeProperties: [nameof(Membership.Subject)],
             asNoTracking: true,
             cancellationToken: cxlTkn))
             .FirstOrDefault();
     }
 
-    public async Task<IEnumerable<SubjectMembership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cxlTkn = default)
+    public async Task<IEnumerable<Membership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cxlTkn = default)
     {
-        return await _unitOfWork.SubjectMemberships.GetAsync(
+        return await _unitOfWork.Memberships.GetAsync(
             filter: e => e.UserId == userid,
-            includeProperties: [nameof(SubjectMembership.Subject)],
+            includeProperties: [nameof(Membership.Subject)],
             asNoTracking: true,
             cancellationToken: cxlTkn);
     }
 
     public async Task<bool> IsMemberAsync(int subjectId, Guid userId, CancellationToken cxlTkn)
     {
-        return (await _unitOfWork.SubjectMemberships.GetAsync(
+        return (await _unitOfWork.Memberships.GetAsync(
             filter: e => e.SubjectId == subjectId
                          && e.UserId == userId,
             cancellationToken: cxlTkn))
@@ -397,7 +397,7 @@ public class SubjectService(
 
     public async Task<bool> IsChiefAsync(int subjectId, Guid userId, CancellationToken cxlTkn = default)
     {
-        return (await _unitOfWork.SubjectMemberships.GetAsync(
+        return (await _unitOfWork.Memberships.GetAsync(
             filter: e => e.SubjectId == subjectId
                          && e.UserId == userId
                          && e.Role == MembershipRole.Chief,

@@ -10,17 +10,23 @@ namespace DataAccess.UnitOfWork;
 /// </summary>
 public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
 {
+    readonly EduChatAiDbContext _context = context;
+
+    GenericRepository<ApplicationUser>? _users;
+    GenericRepository<ApplicationRole>? _roles;
+    GenericRepository<ApplicationUserRole>? _userRoles;
     GenericRepository<Plan>? _plans;
     GenericRepository<PlanOption>? _planOptions;
     GenericRepository<Order>? _orders;
     GenericRepository<Subscription>? _subscriptions;
     GenericRepository<Payment>? _payments;
     GenericRepository<Subject>? _subjects;
-    GenericRepository<SubjectMembership>? _subjectMemberships;
+    GenericRepository<Membership>? _memberships;
     GenericRepository<SubjectAiConfiguration>? _subjectAiConfigurations;
     GenericRepository<GlobalAiConfiguration>? _globalAiConfigurations;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
+    GenericRepository<DocumentChapter>? _documentChapters;
     GenericRepository<DocumentComment>? _documentComments;
     GenericRepository<ParsedSection>? _parsedSections;
     GenericRepository<Chunk>? _chunks;
@@ -37,96 +43,103 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<TestResponse>? _testResponses;
 
     /// <inheritdoc/>
-    public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(context);
+    public GenericRepository<ApplicationUser> Users => _users ??= new GenericRepository<ApplicationUser>(_context);
     /// <inheritdoc/>
-    public GenericRepository<PlanOption> PlanOptions => _planOptions ??= new GenericRepository<PlanOption>(context);
+    public GenericRepository<ApplicationRole> Roles => _roles ??= new GenericRepository<ApplicationRole>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Order> Orders => _orders ??= new GenericRepository<Order>(context);
+    public GenericRepository<ApplicationUserRole> UserRoles => _userRoles ??= new GenericRepository<ApplicationUserRole>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Subscription> Subscriptions => _subscriptions ??= new GenericRepository<Subscription>(context);
+    public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Payment> Payments => _payments ??= new GenericRepository<Payment>(context);
+    public GenericRepository<PlanOption> PlanOptions => _planOptions ??= new GenericRepository<PlanOption>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Subject> Subjects => _subjects ??= new GenericRepository<Subject>(context);
+    public GenericRepository<Order> Orders => _orders ??= new GenericRepository<Order>(_context);
     /// <inheritdoc/>
-    public GenericRepository<SubjectMembership> SubjectMemberships => _subjectMemberships ??= new GenericRepository<SubjectMembership>(context);
+    public GenericRepository<Subscription> Subscriptions => _subscriptions ??= new GenericRepository<Subscription>(_context);
     /// <inheritdoc/>
-    public GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations => _subjectAiConfigurations ??= new GenericRepository<SubjectAiConfiguration>(context);
+    public GenericRepository<Payment> Payments => _payments ??= new GenericRepository<Payment>(_context);
     /// <inheritdoc/>
-    public GenericRepository<GlobalAiConfiguration> GlobalAiConfigurations => _globalAiConfigurations ??= new GenericRepository<GlobalAiConfiguration>(context);
+    public GenericRepository<Subject> Subjects => _subjects ??= new GenericRepository<Subject>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(context);
+    public GenericRepository<Membership> Memberships => _memberships ??= new GenericRepository<Membership>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Document> Documents => _documents ??= new GenericRepository<Document>(context);
+    public GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations => _subjectAiConfigurations ??= new GenericRepository<SubjectAiConfiguration>(_context);
     /// <inheritdoc/>
-    public GenericRepository<DocumentComment> DocumentComments => _documentComments ??= new GenericRepository<DocumentComment>(context);
+    public GenericRepository<GlobalAiConfiguration> GlobalAiConfigurations => _globalAiConfigurations ??= new GenericRepository<GlobalAiConfiguration>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ParsedSection> ParsedSections => _parsedSections ??= new GenericRepository<ParsedSection>(context);
+    public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Chunk> Chunks => _chunks ??= new GenericRepository<Chunk>(context);
+    public GenericRepository<Document> Documents => _documents ??= new GenericRepository<Document>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatSession> ChatSessions => _chatSessions ??= new GenericRepository<ChatSession>(context);
+    public GenericRepository<DocumentChapter> DocumentChapters => _documentChapters ??= new GenericRepository<DocumentChapter>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatSessionTitleGenerationSettings> ChatSessionTitleGenerationSettings => _chatSessionTitleGenerationSettings ??= new GenericRepository<ChatSessionTitleGenerationSettings>(context);
+    public GenericRepository<DocumentComment> DocumentComments => _documentComments ??= new GenericRepository<DocumentComment>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics => _chatSessionTitleGenerationMetrics ??= new GenericRepository<ChatSessionTitleGenerationMetrics>(context);
+    public GenericRepository<ParsedSection> ParsedSections => _parsedSections ??= new GenericRepository<ParsedSection>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(context);
+    public GenericRepository<Chunk> Chunks => _chunks ??= new GenericRepository<Chunk>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(context);
+    public GenericRepository<ChatSession> ChatSessions => _chatSessions ??= new GenericRepository<ChatSession>(_context);
     /// <inheritdoc/>
-    public GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics => _chatMessageGenerationMetrics ??= new GenericRepository<ChatMessageGenerationMetrics>(context);
+    public GenericRepository<ChatSessionTitleGenerationSettings> ChatSessionTitleGenerationSettings => _chatSessionTitleGenerationSettings ??= new GenericRepository<ChatSessionTitleGenerationSettings>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(context);
+    public GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics => _chatSessionTitleGenerationMetrics ??= new GenericRepository<ChatSessionTitleGenerationMetrics>(_context);
     /// <inheritdoc/>
-    public GenericRepository<CitationOccurrence> CitationOccurrences => _citationOccurrences ??= new GenericRepository<CitationOccurrence>(context);
+    public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(_context);
     /// <inheritdoc/>
-    public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(context);
+    public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(_context);
     /// <inheritdoc/>
-    public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(context);
+    public GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics => _chatMessageGenerationMetrics ??= new GenericRepository<ChatMessageGenerationMetrics>(_context);
     /// <inheritdoc/>
-    public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(context);
+    public GenericRepository<Citation> Citations => _citations ??= new GenericRepository<Citation>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<CitationOccurrence> CitationOccurrences => _citationOccurrences ??= new GenericRepository<CitationOccurrence>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(_context);
 
     /// <inheritdoc/>
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
-        await context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private bool _disposed = false;
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) return;
-        if (disposing)
-        {
-            context.Dispose();
-        }
-        _disposed = true;
-    }
-
+    /// <inheritdoc/>
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>Releases the DbContext resources asynchronously.</summary>
-    /// <param name="disposing">Indicates whether managed resources should be released.</param>
-    protected virtual async Task DisposeAsync(bool disposing)
-    {
-        if (_disposed) return;
-        if (disposing)
-        {
-            await context.DisposeAsync();
-        }
-        _disposed = true;
-    }
-
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        await DisposeAsync(true);
+        await DisposeAsyncCore().ConfigureAwait(false);
+        Dispose(false);
         GC.SuppressFinalize(this);
+    }
+
+    private byte _disposed = 0;
+
+    /// <summary>Releases the DbContext resources synchronously.</summary>
+    /// <param name="disposing">Indicates whether managed resources should be released.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
+        {
+            if (disposing)
+            {
+                _context.Dispose();
+            }
+        }
+    }
+
+    /// <summary>Releases the DbContext resources asynchronously.</summary>
+    protected virtual async ValueTask DisposeAsyncCore()
+    {
+        await _context.DisposeAsync().ConfigureAwait(false);
     }
 }

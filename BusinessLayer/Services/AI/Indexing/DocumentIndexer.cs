@@ -67,7 +67,7 @@ public class DocumentIndexer(
     public async Task ChunkAsync(Guid documentId, CancellationToken cxlTkn = default)
     {
         var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
-                                                        includeProperties: [nameof(Document.ParsedSections), nameof(Document.Chapter)],
+                                                        includeProperties: [nameof(Document.ParsedSections)],
                                                         cancellationToken: cxlTkn))
                                               .FirstOrDefault()
                   ?? throw new EntityNotFoundException("Could not find target document.");
@@ -87,7 +87,7 @@ public class DocumentIndexer(
             var sectionCount = 0;
             var chunkCount = 0;
 
-            var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.Chapter.SubjectId, cxlTkn);
+            var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.SubjectId, cxlTkn);
 
             // TODO: Swap _chunker for ChunkingService -> Use strategy pattern
 
@@ -133,7 +133,7 @@ public class DocumentIndexer(
     public async Task EmbedAsync(Guid documentId, CancellationToken cxlTkn = default)
     {
         var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
-                                                        includeProperties: [nameof(Document.Chunks), nameof(Document.Chapter)],
+                                                        includeProperties: [nameof(Document.Chunks)],
                                                         cancellationToken: cxlTkn))
                                               .FirstOrDefault()
                   ?? throw new EntityNotFoundException("Could not find target document.");
@@ -156,7 +156,7 @@ public class DocumentIndexer(
             return;
         }
 
-        var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.Chapter.SubjectId, cxlTkn);
+        var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.SubjectId, cxlTkn);
 
         try
         {

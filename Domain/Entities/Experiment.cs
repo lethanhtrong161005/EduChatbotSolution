@@ -28,5 +28,5 @@ public class Experiment : NaturalEntity
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the individual question responses for this experiment.</summary>
-    public virtual ICollection<TestResponse> TestResponses { get; set; } = [];
+    public virtual ICollection<TestResponse> TestResponses { get; } = [];
 }

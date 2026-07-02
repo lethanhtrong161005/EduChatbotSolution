@@ -17,13 +17,13 @@ namespace Business.Services.Account;
 /// </summary>
 public class UserManagementService(
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole<Guid>> roleManager,
+    RoleManager<ApplicationRole> roleManager,
     IEmailService emailService,
     IEmailVerificationService emailVerificationService,
     IConfiguration configuration) : IUserManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
-    private readonly RoleManager<IdentityRole<Guid>> _roleManager = roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly IEmailService _emailService = emailService;
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
     private readonly string _contactEmail = configuration["Email:SenderEmail"] ?? "support@educhatai.com";

@@ -16,7 +16,7 @@ namespace UnitTests;
 public class UserManagementServiceTests
 {
     private Mock<UserManager<ApplicationUser>> _userManagerMock = null!;
-    private Mock<RoleManager<IdentityRole<Guid>>> _roleManagerMock = null!;
+    private Mock<RoleManager<ApplicationRole>> _roleManagerMock = null!;
     private Mock<IEmailService> _emailServiceMock = null!;
     private Mock<IEmailVerificationService> _emailVerificationServiceMock = null!;
     private Mock<IConfiguration> _configMock = null!;
@@ -50,8 +50,8 @@ public class UserManagementServiceTests
             null!, null!, null!, null!, null!, null!, null!, null!);
 
         // RoleManager
-        var roleStoreMock = new Mock<IRoleStore<IdentityRole<Guid>>>();
-        _roleManagerMock = new Mock<RoleManager<IdentityRole<Guid>>>(
+        var roleStoreMock = new Mock<IRoleStore<ApplicationRole>>();
+        _roleManagerMock = new Mock<RoleManager<ApplicationRole>>(
             roleStoreMock.Object,
             null!, null!, null!, null!);
 

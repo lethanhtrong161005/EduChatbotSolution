@@ -1,4 +1,4 @@
-﻿namespace Business.Services.ExternalPayment;
+﻿namespace Business.Services.Subscriptions.ExternalPayment;
 
 public class ZaloPayService
 {

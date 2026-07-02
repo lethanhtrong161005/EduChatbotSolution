@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+﻿using Domain.Entities;
 using Hangfire.Dashboard;
 
 namespace Presentation.Background;

@@ -127,7 +127,7 @@ function displaySlide(idx) {
     });
 
     const slide = pptxSlides[idx];
-    document.getElementById("active-slide-title").textContent = slide.sectionTitle || `Slide ${idx + 1}`;
+    document.getElementById("active-slide-title").textContent = slide.locationInDocument || `Slide ${idx + 1}`;
 
     const bodyEl = document.getElementById("active-slide-body");
     if (slide.text) {
@@ -281,7 +281,7 @@ document.addEventListener(
         async function loadChunks(documentId, pageIndex = 1) {
 
             const response = await fetch(
-                `/documents/details/${documentId}?handler=GetChunks&pageIndex=${pageIndex}`);
+                `/documents/details/${documentId}?handler=Chunks&pageIndex=${pageIndex}`);
 
             const page =
                 await response.json();
@@ -532,10 +532,6 @@ $(document).on(
                 if (resUpd.resourceId === Razor.documentId)
                     promptReload();
                 break;
-            case ResourceType.Chapter:
-                if (resUpd.resourceId === Razor.chapterId)
-                    promptReload();
-                break;
             case ResourceType.Subject:
                 if (resUpd.resourceId === Razor.subjectId)
                     promptReload();
@@ -544,10 +540,17 @@ $(document).on(
                 if (resUpd.resourceId === Razor.uploaderId)
                     promptReload();
                 break;
+            case ResourceType.Chapter:
+                if (Razor.chapterIds.includes(resUpd.resourceId))
+                    promptReload();
+                break;
+            case ResourceType.DocumentChapter:
+                if (resUpd.properties["documentId"] === Razor.documentId)
+                    promptReload();
+                break;
             case ResourceType.Membership:
-                if (resUpd.action === "deleted"
-                    && resUpd.properties["subjectId"] === Razor.subjectId
-                    && resUpd.properties["userId"] === Razor.userId) {
+                if (resUpd.resourceId === Razor.viewerMembershipId
+                    && resUpd.action === "deleted") {
                     denyAccess();
                 }
                 break;

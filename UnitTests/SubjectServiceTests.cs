@@ -19,7 +19,7 @@ public class SubjectServiceTests
 
     private Mock<GenericRepository<Subject>> _subjectRepoMock = null!;
     private Mock<GenericRepository<Chapter>> _chapterRepoMock = null!;
-    private Mock<GenericRepository<SubjectMembership>> _membershipRepoMock = null!;
+    private Mock<GenericRepository<Membership>> _membershipRepoMock = null!;
 
     private SubjectService _sut = null!;
 
@@ -45,11 +45,11 @@ public class SubjectServiceTests
 
         _subjectRepoMock = CreateMockRepo<Subject>();
         _chapterRepoMock = CreateMockRepo<Chapter>();
-        _membershipRepoMock = CreateMockRepo<SubjectMembership>();
+        _membershipRepoMock = CreateMockRepo<Membership>();
 
         _unitOfWorkMock.Setup(u => u.Subjects).Returns(_subjectRepoMock.Object);
         _unitOfWorkMock.Setup(u => u.Chapters).Returns(_chapterRepoMock.Object);
-        _unitOfWorkMock.Setup(u => u.SubjectMemberships).Returns(_membershipRepoMock.Object);
+        _unitOfWorkMock.Setup(u => u.Memberships).Returns(_membershipRepoMock.Object);
 
         _sut = new SubjectService(_unitOfWorkMock.Object, _userManagerMock.Object);
     }
@@ -88,6 +88,7 @@ public class SubjectServiceTests
             It.IsAny<(int, int)>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(paginatedList);
 
@@ -112,6 +113,7 @@ public class SubjectServiceTests
             It.IsAny<Expression<Func<Subject, bool>>>(),
             It.IsAny<Func<IQueryable<Subject>, IOrderedQueryable<Subject>>>(),
             It.IsAny<(int, int)>(),
+            It.IsAny<bool>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
@@ -156,6 +158,7 @@ public class SubjectServiceTests
             It.IsAny<(int, int)>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Subject> { duplicateSubject });
 
@@ -177,6 +180,7 @@ public class SubjectServiceTests
             It.IsAny<Expression<Func<Subject, bool>>>(),
             It.IsAny<Func<IQueryable<Subject>, IOrderedQueryable<Subject>>>(),
             It.IsAny<(int, int)>(),
+            It.IsAny<bool>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
@@ -271,19 +275,20 @@ public class SubjectServiceTests
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Student" });
         _membershipRepoMock.Setup(r => r.GetAsync(
             It.IsAny<string[]>(),
-            It.IsAny<Expression<Func<SubjectMembership, bool>>>(),
-            It.IsAny<Func<IQueryable<SubjectMembership>, IOrderedQueryable<SubjectMembership>>>(),
+            It.IsAny<Expression<Func<Membership, bool>>>(),
+            It.IsAny<Func<IQueryable<Membership>, IOrderedQueryable<Membership>>>(),
             It.IsAny<(int, int)>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<SubjectMembership>()); // Not already a member
+            .ReturnsAsync(new List<Membership>()); // Not already a member
 
         // Act
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Student);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m =>
+        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<Membership>(m =>
             m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Student),
             It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -323,19 +328,20 @@ public class SubjectServiceTests
         // Setup: No existing Chief
         _membershipRepoMock.Setup(r => r.GetAsync(
             It.IsAny<string[]>(),
-            It.IsAny<Expression<Func<SubjectMembership, bool>>>(),
-            It.IsAny<Func<IQueryable<SubjectMembership>, IOrderedQueryable<SubjectMembership>>>(),
+            It.IsAny<Expression<Func<Membership, bool>>>(),
+            It.IsAny<Func<IQueryable<Membership>, IOrderedQueryable<Membership>>>(),
             It.IsAny<(int, int)>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<SubjectMembership>()); // No membership found at all
+            .ReturnsAsync(new List<Membership>()); // No membership found at all
 
         // Act
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<SubjectMembership>(m =>
+        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<Membership>(m =>
             m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Chief),
             It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -355,18 +361,19 @@ public class SubjectServiceTests
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Lecturer" });
 
         // Setup: Return another membership when queried for Role == Chief
-        var existingChief = new SubjectMembership { SubjectId = subjectId, UserId = Guid.NewGuid(), Role = MembershipRole.Chief };
+        var existingChief = new Membership { SubjectId = subjectId, UserId = Guid.NewGuid(), Role = MembershipRole.Chief };
 
         _membershipRepoMock.SetupSequence(r => r.GetAsync(
             It.IsAny<string[]>(),
-            It.IsAny<Expression<Func<SubjectMembership, bool>>>(),
-            It.IsAny<Func<IQueryable<SubjectMembership>, IOrderedQueryable<SubjectMembership>>>(),
+            It.IsAny<Expression<Func<Membership, bool>>>(),
+            It.IsAny<Func<IQueryable<Membership>, IOrderedQueryable<Membership>>>(),
             It.IsAny<(int, int)>(),
             It.IsAny<bool>(),
             It.IsAny<bool>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<SubjectMembership>()) // 1st call: check if user is already a member
-            .ReturnsAsync(new List<SubjectMembership> { existingChief }); // 2nd call: check if chief exists
+            .ReturnsAsync(new List<Membership>()) // 1st call: check if user is already a member
+            .ReturnsAsync(new List<Membership> { existingChief }); // 2nd call: check if chief exists
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<BadRequestException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief));

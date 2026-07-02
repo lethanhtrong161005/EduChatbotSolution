@@ -1,6 +1,5 @@
 using AutoMapper;
 using Business.Services.AI.Indexing;
-using Domain.Common;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -131,7 +130,7 @@ public class LibraryModel(
                 userId,
                 [
                     nameof(Subject.Chapters),
-                    nameof(Subject.Chapters) + "." + nameof(Chapter.Documents),
+                    nameof(Subject.Chapters) + "." + nameof(Chapter.DocumentChapters),
                 ],
                 cxlTkn);
 
@@ -161,7 +160,7 @@ public class LibraryModel(
                 id,
                 [
                     nameof(Subject.Chapters),
-                    nameof(Subject.Chapters) + "." + nameof(Chapter.Documents),
+                    nameof(Subject.Chapters) + "." + nameof(Chapter.DocumentChapters),
                     nameof(Subject.Memberships),
                 ],
                 cxlTkn);
@@ -171,7 +170,7 @@ public class LibraryModel(
 
             var chapters = await _chapterService.GetBySubjectAsync(
                 id,
-                [nameof(Chapter.Documents)],
+                [nameof(Chapter.DocumentChapters)],
                 cxlTkn);
 
             var canUpload = await _subjectService.IsChiefAsync(id, User.GetUserId(), cxlTkn);
@@ -182,7 +181,7 @@ public class LibraryModel(
 
                 Chapters = _mapper.Map<List<ChapterSidebarDto>>(
                     chapters
-                    .OrderBy(x => x.ChapterNumber ?? int.MaxValue)
+                    .OrderBy(x => x.ChapterNumber)
                     .ThenBy(x => x.Name)),
 
                 CanUpload = canUpload,
@@ -206,12 +205,12 @@ public class LibraryModel(
 
         var chapters = await _chapterService.GetBySubjectAsync(
             id,
-            [nameof(Chapter.Documents)],
+            [nameof(Chapter.DocumentChapters)],
             cxlTkn);
 
         return new JsonResult(_mapper.Map<List<ChapterSidebarDto>>(
             chapters
-            .OrderBy(x => x.ChapterNumber ?? int.MaxValue)
+            .OrderBy(x => x.ChapterNumber)
             .ThenBy(x => x.Name)));
     }
 
@@ -227,7 +226,7 @@ public class LibraryModel(
 
         var chapter = await _chapterService.GetByIdAsync(
             id,
-            [nameof(Chapter.Subject), nameof(Chapter.Documents)],
+            [nameof(Chapter.Subject), nameof(Chapter.DocumentChapters)],
             cxlTkn);
 
         if (chapter == null)
@@ -259,13 +258,13 @@ public class LibraryModel(
 
         var docs = (await _documentService.GetBySubjectAsync(
             subjectId,
-            [nameof(Document.Chapter), nameof(Document.Uploader)],
+            [nameof(Document.DocumentChapters), nameof(Document.Uploader)],
             cxlTkn))
             .ToList();
 
         if (chapterId.HasValue)
         {
-            docs = [.. docs.Where(e => e.ChapterId == chapterId.Value)];
+            docs = [.. docs.Where(e => e.DocumentChapters.Select(e => e.ChapterId).Contains(chapterId.Value))];
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -294,99 +293,89 @@ public class LibraryModel(
     /// <summary>
     /// Uploads and processes document files.
     /// </summary>
-    /// <param name="chapterId">The chapter to upload to.</param>
-    /// <param name="files">The files to upload.</param>
+    /// <param name="subjectId">The subject to upload to.</param>
+    /// <param name="file">The file to upload.</param>
+    /// <param name="chapterIds">The chapters the file pertain to.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnPostUploadAsync([FromForm] int chapterId, [FromForm] List<IFormFile> files, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnPostUploadAsync([FromForm] int subjectId, [FromForm] IFormFile file, [FromForm] List<int>? chapterIds, CancellationToken cxlTkn)
     {
         try
         {
-            if (files.Count == 0)
+            if (file == null)
                 return BadRequest("No files uploaded.");
 
-            var userId = User.GetUserId();
+            if (file.Length == 0)
+                return BadRequest("Uploaded file is empty.");
 
-            var chapter = await _chapterService.GetByIdAsync(chapterId, cancellationToken: cxlTkn);
-            if (chapter == null)
+            var chapterIdSet = chapterIds?.ToHashSet() ?? [];
+            var chapters = await _chapterService.GetByIdsAsync(chapterIdSet, cancellationToken: cxlTkn);
+            if (chapters.Count() != chapterIdSet.Count)
                 return BadRequest("No such chapter.");
 
-            var canUpload = await _subjectService.IsChiefAsync(chapter.SubjectId, userId, cxlTkn);
+            var userId = User.GetUserId();
+            var canUpload = await _subjectService.IsChiefAsync(subjectId, userId, cxlTkn);
             if (!canUpload)
                 return Forbid();
 
-            var docs = new List<Document>();
-            var problems = new List<string>();
+            await using var fs = file.OpenReadStream();
+            var result = await _tempStorageService.ValidateAndSave(fs, file.FileName, cxlTkn);
 
-            foreach (var file in files)
+            if (!result.Success)
             {
-                await using var fs = file.OpenReadStream();
-                var result = await _tempStorageService.ValidateAndSave(fs, file.FileName, cxlTkn);
-
-                if (!result.Success)
-                {
-                    problems.Add($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
-                    continue;
-                }
-
-                docs.Add(new Document
-                {
-                    ChapterId = chapterId,
-                    UploaderId = userId,
-                    Title = Path.GetFileNameWithoutExtension(file.FileName),
-                    FileName = Path.GetFileName(result.FilePath),
-                    OriginalFileName = file.FileName,
-                    FileType = result.FileType.Value,
-                    FilePath = result.FilePath,
-                    FileSize = file.Length,
-                    Status = DocumentStatus.Uploaded,
-                    UploadedAt = DateTime.UtcNow,
-                });
+                return BadRequest($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
             }
 
-            if (problems.Count > 0)
-                return BadRequest(problems);
-
-            var newDocs = await _documentService.CreateRange(docs, cxlTkn);
-
-            foreach (var doc in newDocs)
+            var doc = new Document
             {
-                var update = new ResourceUpdate
-                {
-                    ResourceType = ResourceType.Document,
-                    Action = ResourceAction.Created,
-                    ResourceId = doc.Id.ToString(),
-                    ResourceName = doc.Title,
-                    Properties =
+                UploaderId = userId,
+                Title = Path.GetFileNameWithoutExtension(file.FileName),
+                FileName = Path.GetFileName(result.FilePath),
+                OriginalFileName = file.FileName,
+                FileType = result.FileType.Value,
+                FilePath = result.FilePath,
+                FileSize = file.Length,
+                Status = DocumentStatus.Uploaded,
+                UploadedAt = DateTime.UtcNow,
+            };
+
+            var newDoc = await _documentService.CreateAsync(doc, cxlTkn);
+
+            var chapterResult = await _documentService.AddChaptersToDocumentAsync(newDoc.Id, chapterIdSet, cxlTkn);
+
+            var update = new ResourceUpdate
+            {
+                ResourceType = ResourceType.Document,
+                Action = ResourceAction.Created,
+                ResourceId = doc.Id.ToString(),
+                ResourceName = doc.Title,
+                Properties =
                 {
                     { nameof(Document.UploaderId) , doc.UploaderId.ToString() },
                 },
-                };
-                await _notifier.PushUpdateAsync(update, CallerConnectionId);
-            }
+            };
 
-            foreach (var doc in newDocs)
-            {
-                var uploadJobId = BackgroundJob.Enqueue<IDocumentFileService>(
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.Upload(doc.Id));
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-                var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                    uploadJobId,
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.ParseAsync(doc.Id));
+            var uploadJobId = BackgroundJob.Enqueue<IDocumentFileService>(
+                HangfireConstants.LowPriorityQueue,
+                e => e.Upload(doc.Id));
 
-                var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                    parseJobId,
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.ChunkAsync(doc.Id));
+            var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                uploadJobId,
+                HangfireConstants.LowPriorityQueue,
+                e => e.ParseAsync(doc.Id));
 
-                BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                    chunkJobId,
-                    HangfireConstants.LowPriorityQueue,
-                    e => e.EmbedAsync(doc.Id));
-            }
+            var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                parseJobId,
+                HangfireConstants.LowPriorityQueue,
+                e => e.ChunkAsync(doc.Id));
 
-            var dtos = _mapper.Map<List<DocumentFileDto>>(newDocs);
+            BackgroundJob.ContinueJobWith<IDocumentIndexer>(
+                chunkJobId,
+                HangfireConstants.LowPriorityQueue,
+                e => e.EmbedAsync(doc.Id));
+
+            var dtos = _mapper.Map<List<DocumentFileDto>>(newDoc);
             return new JsonResult(dtos);
         }
         catch (UserClaimException)

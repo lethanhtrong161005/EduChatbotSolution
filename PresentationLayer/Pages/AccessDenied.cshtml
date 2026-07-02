@@ -1,0 +1,17 @@
+@page "/access-denied"
+@model Presentation.Pages.AccessDeniedModel
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<h1 class="text-danger">Access Denied</h1>
+<h2 class="text-danger">@Model.ViewModel.Title</h2>
+<p>
+    <strong>Details:</strong> <code>@Model.ViewModel.Detail</code>
+</p>
+@if (Model.ViewModel.ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model.ViewModel.RequestId</code>
+    </p>
+}

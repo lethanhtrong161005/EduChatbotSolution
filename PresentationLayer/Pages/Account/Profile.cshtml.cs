@@ -32,7 +32,7 @@ public class ProfileModel(
     public string Role { get; private set; } = "Student";
 
     /// <summary>Gets the list of subject memberships assigned to this user.</summary>
-    public List<SubjectMembership> Memberships { get; private set; } = [];
+    public List<Membership> Memberships { get; private set; } = [];
 
     /// <summary>Gets the documents uploaded by this user, along with assignment warnings.</summary>
     public List<MyDocVm> MyDocuments { get; private set; } = [];
@@ -51,8 +51,7 @@ public class ProfileModel(
         public DateTime UploadedAt { get; set; }
         public string SubjectCode { get; set; } = string.Empty;
         public string SubjectName { get; set; } = string.Empty;
-        public string ChapterName { get; set; } = string.Empty;
-        public bool IsNoLongerAssigned { get; set; }
+        public bool IsAssigned { get; set; }
     }
 
     /// <summary>
@@ -61,33 +60,33 @@ public class ProfileModel(
     /// <param name="cxlTkn">A token to cancel the operation.</param>
     public async Task<IActionResult> OnGetAsync(CancellationToken cxlTkn)
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out var userId))
+        try
         {
-            return Challenge();
-        }
+            var userId = User.GetUserId();
 
-        var user = await _userManager.FindByIdAsync(userIdString);
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-        UserDetails = user;
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return NotFound("User not found.");
 
-        var roles = await _userManager.GetRolesAsync(user);
-        Role = roles.FirstOrDefault() ?? "Student";
+            UserDetails = user;
 
-        // Load active memberships for the user, including the parent Subject
-        var memberships = await _subjectService.GetMembershipsOfUserAsync(userId, cxlTkn);
-        Memberships = [.. memberships.OrderBy(m => m.Subject.Code)];
+            var roles = await _userManager.GetRolesAsync(user);
+            Role = roles.FirstOrDefault() ?? nameof(UserRole.Student);
 
-        // Load all documents uploaded by this user, including their Chapter and parent Subject
-        var documents = await _documentService.GetByUploaderAsync(userId, cxlTkn);
+            // Load active memberships for the user, including the parent Subject
+            var memberships = await _subjectService.GetMembershipsOfUserAsync(userId, cxlTkn);
+            Memberships = [.. memberships.OrderBy(m => m.Subject.Code)];
 
-        var activeSubjectIds = Memberships.Select(m => m.SubjectId).ToHashSet();
+            // Load all documents uploaded by this user, including their Chapter and parent Subject
+            var documents = await _documentService.GetByUploaderAsync(
+                userId,
+                includeProperties: [nameof(Document.Subject)],
+                cancellationToken: cxlTkn);
 
-        // Map documents and perform the review check: is the uploader still assigned to the subject?
-        MyDocuments = [.. documents.Select(d => new MyDocVm
+            var assignedSubjectIds = Memberships.Select(m => m.SubjectId).ToHashSet();
+
+            // Map documents and perform the review check: is the uploader still assigned to the subject?
+            MyDocuments = [.. documents.Select(d => new MyDocVm
         {
             Id = d.Id,
             Title = d.Title,
@@ -96,16 +95,20 @@ public class ProfileModel(
             FileSize = d.FileSize,
             Status = d.Status,
             UploadedAt = d.UploadedAt,
-            SubjectCode = d.Chapter.Subject.Code,
-            SubjectName = d.Chapter.Subject.Name,
-            ChapterName = d.Chapter.Name,
-            IsNoLongerAssigned = !activeSubjectIds.Contains(d.Chapter.SubjectId)
+            SubjectCode = d.Subject.Code,
+            SubjectName = d.Subject.Name,
+            IsAssigned = assignedSubjectIds.Contains(d.SubjectId)
         }).OrderByDescending(d => d.UploadedAt)];
 
-        return Page();
+            return Page();
+        }
+        catch (UserClaimException)
+        {
+            return Challenge();
+        }
     }
 
-    public async Task<IActionResult> OnGetGetProfileAsync()
+    public async Task<IActionResult> OnGetProfileAsync()
     {
         try
         {
@@ -118,20 +121,19 @@ public class ProfileModel(
         }
         catch (UserClaimException)
         {
-            return Challenge();
+            return Unauthorized();
         }
     }
 
-    public async Task<IActionResult> OnGetGetMembershipsAsync(CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetMembershipsAsync(CancellationToken cxlTkn)
     {
         try
         {
             var userId = User.GetUserId();
+
             var memberships = (await _subjectService.GetMembershipsOfUserAsync(userId, cxlTkn))
                 .OrderBy(m => m.Subject.Code)
                 .ToList();
-
-            memberships.ForEach(e => e.Subject.Memberships = []);
 
             var dto = memberships.Select(e => new
             {
@@ -150,42 +152,45 @@ public class ProfileModel(
         }
         catch (UserClaimException)
         {
-            return Challenge();
+            return Unauthorized();
         }
     }
 
-    public async Task<IActionResult> OnGetGetDocumentsAsync(CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetDocumentsAsync(CancellationToken cxlTkn)
     {
         try
         {
             var userId = User.GetUserId();
 
-            var documents = (await _documentService.GetByUploaderAsync(userId, cxlTkn)).ToList();
+            var documents = await _documentService.GetByUploaderAsync
+                (userId,
+                includeProperties: [nameof(Document.Subject)],
+                cancellationToken: cxlTkn);
 
             var memberships = await _subjectService.GetMembershipsOfUserAsync(userId, cxlTkn);
-            var activeSubjectIds = memberships.Select(m => m.SubjectId).ToHashSet();
+            var assignedSubjectIds = memberships.Select(m => m.SubjectId).ToHashSet();
 
             var dto = documents.Select(e => new
             {
                 e.Id,
                 e.Title,
                 e.Description,
-                SubjectId = e.Chapter.SubjectId.ToString(),
-                SubjectCode = e.Chapter.Subject.Code,
-                ChapterName = e.Chapter.Name,
+                SubjectId = e.SubjectId.ToString(),
+                SubjectCode = e.Subject.Code,
+                SubjectName = e.Subject.Name,
                 e.FileName,
                 FileType = e.FileType.ToString(),
                 e.FileSize,
                 e.UploadedAt,
                 e.Status,
-                IsNoLongerAssigned = !activeSubjectIds.Contains(e.Chapter.SubjectId),
+                IsAssigned = assignedSubjectIds.Contains(e.SubjectId),
             }).OrderByDescending(d => d.UploadedAt);
 
             return new JsonResult(dto);
         }
         catch (UserClaimException)
         {
-            return Challenge();
+            return Unauthorized();
         }
     }
 }

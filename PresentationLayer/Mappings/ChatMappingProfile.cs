@@ -12,8 +12,7 @@ public class ChatMappingProfile : Profile
         /* Page shell */
         CreateMap<Subject, SubjectHeaderDto>();
 
-        CreateMap<ChatSessionInfo, SessionHeaderDto>()
-            .ForMember(dest => dest.Title, opts => opts.MapFrom(src => !string.IsNullOrWhiteSpace(src.Title) ? src.Title : $"Conversation {src.Id}"));
+        CreateMap<ChatSessionInfo, SessionHeaderDto>();
 
         /* New session */
         CreateMap<ChatSession, CreateChatSessionResponse>()
@@ -41,19 +40,8 @@ public class ChatMappingProfile : Profile
     }
 }
 
-public sealed class LastMessageAtResolver
-    : IValueResolver<ChatSession, SessionHeaderDto, DateTime>,
-      IValueResolver<ChatSession, ChatSessionDto, DateTime>
+public sealed class LastMessageAtResolver : IValueResolver<ChatSession, ChatSessionDto, DateTime>
 {
-    public DateTime Resolve(
-        ChatSession source,
-        SessionHeaderDto destination,
-        DateTime destMember,
-        ResolutionContext context)
-    {
-        return source.Messages.Max(e => (DateTime?)e.SentAt) ?? source.CreatedAt;
-    }
-
     public DateTime Resolve(
         ChatSession source,
         ChatSessionDto destination,

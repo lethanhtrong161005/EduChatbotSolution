@@ -3,7 +3,7 @@ using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 
-namespace Business.Services.SubscriptionPlan;
+namespace Business.Services.Subscriptions;
 
 public class SubscriptionService(IUnitOfWork unitOfWork) : ISubscriptionService
 {

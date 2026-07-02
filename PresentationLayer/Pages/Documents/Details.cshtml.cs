@@ -3,6 +3,7 @@ using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -61,24 +62,12 @@ public class DetailsModel(
     {
         try
         {
-            var doc = await _documentService.GetByIdAsync(
-                    id,
-                    includeProperties:
-                    [
-                        nameof(Document.Chapter),
-                        nameof(Document.Uploader),
-                        nameof(Document.Chunks),
-                        nameof(Document.Comments),
-                        nameof(Document.Comments) + "." + nameof(DocumentComment.User),
-                        nameof(Document.Comments) + "." + nameof(DocumentComment.User) + "." + nameof(ApplicationUser.SubjectMemberships),
-                        nameof(Document.ParsedSections),
-                    ],
-                    cxlTkn);
+            var doc = await _documentService.GetDocumentDetailsByIdAsync(id, cxlTkn);
 
             if (doc == null)
                 return NotFound();
 
-            IsPhysicalFileAvailable = !string.IsNullOrWhiteSpace(doc.FilePath) && await _fileService.Exists(doc.Id, cxlTkn);
+            IsPhysicalFileAvailable = await _fileService.Exists(doc.Id, cxlTkn);
 
             // Verify if the user has permission to access this document
             var isAdmin = User.IsInRole(nameof(UserRole.Admin));
@@ -86,7 +75,7 @@ public class DetailsModel(
             if (!isAdmin)
             {
                 var userId = User.GetUserId();
-                var membership = await _subjectService.GetMembershipAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+                var membership = await _subjectService.GetMembershipAsync(doc.SubjectId, userId, cxlTkn);
                 if (membership == null)
                     return Forbid();
 
@@ -100,21 +89,6 @@ public class DetailsModel(
             }
 
             var vm = _mapper.Map<DocumentDetailsVm>(doc);
-
-            if (doc.ParsedSections != null && doc.ParsedSections.Count > 0)
-            {
-                vm.ParsedSections = [.. doc.ParsedSections
-                .OrderBy(s => s.SectionIndex)
-                .Select(s => new ParsedSectionVm
-                {
-                    SectionIndex = s.SectionIndex,
-                    PageNumber = s.PageNumber,
-                    SectionTitle = s.SectionTitle,
-                    Text = s.Text
-                })];
-
-                vm.ExtractedText = string.Join("\n\n", doc.ParsedSections.OrderBy(s => s.SectionIndex).Select(s => s.Text));
-            }
 
             // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
             if (string.IsNullOrWhiteSpace(vm.ExtractedText) && await _fileService.Exists(doc.Id, cxlTkn))
@@ -150,7 +124,7 @@ public class DetailsModel(
     /// <param name="documentId">The document identifier.</param>
     /// <param name="pageIndex">The one-based page index requested by the client.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
     {
         var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
             id,
@@ -185,9 +159,7 @@ public class DetailsModel(
             return RedirectToPage(new { id = targetDocumentId });
         }
 
-        var doc = await _documentService.GetByIdAsync(
-            targetDocumentId,
-            includeProperties: [nameof(Document.Chapter)]);
+        var doc = await _documentService.GetByIdAsync(targetDocumentId, cancellationToken: cxlTkn);
 
         if (doc == null)
         {
@@ -203,7 +175,7 @@ public class DetailsModel(
         var isAdmin = User.IsInRole(nameof(UserRole.Admin));
         if (!isAdmin)
         {
-            var isMember = await _subjectService.IsMemberAsync(doc.Chapter.SubjectId, userId, cxlTkn);
+            var isMember = await _subjectService.IsMemberAsync(doc.SubjectId, userId, cxlTkn);
 
             if (!isMember)
             {

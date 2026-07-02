@@ -1,5 +1,7 @@
 using AutoMapper;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Utils;
 using Presentation.DTOs;
 using Presentation.ViewModels;
 
@@ -46,25 +48,24 @@ public class DocumentMappingProfile : Profile
                 o => o.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.UploadedBy,
                 o => o.MapFrom(s => s.Uploader.FullName))
+            .ForMember(d => d.Chapters,
+                o => o.MapFrom(s => s.Chapters));
+
+        CreateMap<Chapter, ChapterInfoDto>()
             .ForMember(d => d.ChapterName,
-                o => o.MapFrom(s => s.Chapter.Name))
-            .ForMember(d => d.ChapterNumber,
-                o => o.MapFrom(s => s.Chapter.ChapterNumber));
+                o => o.MapFrom(s => s.Name));
 
         // ===========================
         // Details
         // ===========================
 
-        CreateMap<Document, DocumentDetailsVm>()
-            .ForMember(dest => dest.ChapterName, opts => opts.MapFrom(src => src.Chapter.Name))
-            .ForMember(dest => dest.SubjectId, opts => opts.MapFrom(src => src.Chapter.SubjectId))
+        CreateMap<DocumentDetails, DocumentDetailsVm>()
             .ForMember(dest => dest.Extension, opts => opts.MapFrom(src => Path.GetExtension(src.FileName)))
-            .ForMember(dest => dest.Status, opts => opts.MapFrom(src => src.Status.ToString()))
-            .ForMember(dest => dest.EmbeddingModel, opts => opts.MapFrom(src => src.Chunks.Count > 0 ? src.Chunks.First().EmbeddingModel : null))
-            .ForMember(dest => dest.ChunkCount, opts => opts.MapFrom(src => src.Chunks.Count))
-            .ForMember(dest => dest.UploadedBy, opts => opts.MapFrom(src => src.Uploader.FullName));
+            .ForMember(dest => dest.ExtractedText, opts => opts.MapFrom(src => string.Join("\n\n", src.ParsedSections.OrderBy(s => s.SectionIndex).Select(x => x.Text))));
 
-        CreateMap<ParsedSection, ParsedSectionVm>();
+        CreateMap<ParsedSectionDetails, ParsedSectionVm>();
+
+        CreateMap<DocumentCommentDetails, DocumentCommentVm>();
 
         CreateMap<Chunk, ChunkPreviewDto>()
             .ForMember(dest => dest.VectorPreview, opts => opts.MapFrom(src => src.Embedding != null

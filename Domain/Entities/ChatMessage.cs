@@ -32,7 +32,7 @@ public class ChatMessage : NaturalEntity
     public virtual ChatMessageGenerationMetrics? GenerationMetrics { get; set; }
 
     /// <summary>Gets or sets citations associated with this message.</summary>
-    public virtual ICollection<Citation> Citations { get; set; } = [];
+    public virtual ICollection<Citation> Citations { get; } = [];
 }
 
 public enum ChatRole

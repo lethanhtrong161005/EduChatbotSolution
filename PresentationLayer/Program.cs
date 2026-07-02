@@ -7,8 +7,8 @@ using Business.Services.AI.Indexing.Embedding;
 using Business.Services.AI.Indexing.Parsing;
 using Business.Services.Documents;
 using Business.Services.Documents.File;
-using Business.Services.ExternalPayment;
-using Business.Services.SubscriptionPlan;
+using Business.Services.Subscriptions;
+using Business.Services.Subscriptions.ExternalPayment;
 using DataAccess.Data;
 using DataAccess.UnitOfWork;
 using Domain.Constants;
@@ -235,7 +235,7 @@ builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequ
 builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetRequiredSection("BlobStorage:Supabase"));
 
 // ── Identity Authentication ───────────────────────────────────
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opts =>
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(opts =>
 {
     opts.Password.RequiredLength = 8;
     opts.User.RequireUniqueEmail = true;

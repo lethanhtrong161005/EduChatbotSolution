@@ -76,18 +76,18 @@ public static class HostExtensions
         using var scope = host.Services.CreateScope();
         var services = scope.ServiceProvider;
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
         var logger = services.GetRequiredService<ILogger<TContext>>();
 
-        if ((await roleManager.FindByNameAsync("Admin")) != null)
+        if ((await roleManager.FindByNameAsync(nameof(UserRole.Admin))) != null)
         {
             logger.LogInformation("Roles already exist. Skipping role seed.");
             goto USER;
         }
-        await roleManager.CreateAsync(new("Admin"));
-        await roleManager.CreateAsync(new("Student"));
-        await roleManager.CreateAsync(new("Lecturer"));
+        await roleManager.CreateAsync(new(nameof(UserRole.Admin)));
+        await roleManager.CreateAsync(new(nameof(UserRole.Lecturer)));
+        await roleManager.CreateAsync(new(nameof(UserRole.Student)));
 
     USER:
         // Ensure default admin user exists for development testing
@@ -544,9 +544,8 @@ public static class HostExtensions
 
         void AddDoc(Chapter chapter, string title, string fileName)
         {
-            unitOfWork.Documents.Insert(new Document
+            var document = new Document
             {
-                ChapterId = chapter.Id,
                 UploaderId = uploader.Id,
 
                 Title = title,
@@ -566,7 +565,9 @@ public static class HostExtensions
                     $"{Guid.NewGuid()}{Path.GetExtension(fileName)}"),
 
                 UploadedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 180)),
-            });
+            };
+            document.Chapters.Add(chapter);
+            unitOfWork.Documents.Insert(document);
         }
 
         static DocumentType RandomFileType(Random rnd)
@@ -595,8 +596,8 @@ public static class HostExtensions
 
         await unitOfWork.SaveAsync();
 
-        unitOfWork.SubjectMemberships.Insert(
-            new SubjectMembership
+        unitOfWork.Memberships.Insert(
+            new Membership
             {
                 UserId = uploader.Id,
                 SubjectId = architecture.Id,
@@ -604,8 +605,8 @@ public static class HostExtensions
                 AssignedAt = DateTime.UtcNow
             });
 
-        unitOfWork.SubjectMemberships.Insert(
-            new SubjectMembership
+        unitOfWork.Memberships.Insert(
+            new Membership
             {
                 UserId = uploader.Id,
                 SubjectId = ai.Id,

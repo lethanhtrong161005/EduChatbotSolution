@@ -25,5 +25,5 @@ public class Citation : NaturalEntity
     /// <summary>Gets or sets the source chunk.</summary>
     public virtual Chunk Chunk { get; set; } = null!;
 
-    public virtual ICollection<CitationOccurrence> CitationOccurrences { get; set; } = [];
+    public virtual ICollection<CitationOccurrence> CitationOccurrences { get; } = [];
 }

@@ -5,8 +5,8 @@
 /// </summary>
 public class Document : NaturalEntity
 {
-    /// <summary>Gets or sets the optional foreign key to a <see cref="Chapter"/>.</summary>
-    public int ChapterId { get; set; }
+    /// <summary>Gets or sets the optional foreign key to a <see cref="Subject"/>.</summary>
+    public int SubjectId { get; set; }
 
     /// <summary>Gets or sets the foreign key to the <see cref="ApplicationUser"/> who uploaded.</summary>
     public Guid UploaderId { get; set; }
@@ -42,18 +42,24 @@ public class Document : NaturalEntity
     public DateTime UploadedAt { get; set; }
 
     // ── Navigation ──────────────────────────────────────────
-    /// <summary>Gets or sets the chapter this document belongs to.</summary>
-    public virtual Chapter Chapter { get; set; } = null!;
+    /// <summary>Gets or sets the subject this document belongs to.</summary>
+    public virtual Subject Subject { get; set; } = null!;
 
     /// <summary>Gets or sets the user who uploaded this document.</summary>
     public virtual ApplicationUser Uploader { get; set; } = null!;
 
+    /// <summary>Gets or sets the chapter associations for this document.</summary>
+    public virtual ICollection<DocumentChapter> DocumentChapters { get; } = [];
+
+    /// <summary>Skip navigation for chapter associations.</summary>
+    public virtual ICollection<Chapter> Chapters { get; } = [];
+
+    public virtual ICollection<ParsedSection> ParsedSections { get; } = [];
+
     /// <summary>Gets or sets the chunks generated from this document.</summary>
-    public virtual ICollection<Chunk> Chunks { get; set; } = [];
+    public virtual ICollection<Chunk> Chunks { get; } = [];
 
-    public virtual ICollection<DocumentComment> Comments { get; set; } = [];
-
-    public virtual ICollection<ParsedSection> ParsedSections { get; set; } = [];
+    public virtual ICollection<DocumentComment> Comments { get; } = [];
 
     public string ContentType => FileType switch
     {

@@ -4,6 +4,7 @@ using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 
 namespace Business.Services.AI.Chat;
 
@@ -66,7 +67,15 @@ public class ChatPersistenceService(
             cancellationToken: cxlTkn))
             .FirstOrDefault();
 
-        session?.Messages = [.. await GetMessagesBySessionAsync(id, limit, cxlTkn)];
+        if (session == null)
+            return null;
+
+        List<ChatMessage> messages = [.. await GetMessagesBySessionAsync(id, limit, cxlTkn)];
+
+        foreach (var message in messages)
+        {
+            session.Messages.Add(message);
+        }
 
         return session;
     }
@@ -284,14 +293,19 @@ public class ChatPersistenceService(
             TokensPerSecond = generationMetrics.TokensPerSecond,
         };
 
-        message.Citations = [.. resolvedCitations.Select(
-                    c => new Citation
-                    {
-                        ChunkId = c.ChunkId,
-                        CitationIndex = c.CitationIndex,
-                        SimilarityScore = c.SimilarityScore,
-                        LocationInDocument = c.LocationInDocument,
-                    })];
+        List<Citation> citations = [.. resolvedCitations.Select(
+            c => new Citation
+            {
+                ChunkId = c.ChunkId,
+                CitationIndex = c.CitationIndex,
+                SimilarityScore = c.SimilarityScore,
+                LocationInDocument = c.LocationInDocument,
+            })];
+
+        foreach (var citation in citations)
+        {
+            message.Citations.Add(citation);
+        }
 
         await _unitOfWork.SaveAsync(cxlTkn);
 
@@ -339,30 +353,12 @@ public class ChatPersistenceService(
                     ChunkId = chunkUsage.ChunkId,
                     CitationIndex = chunkUsage.CitationIndex,
                     SimilarityScore = chunkUsage.SimilarityScore,
-                    LocationInDocument = BuildLocation(),
+                    LocationInDocument = chunk.BuildLocation(),
                     ChunkIndex = chunk.ChunkIndex,
                     ChunkText = chunk.ChunkText,
                     DocumentTitle = chunk.Document.Title,
                     DocumentId = chunk.DocumentId,
                 };
-
-                string? BuildLocation()
-                {
-                    var locations = new List<string>();
-
-                    if (chunk.PageNumber != null)
-                    {
-                        locations.Add($"Page: {chunk.PageNumber}");
-                    }
-                    if (!string.IsNullOrWhiteSpace(chunk.SectionTitle))
-                    {
-                        locations.Add($"Section: {chunk.SectionTitle}");
-                    }
-
-                    return locations.Count > 0
-                        ? string.Join(" • ", locations)
-                        : null;
-                }
             })];
     }
 

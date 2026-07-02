@@ -68,12 +68,6 @@ public sealed class DocumentFileDto
 {
     public Guid Id { get; set; }
 
-    public int ChapterId { get; set; }
-
-    public int ChapterNumber { get; set; }
-
-    public string ChapterName { get; set; } = string.Empty;
-
     public string Title { get; set; } = string.Empty;
 
     public string Extension { get; set; } = string.Empty;
@@ -85,4 +79,15 @@ public sealed class DocumentFileDto
     public DateTime UploadedAt { get; set; }
 
     public long? FileSize { get; set; }
+
+    public IReadOnlyList<ChapterInfoDto> Chapters { get; set; } = [];
+}
+
+public sealed class ChapterInfoDto
+{
+    public int Id { get; set; }
+
+    public int ChapterNumber { get; set; }
+
+    public string ChapterName { get; set; } = string.Empty;
 }

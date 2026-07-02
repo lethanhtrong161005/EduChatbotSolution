@@ -19,7 +19,9 @@ public class Subject : CategoryLikeEntity
     public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
 
     /// <summary>Gets or sets the chapters belonging to this subject.</summary>
-    public virtual ICollection<Chapter> Chapters { get; set; } = [];
+    public virtual ICollection<Chapter> Chapters { get; } = [];
 
-    public virtual ICollection<SubjectMembership> Memberships { get; set; } = [];
+    public virtual ICollection<Membership> Memberships { get; } = [];
+
+    public virtual ICollection<ApplicationUser> Members { get; } = [];
 }

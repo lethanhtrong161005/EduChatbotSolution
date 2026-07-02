@@ -1,4 +1,3 @@
-using Domain.Common;
 using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
@@ -87,7 +86,7 @@ public class LoginModel(
             await _signInManager.SignInWithClaimsAsync(loginResult.User, authProps, loginResult.Claims);
 
             var isAdmin = loginResult.Claims.Any(c =>
-                c.Type == ClaimTypes.Role && c.Value == UserRole.Admin.ToString());
+                c.Type == ClaimTypes.Role && c.Value == nameof(UserRole.Admin));
 
             if (isAdmin)
             {

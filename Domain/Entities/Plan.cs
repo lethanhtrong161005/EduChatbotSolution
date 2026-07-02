@@ -32,5 +32,5 @@ public class Plan : CategoryLikeEntity
 
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the subscriptions using this plan.</summary>
-    public virtual ICollection<PlanOption> PlanOptions { get; set; } = [];
+    public virtual ICollection<PlanOption> PlanOptions { get; } = [];
 }

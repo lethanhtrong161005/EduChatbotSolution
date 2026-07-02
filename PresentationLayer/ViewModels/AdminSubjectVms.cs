@@ -64,7 +64,7 @@ public class AdminCreateChapterVm
     public string ChapterName { get; set; } = string.Empty;
 
     [Range(1, int.MaxValue, ErrorMessage = "Số thứ tự chương phải lớn hơn hoặc bằng 1.")]
-    public int? ChapterNumber { get; set; }
+    public int ChapterNumber { get; set; }
 }
 
 /// <summary>
@@ -80,7 +80,7 @@ public class AdminUpdateChapterVm
     public string ChapterName { get; set; } = string.Empty;
 
     [Range(1, int.MaxValue, ErrorMessage = "Số thứ tự chương phải lớn hơn hoặc bằng 1.")]
-    public int? ChapterNumber { get; set; }
+    public int ChapterNumber { get; set; }
 }
 
 /// <summary>

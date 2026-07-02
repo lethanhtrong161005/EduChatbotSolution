@@ -24,5 +24,5 @@ public class ChatSession : NaturalEntity
     public virtual ChatSessionTitleGenerationMetrics TitleGenerationMetrics { get; set; } = null!;
 
     /// <summary>Gets or sets the messages in this conversation.</summary>
-    public virtual ICollection<ChatMessage> Messages { get; set; } = [];
+    public virtual ICollection<ChatMessage> Messages { get; } = [];
 }

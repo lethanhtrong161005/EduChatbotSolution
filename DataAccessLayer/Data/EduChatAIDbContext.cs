@@ -12,7 +12,7 @@ namespace DataAccess.Data;
 /// <remarks>Initializes a new instance of <see cref="EduChatAiDbContext"/> with options.</remarks>
 /// <param name="options">The DbContext configuration options.</param>
 public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
-    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityDbContext<ApplicationUser, ApplicationRole, Guid, IdentityUserClaim<Guid>, ApplicationUserRole, IdentityUserLogin<Guid>, IdentityRoleClaim<Guid>, IdentityUserToken<Guid>>(options)
 {
     // ── Subscription & Payment ───────────────────────────────
     /// <summary>Gets or sets the subscription plans set.</summary>
@@ -34,7 +34,7 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     /// <summary>Gets or sets the subjects set.</summary>
     public DbSet<Subject> Subjects { get; set; }
 
-    public DbSet<SubjectMembership> SubjectMemberships { get; set; }
+    public DbSet<Membership> Memberships { get; set; }
 
     public DbSet<SubjectAiConfiguration> SubjectAiConfigurations { get; set; }
 
@@ -45,6 +45,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
     /// <summary>Gets or sets the documents set.</summary>
     public DbSet<Document> Documents { get; set; }
+
+    public DbSet<DocumentChapter> DocumentChapters { get; set; }
 
     public DbSet<DocumentComment> DocumentComments { get; set; }
 
@@ -87,9 +89,6 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-
-        //optionsBuilder.ConfigureWarnings(builder 
-        //    => builder.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     /// <inheritdoc/>
@@ -100,9 +99,9 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");
-        modelBuilder.Entity<IdentityRole<Guid>>().ToTable("roles");
+        modelBuilder.Entity<ApplicationRole>().ToTable("roles");
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
-        modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("user_roles");
+        modelBuilder.Entity<ApplicationUserRole>().ToTable("user_roles");
         modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
@@ -113,11 +112,12 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<Subscription>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Payment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Subject>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<SubjectMembership>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Membership>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<SubjectAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<GlobalAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Chapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Document>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<DocumentChapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<DocumentComment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ParsedSection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Chunk>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
@@ -132,6 +132,19 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<TestQuestion>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Experiment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+        modelBuilder.Entity<ApplicationUserRole>()
+            .HasKey(e => new { e.UserId, e.RoleId });
+        modelBuilder.Entity<ApplicationUser>()
+            .HasMany(e => e.Roles)
+            .WithMany(e => e.Users)
+            .UsingEntity<ApplicationUserRole>(
+                r => r.HasOne(j => j.Role)
+                      .WithMany(p => p.UserRoles)
+                      .HasForeignKey(j => j.RoleId),
+                l => l.HasOne(j => j.User)
+                      .WithMany(p => p.UserRoles)
+                      .HasForeignKey(j => j.UserId));
 
         modelBuilder.Entity<Plan>()
             .HasIndex(e => e.Tier)
@@ -154,13 +167,39 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .WithOne(p => p.AiConfiguration)
             .HasForeignKey<SubjectAiConfiguration>(d => d.Id);
 
-        modelBuilder.Entity<SubjectMembership>()
-            .HasIndex(e => new { e.UserId, e.SubjectId })
+        modelBuilder.Entity<Membership>()
+            .HasIndex(e => new { e.SubjectId, e.UserId })
             .IsUnique();
-        modelBuilder.Entity<SubjectMembership>()
+        modelBuilder.Entity<Membership>()
             .HasIndex(e => new { e.SubjectId, e.Role })
             .HasFilter($"\"role\" = {(int)MembershipRole.Chief}")
             .IsUnique();
+        modelBuilder.Entity<Subject>()
+            .HasMany(e => e.Members)
+            .WithMany(e => e.AssignedSubjects)
+            .UsingEntity<Membership>(
+                r => r.HasOne(j => j.User)
+                      .WithMany(p => p.Memberships)
+                      .HasForeignKey(j => j.UserId),
+                l => l.HasOne(j => j.Subject)
+                      .WithMany(p => p.Memberships)
+                      .HasForeignKey(j => j.SubjectId));
+
+        modelBuilder.Entity<DocumentChapter>()
+            .HasIndex(e => new { e.DocumentId, e.ChapterId })
+            .IsUnique();
+        modelBuilder.Entity<Document>()
+            .HasMany(e => e.Chapters)
+            .WithMany(e => e.Documents)
+            .UsingEntity<DocumentChapter>(
+                r => r.HasOne(j => j.Chapter)
+                      .WithMany(p => p.DocumentChapters)
+                      .HasForeignKey(j => new { j.ChapterId, j.SubjectId })
+                      .HasPrincipalKey(p => new { p.Id, p.SubjectId }),
+                l => l.HasOne(j => j.Document)
+                      .WithMany(p => p.DocumentChapters)
+                      .HasForeignKey(j => new { j.DocumentId, j.SubjectId })
+                      .HasPrincipalKey(p => new { p.Id, p.SubjectId }));
 
         modelBuilder.Entity<Chunk>()
             .Property(e => e.Embedding)

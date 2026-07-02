@@ -1,6 +1,6 @@
 using AutoMapper;
-using Business.Services.ExternalPayment;
-using Domain.Common;
+using Business.Services.Subscriptions.ExternalPayment;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;

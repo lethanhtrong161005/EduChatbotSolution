@@ -1,11 +1,11 @@
 ﻿using DataAccess.UnitOfWork;
-using Domain.Common;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 using System.Linq.Expressions;
 
-namespace Business.Services.SubscriptionPlan;
+namespace Business.Services.Subscriptions;
 
 public class PaymentService(IUnitOfWork unitOfWork) : IPaymentService
 {

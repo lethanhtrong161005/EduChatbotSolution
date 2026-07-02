@@ -16,6 +16,7 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
     Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
     (int pageSize, int pageIndex) paginationSettings = default,
     bool asNoTracking = false,
+    bool asSplitQuery = false,
     bool deferLoading = false,
     CancellationToken cancellationToken = default)
     {
@@ -27,6 +28,7 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
             orderBy,
             paginationSettings,
             asNoTracking,
+            asSplitQuery,
             deferLoading,
             cancellationToken);
     }
@@ -39,6 +41,7 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
         Func<IQueryable<TResult>, IOrderedQueryable<TResult>>? orderBy = null,
         (int pageSize, int pageIndex) paginationSettings = default,
         bool asNoTracking = false,
+        bool asSplitQuery = false,
         bool deferLoading = false,
         CancellationToken cancellationToken = default)
         where TResult : class
@@ -80,6 +83,9 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
 
         if (orderBy != null)
             query = orderBy(query);
+
+        if (asSplitQuery)
+            query = query.AsSplitQuery();
 
         var pageSize = paginationSettings.pageSize;
         var pageIndex = paginationSettings.pageIndex;

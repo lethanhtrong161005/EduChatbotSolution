@@ -2,7 +2,7 @@
 using Domain.Contracts;
 using Domain.Entities;
 
-namespace Business.Services.SubscriptionPlan;
+namespace Business.Services.Subscriptions;
 
 public class OrderService(IUnitOfWork unitOfWork) : IOrderService
 {

@@ -467,7 +467,7 @@
                                         </td>
                                         <td>
                                             <span class="badge bg-secondary me-1">@doc.SubjectCode</span>
-                                            <span class="text-muted small">@doc.ChapterName</span>
+                                            <span class="text-muted small">@doc.SubjectName</span>
                                         </td>
                                         <td>
                                             <span class="badge bg-dark">@doc.FileType</span>
@@ -497,16 +497,16 @@
                                             </span>
                                         </td>
                                         <td>
-                                            @if (doc.IsNoLongerAssigned)
+                                            @if (doc.IsAssigned)
                                             {
-                                                <span class="status-badge-custom status-warning" title="Warning: You are no longer assigned to this subject.">
-                                                    <i class="fas fa-exclamation-triangle"></i> Not Assigned
+                                                <span class="status-badge-custom status-active">
+                                                    <i class="fas fa-check-circle"></i> Assigned
                                                 </span>
                                             }
                                             else
                                             {
-                                                <span class="status-badge-custom status-active">
-                                                    <i class="fas fa-check-circle"></i> Assigned
+                                                <span class="status-badge-custom status-warning" title="Warning: You are no longer assigned to this subject.">
+                                                    <i class="fas fa-exclamation-triangle"></i> Not Assigned
                                                 </span>
                                             }
                                         </td>
@@ -539,11 +539,11 @@
 
     <script>
         window.Razor = {
-            userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
-            subjectIds: @Html.Raw(JsonSerializer.Serialize(Model.Memberships.Select(e => e.SubjectId.ToString()))),
-            documentIds: @Html.Raw(JsonSerializer.Serialize(Model.MyDocuments.Select(e => e.Id))),
+        userId: '@User.FindFirstValue(ClaimTypes.NameIdentifier)',
+        subjectIds: @Html.Raw(JsonSerializer.Serialize(Model.Memberships.Select(e => e.SubjectId.ToString()))),
+        documentIds: @Html.Raw(JsonSerializer.Serialize(Model.MyDocuments.Select(e => e.Id))),
         };
     </script>
 
-    <script src="~/js/account/profile-signalr.js"></script>
+    <script src="~/js/account/profile.js"></script>
 }

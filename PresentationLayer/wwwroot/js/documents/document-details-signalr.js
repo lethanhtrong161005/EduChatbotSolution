@@ -99,11 +99,16 @@ resConn
         const promises = [];
 
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Razor.documentId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Razor.chapterId));
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Razor.subjectId));
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Razor.uploaderId));
 
-        if (Razor.viewerMembershipId)
+        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.Document, Razor.documentId, ResourceType.DocumentChapter));
+
+        for (const chapterId of Razor.chapterIds) {
+            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, chapterId));
+        }
+
+        if (Razor.viewerMembershipId) // Admins have no membership
             promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Razor.uploaderId));
 
         await Promise.all(promises);

@@ -14,7 +14,7 @@ public class Order : NaturalEntity
     // ── Navigation ──────────────────────────────────────────
     public virtual Subscription Subscription { get; set; } = null!;
 
-    public virtual ICollection<Payment> Payments { get; set; } = [];
+    public virtual ICollection<Payment> Payments { get; } = [];
 
     // ── Convenience ─────────────────────────────────────────
     public Guid UserId => Subscription.UserId;

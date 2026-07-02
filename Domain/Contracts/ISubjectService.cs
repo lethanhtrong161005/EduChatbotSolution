@@ -56,12 +56,12 @@ public interface ISubjectService
     /// <summary>
     /// Creates a new chapter inside a subject.
     /// </summary>
-    Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int? chapterNumber);
+    Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int chapterNumber);
 
     /// <summary>
     /// Updates an existing chapter.
     /// </summary>
-    Task<Chapter> UpdateChapterAsync(int id, string chapterName, int? chapterNumber);
+    Task<Chapter> UpdateChapterAsync(int id, string chapterName, int chapterNumber);
 
     /// <summary>
     /// Deletes a chapter.
@@ -73,17 +73,17 @@ public interface ISubjectService
     /// <summary>
     /// Gets all active memberships (students, lecturers, chiefs) for a subject.
     /// </summary>
-    Task<List<SubjectMembership>> GetMembershipsBySubjectIdAsync(int subjectId);
+    Task<List<Membership>> GetMembershipsBySubjectIdAsync(int subjectId);
 
     /// <summary>
     /// Assigns an active user to a subject with a specific membership role (Student, Lecturer, Chief).
     /// </summary>
-    Task<SubjectMembership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role);
+    Task<Membership> AssignMemberAsync(int subjectId, Guid userId, MembershipRole role);
 
     /// <summary>
     /// Removes a user from a subject's membership.
     /// </summary>
-    Task<SubjectMembership> RemoveMemberAsync(int subjectId, Guid userId);
+    Task<Membership> RemoveMemberAsync(int subjectId, Guid userId);
 
     /// <summary>
     /// Returns a list of active users that are eligible to be assigned to the subject (e.g. not already members).
@@ -93,9 +93,9 @@ public interface ISubjectService
         MembershipRole role,
         string? search);
 
-    Task<SubjectMembership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cancellationToken = default);
+    Task<Membership?> GetMembershipAsync(int subjectId, Guid userid, CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<SubjectMembership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Membership>> GetMembershipsOfUserAsync(Guid userid, CancellationToken cancellationToken = default);
 
     Task<bool> IsMemberAsync(int subjectId, Guid userId, CancellationToken cancellationToken = default);
 

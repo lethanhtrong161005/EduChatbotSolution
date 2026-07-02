@@ -38,5 +38,5 @@ public class Chunk : NaturalEntity
     public virtual Document Document { get; set; } = null!;
 
     /// <summary>Gets or sets the citations that reference this chunk.</summary>
-    public virtual ICollection<Citation> Citations { get; set; } = [];
+    public virtual ICollection<Citation> Citations { get; } = [];
 }

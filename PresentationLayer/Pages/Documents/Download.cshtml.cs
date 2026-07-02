@@ -1,5 +1,5 @@
-using Domain.Common;
 using Domain.Contracts;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,7 +9,7 @@ namespace Presentation.Pages.Documents;
 /// <summary>
 /// Handles document download requests.
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
 public class DownloadModel(
     IDocumentService documentService,
     IDocumentFileService fileService)

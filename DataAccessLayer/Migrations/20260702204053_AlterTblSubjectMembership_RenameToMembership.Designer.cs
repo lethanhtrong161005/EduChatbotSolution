@@ -13,8 +13,8 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    [Migration("20260626134940_Check")]
-    partial class Check
+    [Migration("20260702204053_AlterTblSubjectMembership_RenameToMembership")]
+    partial class AlterTblSubjectMembership_RenameToMembership
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -26,6 +26,38 @@ namespace DataAccessLayer.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Domain.Entities.ApplicationRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_roles");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex");
+
+                    b.ToTable("roles", (string)null);
+                });
 
             modelBuilder.Entity("Domain.Entities.ApplicationUser", b =>
                 {
@@ -125,6 +157,25 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("UserId", "RoleId")
+                        .HasName("pk_user_roles");
+
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_user_roles_role_id");
+
+                    b.ToTable("user_roles", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Chapter", b =>
                 {
                     b.Property<int>("Id")
@@ -134,7 +185,7 @@ namespace DataAccessLayer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ChapterNumber")
+                    b.Property<int>("ChapterNumber")
                         .HasColumnType("integer")
                         .HasColumnName("chapter_number");
 
@@ -160,6 +211,9 @@ namespace DataAccessLayer.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_chapters");
+
+                    b.HasAlternateKey("Id", "SubjectId")
+                        .HasName("ak_chapters_id_subject_id");
 
                     b.HasIndex("SubjectId", "ChapterNumber")
                         .IsUnique()
@@ -646,10 +700,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int>("ChapterId")
-                        .HasColumnType("integer")
-                        .HasColumnName("chapter_id");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -695,6 +745,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("subject_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -716,13 +770,62 @@ namespace DataAccessLayer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_documents");
 
-                    b.HasIndex("ChapterId")
-                        .HasDatabaseName("ix_documents_chapter_id");
+                    b.HasAlternateKey("Id", "SubjectId")
+                        .HasName("ak_documents_id_subject_id");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_documents_subject_id");
 
                     b.HasIndex("UploaderId")
                         .HasDatabaseName("ix_documents_uploader_id");
 
                     b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.DocumentChapter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ChapterId")
+                        .HasColumnType("integer")
+                        .HasColumnName("chapter_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_document_chapters");
+
+                    b.HasIndex("ChapterId", "SubjectId")
+                        .HasDatabaseName("ix_document_chapters_chapter_id_subject_id");
+
+                    b.HasIndex("DocumentId", "ChapterId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_document_chapters_document_id_chapter_id");
+
+                    b.HasIndex("DocumentId", "SubjectId")
+                        .HasDatabaseName("ix_document_chapters_document_id_subject_id");
+
+                    b.ToTable("document_chapters", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.DocumentComment", b =>
@@ -731,6 +834,10 @@ namespace DataAccessLayer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -752,18 +859,14 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
                     b.HasKey("Id")
                         .HasName("pk_document_comments");
 
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_document_comments_author_id");
+
                     b.HasIndex("DocumentId")
                         .HasDatabaseName("ix_document_comments_document_id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_document_comments_user_id");
 
                     b.ToTable("document_comments", (string)null);
                 });
@@ -917,6 +1020,58 @@ namespace DataAccessLayer.Migrations
                         .HasName("pk_global_ai_configurations");
 
                     b.ToTable("global_ai_configurations", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Membership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer")
+                        .HasColumnName("role");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_memberships");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_memberships_user_id");
+
+                    b.HasIndex("SubjectId", "Role")
+                        .IsUnique()
+                        .HasDatabaseName("ix_memberships_subject_id_role")
+                        .HasFilter("\"role\" = 2");
+
+                    b.HasIndex("SubjectId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_memberships_subject_id_user_id");
+
+                    b.ToTable("memberships", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Order", b =>
@@ -1310,55 +1465,6 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("subject_ai_configurations", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubjectMembership", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("assigned_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer")
-                        .HasColumnName("role");
-
-                    b.Property<int>("SubjectId")
-                        .HasColumnType("integer")
-                        .HasColumnName("subject_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_subject_memberships");
-
-                    b.HasIndex("SubjectId", "Role")
-                        .IsUnique()
-                        .HasDatabaseName("ix_subject_memberships_subject_id_role")
-                        .HasFilter("\"role\" = 2");
-
-                    b.HasIndex("UserId", "SubjectId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_subject_memberships_user_id_subject_id");
-
-                    b.ToTable("subject_memberships", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1520,38 +1626,6 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("test_responses", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("text")
-                        .HasColumnName("concurrency_stamp");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("normalized_name");
-
-                    b.HasKey("Id")
-                        .HasName("pk_roles");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex");
-
-                    b.ToTable("roles", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -1639,25 +1713,6 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("user_logins", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("role_id");
-
-                    b.HasKey("UserId", "RoleId")
-                        .HasName("pk_user_roles");
-
-                    b.HasIndex("RoleId")
-                        .HasDatabaseName("ix_user_roles_role_id");
-
-                    b.ToTable("user_roles", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -1680,6 +1735,27 @@ namespace DataAccessLayer.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ApplicationUserRole", b =>
+                {
+                    b.HasOne("Domain.Entities.ApplicationRole", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_roles_roles_role_id");
+
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_roles_users_user_id");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domain.Entities.Chapter", b =>
@@ -1820,12 +1896,12 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.Document", b =>
                 {
-                    b.HasOne("Domain.Entities.Chapter", "Chapter")
-                        .WithMany("Documents")
-                        .HasForeignKey("ChapterId")
+                    b.HasOne("Domain.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_documents_chapters_chapter_id");
+                        .HasConstraintName("fk_documents_subjects_subject_id");
 
                     b.HasOne("Domain.Entities.ApplicationUser", "Uploader")
                         .WithMany()
@@ -1834,13 +1910,43 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_documents_users_uploader_id");
 
-                    b.Navigation("Chapter");
+                    b.Navigation("Subject");
 
                     b.Navigation("Uploader");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DocumentChapter", b =>
+                {
+                    b.HasOne("Domain.Entities.Chapter", "Chapter")
+                        .WithMany("DocumentChapters")
+                        .HasForeignKey("ChapterId", "SubjectId")
+                        .HasPrincipalKey("Id", "SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_chapters_chapters_chapter_id_subject_id");
+
+                    b.HasOne("Domain.Entities.Document", "Document")
+                        .WithMany("DocumentChapters")
+                        .HasForeignKey("DocumentId", "SubjectId")
+                        .HasPrincipalKey("Id", "SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_chapters_documents_document_id_subject_id");
+
+                    b.Navigation("Chapter");
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Domain.Entities.DocumentComment", b =>
                 {
+                    b.HasOne("Domain.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_comments_users_author_id");
+
                     b.HasOne("Domain.Entities.Document", "Document")
                         .WithMany("Comments")
                         .HasForeignKey("DocumentId")
@@ -1848,14 +1954,28 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_document_comments_documents_document_id");
 
+                    b.Navigation("Author");
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Membership", b =>
+                {
+                    b.HasOne("Domain.Entities.Subject", "Subject")
+                        .WithMany("Memberships")
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_memberships_subjects_subject_id");
+
                     b.HasOne("Domain.Entities.ApplicationUser", "User")
-                        .WithMany()
+                        .WithMany("Memberships")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_document_comments_users_user_id");
+                        .HasConstraintName("fk_memberships_users_user_id");
 
-                    b.Navigation("Document");
+                    b.Navigation("Subject");
 
                     b.Navigation("User");
                 });
@@ -1920,27 +2040,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Subject");
                 });
 
-            modelBuilder.Entity("Domain.Entities.SubjectMembership", b =>
-                {
-                    b.HasOne("Domain.Entities.Subject", "Subject")
-                        .WithMany("Memberships")
-                        .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_subject_memberships_subjects_subject_id");
-
-                    b.HasOne("Domain.Entities.ApplicationUser", "User")
-                        .WithMany("SubjectMemberships")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_subject_memberships_users_user_id");
-
-                    b.Navigation("Subject");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Domain.Entities.Subscription", b =>
                 {
                     b.HasOne("Domain.Entities.PlanOption", "PlanOption")
@@ -1985,7 +2084,7 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                    b.HasOne("Domain.Entities.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2013,23 +2112,6 @@ namespace DataAccessLayer.Migrations
                         .HasConstraintName("fk_user_logins_users_user_id");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_roles_roles_role_id");
-
-                    b.HasOne("Domain.Entities.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_roles_users_user_id");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
                     b.HasOne("Domain.Entities.ApplicationUser", null)
@@ -2040,16 +2122,23 @@ namespace DataAccessLayer.Migrations
                         .HasConstraintName("fk_user_tokens_users_user_id");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ApplicationRole", b =>
+                {
+                    b.Navigation("UserRoles");
+                });
+
             modelBuilder.Entity("Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("ChatSessions");
 
-                    b.Navigation("SubjectMemberships");
+                    b.Navigation("Memberships");
+
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("Domain.Entities.Chapter", b =>
                 {
-                    b.Navigation("Documents");
+                    b.Navigation("DocumentChapters");
                 });
 
             modelBuilder.Entity("Domain.Entities.ChatMessage", b =>
@@ -2087,6 +2176,8 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Chunks");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("DocumentChapters");
 
                     b.Navigation("ParsedSections");
                 });

@@ -14,10 +14,6 @@ resConn.on(
                 if (resUpd.resourceId === Razor.documentId)
                     promptReload();
                 break;
-            case ResourceType.Chapter:
-                if (resUpd.resourceId === Razor.chapterId)
-                    promptReload();
-                break;
             case ResourceType.Subject:
                 if (resUpd.resourceId === Razor.subjectId)
                     promptReload();
@@ -26,10 +22,17 @@ resConn.on(
                 if (resUpd.resourceId === Razor.uploaderId)
                     promptReload();
                 break;
+            case ResourceType.Chapter:
+                if (Razor.chapterIds.includes(resUpd.resourceId))
+                    promptReload();
+                break;
+            case ResourceType.DocumentChapter:
+                if (resUpd.properties["documentId"] === Razor.documentId)
+                    promptReload();
+                break;
             case ResourceType.Membership:
-                if (resUpd.action === "deleted"
-                    && resUpd.properties["subjectId"] === Razor.subjectId
-                    && resUpd.properties["userId"] === Razor.userId) {
+                if (resUpd.resourceId === Razor.viewerMembershipId
+                    && resUpd.action === "deleted") {
                     denyAccess();
                 }
                 break;
@@ -56,12 +59,16 @@ resConn
         const promises = [];
 
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Document, Razor.documentId));
-        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, Razor.chapterId));
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Subject, Razor.subjectId));
         promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.User, Razor.uploaderId));
 
-        if (Razor.viewerMembershipId)
-            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Razor.uploaderId));
+        promises.push(resConn.invoke(HubMethod.JoinResourceCollection, ResourceType.Document, Razor.documentId, ResourceType.DocumentChapter));
+
+        for (const chapterId of Razor.chapterIds) {
+            promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Chapter, chapterId));
+        }
+
+        promises.push(resConn.invoke(HubMethod.JoinResource, ResourceType.Membership, Razor.viewerMembershipId));
 
         await Promise.all(promises);
     })

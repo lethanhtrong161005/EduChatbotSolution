@@ -6,6 +6,7 @@ public interface IChapterService
 {
     Task<IEnumerable<Chapter>> GetAsync(CancellationToken cancellationToken = default);
     Task<Chapter?> GetByIdAsync(int id, string[] includeProperties = null!, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Chapter>> GetByIdsAsync(IEnumerable<int> ids, string[] includeProperties = null!, CancellationToken cancellationToken = default);
     Task<IEnumerable<Chapter>> GetBySubjectAsync(int subjectId, string[] includeProperties = null!, CancellationToken cancellationToken = default);
 
     Task<Chapter?> CreateAsync(Chapter entity, CancellationToken cancellationToken = default);

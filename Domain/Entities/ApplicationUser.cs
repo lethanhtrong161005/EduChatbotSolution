@@ -9,6 +9,10 @@ namespace Domain.Entities;
 /// </summary>
 public class ApplicationUser : IdentityUser<Guid>
 {
+    public ApplicationUser() : base() { }
+
+    public ApplicationUser(string userName) : base(userName) { }
+
     /// <summary>Gets or sets the user's full display name.</summary>
     public string FullName { get; set; } = string.Empty;
 
@@ -33,7 +37,21 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset? DeletedAt { get; set; }
 
     // ── Navigation ──────────────────────────────────────────
+    public virtual ICollection<ApplicationUserRole> UserRoles { get; } = [];
+
+    public virtual ICollection<ApplicationRole> Roles { get; } = [];
+
+    public virtual ICollection<Membership> Memberships { get; } = [];
+
+    public virtual ICollection<Subject> AssignedSubjects { get; } = [];
+
     /// <summary>Gets or sets the conversations belonging to this user.</summary>
-    public virtual ICollection<ChatSession> ChatSessions { get; set; } = [];
-    public virtual ICollection<SubjectMembership> SubjectMemberships { get; set; } = [];
+    public virtual ICollection<ChatSession> ChatSessions { get; } = [];
+}
+
+public enum UserRole
+{
+    Student,
+    Lecturer,
+    Admin,
 }

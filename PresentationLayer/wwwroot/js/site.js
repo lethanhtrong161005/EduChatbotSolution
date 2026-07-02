@@ -16,7 +16,7 @@ const ResourceType = Object.freeze({
     Subject: "subject",
     Chapter: "chapter",
     Document: "document",
-    Comment: "comment",
+    DocumentChapter: "document-chapter",
     ChatSession: "chat-session",
 });
 
