@@ -214,46 +214,116 @@ const DocumentLibraryTemplates = (() => {
     `;
     }
 
+    function renderRetryButton(
+        retryClass,
+        retryLabel = "Retry") {
+
+        if (!retryClass)
+            return "";
+
+        return `
+<button type="button"
+        class="${escapeAttribute(retryClass)} inline-flex items-center justify-center gap-2 rounded-xl border border-red-700/70 bg-red-950/40 px-4 py-2 text-sm font-semibold text-red-200 transition hover:border-red-500 hover:bg-red-900/40 hover:text-white">
+
+    <i class="fa-solid fa-rotate-right"></i>
+
+    ${escapeHtml(retryLabel)}
+
+</button>`;
+    }
+
     function renderLoadFailed({
         title = "Unable to load",
         description = "An unexpected error occurred while loading this content.",
-        compact = false
+        compact = false,
+        retryClass = null,
+        retryLabel = "Retry",
     } = {}) {
+
+        const retryButton = renderRetryButton(
+            retryClass,
+            retryLabel);
 
         if (compact) {
 
             return `
-            <div class="flex items-center justify-center gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-5 mx-2 my-3">
+<div class="mx-2 my-3 rounded-xl border border-red-900/60 bg-red-950/30 px-4 py-4">
 
-                <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+    <div class="flex items-start gap-3">
 
-                <span class="text-sm font-medium text-red-200">
-                    ${title}
-                </span>
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+
+            <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+
+        </div>
+
+        <div class="min-w-0 flex-1">
+
+            <div class="text-sm font-semibold text-red-200">
+
+                ${escapeHtml(title)}
 
             </div>
-        `;
+
+            ${description
+                    ? `
+            <p class="mt-1 text-xs leading-5 text-slate-400">
+
+                ${escapeHtml(description)}
+
+            </p>`
+                    : ""}
+
+        </div>
+
+    </div>
+
+            ${retryButton
+                    ? `
+    <div class="mt-4 flex justify-end">
+
+        ${retryButton}
+
+    </div>`
+                    : ""}
+
+</div>`;
         }
 
         return `
-        <div class="flex flex-col items-center justify-center rounded-3xl border border-red-900/60 bg-red-950/20 px-10 py-16 text-center">
+<div class="flex flex-col items-center justify-center rounded-3xl border border-red-900/60 bg-red-950/20 px-10 py-16 text-center">
 
-            <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+    <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
 
-                <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
+        <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
 
-            </div>
+    </div>
 
-            <h3 class="text-xl font-semibold text-red-100">
-                ${title}
-            </h3>
+    <h3 class="text-xl font-semibold text-red-100">
 
-            <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                ${description}
-            </p>
+        ${escapeHtml(title)}
 
-        </div>
-    `;
+    </h3>
+
+    ${description
+                ? `
+    <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+
+        ${escapeHtml(description)}
+
+    </p>`
+                : ""}
+
+    ${retryButton
+                ? `
+    <div class="mt-6">
+
+        ${retryButton}
+
+    </div>`
+                : ""}
+
+</div>`;
     }
 
     /* ==========================================================
@@ -411,7 +481,9 @@ const DocumentLibraryTemplates = (() => {
 
         return renderLoadFailed({
             title: "Unable to load subjects",
+            description: "The subject list could not be retrieved.",
             compact: true,
+            retryClass: "js-retry-subjects",
         });
     }
 
@@ -421,7 +493,7 @@ const DocumentLibraryTemplates = (() => {
 
     function renderChapterSidebar(chapters, selectedChapterId) {
 
-        if (!chapters?.length) {
+        if (!chapters?.forSubjectId) {
 
             return renderEmpty(
                 "fa-book-open",
@@ -429,7 +501,7 @@ const DocumentLibraryTemplates = (() => {
                 "Select a subject to view its chapters.");
         }
 
-        const overviewSelected = !!chapters?.length && selectedChapterId === null;
+        const overviewSelected = selectedChapterId === null;
 
         let html = `
 <button
@@ -555,7 +627,9 @@ const DocumentLibraryTemplates = (() => {
 
         return renderLoadFailed({
             title: "Unable to load chapters",
+            description: "The chapter list could not be retrieved.",
             compact: true,
+            retryClass: "js-retry-chapters",
         });
     }
 
@@ -705,7 +779,8 @@ ${subjects.map(subject => {
 
         return renderLoadFailed({
             title: "Unable to load subjects",
-            description: "Please refresh the page or try again later.",
+            description: "Please try loading your document library again.",
+            retryClass: "js-retry-subjects",
         });
     }
 
@@ -774,6 +849,7 @@ ${subjects.map(subject => {
         return renderLoadFailed({
             title: "Unable to load subject",
             description: "The selected subject could not be retrieved.",
+            retryClass: "js-retry-subject-details",
         });
     }
 
@@ -841,6 +917,7 @@ ${subjects.map(subject => {
         return renderLoadFailed({
             title: "Unable to load chapter",
             description: "The selected chapter could not be retrieved.",
+            retryClass: "js-retry-chapter-details",
         });
     }
 
@@ -925,11 +1002,47 @@ Every uploaded file will belong to
 ${escapeHtml(subject.name)}`;
     }
 
-    function renderUploadChapterTags(chapters, selectedChapterIds) {
+    function renderUploadChapterTags(
+        chapters,
+        selectedChapterIds) {
 
-        const selectedSet = new Set(selectedChapterIds);
+        const chapterList = Array.from(chapters ?? []);
 
-        return chapters.map(chapter => {
+        if (chapterList.length === 0) {
+
+            return `
+<div class="flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3">
+
+    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-slate-400">
+
+        <i class="fa-solid fa-layer-group"></i>
+
+    </div>
+
+    <div class="min-w-0">
+
+        <div class="text-sm font-semibold text-slate-200">
+
+            No chapter tags available
+
+        </div>
+
+        <p class="mt-1 text-xs leading-5 text-slate-400">
+
+            This document will belong to the selected subject without
+            an additional chapter tag.
+
+        </p>
+
+    </div>
+
+</div>`;
+        }
+
+        const selectedSet = new Set(
+            Array.from(selectedChapterIds ?? [], String));
+
+        return chapterList.map(chapter => {
 
             const selected = selectedSet.has(chapter.id);
 
@@ -949,9 +1062,9 @@ ${escapeHtml(subject.name)}`;
                     ? "border-emerald-500 bg-emerald-600/15 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,.15)]"
                     : "border-slate-600 bg-slate-700 text-slate-200 hover:border-emerald-500 hover:bg-slate-600"
             )}"
-        data-chapter-id="${chapter.id}">
+        data-chapter-id="${escapeAttribute(chapter.id)}">
 
-            ${selected
+    ${selected
                     ? `<i class="fa-solid fa-check mr-2 text-xs"></i>`
                     : ""}
 
@@ -960,6 +1073,28 @@ ${escapeHtml(subject.name)}`;
 </button>`;
         }).join("");
     }
+
+    function renderUploadChapterTagsLoading() {
+
+        return renderLoading({
+            title: "Loading chapter tags...",
+            compact: true,
+        });
+    }
+
+    function renderUploadChapterTagsLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load chapter tags",
+            description: "The available chapter tags could not be retrieved.",
+            compact: true,
+            retryClass: "js-retry-chapters",
+        });
+    }
+
+    /* =========================================================
+       UPLOAD MODAL
+       ========================================================= */
 
     function getUploadFileExtension(fileName) {
 
@@ -1068,22 +1203,28 @@ ${escapeHtml(subject.name)}`;
 
     function renderUploadRow(uploadItem) {
 
-        const file = uploadItem?.file;
-        const fileName = file?.name ?? "Unnamed file";
+        const file = uploadItem.file;
+        const fileName = file.name;
         const extension = getUploadFileExtension(fileName);
 
         const fileStyle = getUploadFileStyle(extension);
-        const statusView = getUploadStatusView(uploadItem?.statusName);
+        const statusView = getUploadStatusView(
+            uploadItem.statusName);
 
-        const rawProgress = Number.isFinite(uploadItem?.progress)
+        const rawProgress = Number.isFinite(uploadItem.progress)
             ? uploadItem.progress
             : 0;
 
-        const progress = uploadItem?.statusName === "Succeeded"
-            ? 100
-            : Math.min(Math.max(Math.round(rawProgress), 0), 100);
+        const progress =
+            uploadItem.statusName === "Succeeded"
+                ? 100
+                : Math.min(
+                    Math.max(Math.round(rawProgress), 0),
+                    100);
 
-        const canCancel = !!uploadItem?.canCancel;
+        const canRetry = uploadItem.canRetry;
+        const canCancel = uploadItem.canCancel;
+        const canRemove = uploadItem.canRemove;
 
         return `
 <article class="js-upload-item group px-4 py-4 transition-colors hover:bg-slate-800/70"
@@ -1124,11 +1265,11 @@ ${escapeHtml(subject.name)}`;
 
                         <span class="truncate text-slate-500">
 
-                            ${formatFileSize(file?.size)}
+                            ${formatFileSize(file.size)}
 
                         </span>
 
-                        <span class="js-upload-percent ml-auto shrink-0 font-medium text-slate-400">
+                        <span class="js-upload-percent ml-auto w-10 shrink-0 text-right font-medium text-slate-400">
 
                             ${progress}%
 
@@ -1138,18 +1279,48 @@ ${escapeHtml(subject.name)}`;
 
                 </div>
 
-                ${canCancel
-                ? `
-                <button type="button"
-                        class="js-cancel-upload flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-300"
-                        data-upload-id="${escapeAttribute(uploadItem.id)}"
-                        aria-label="Cancel upload of ${escapeAttribute(fileName)}"
-                        title="Cancel upload">
+                <div class="grid w-[72px] shrink-0 grid-cols-2 gap-2">
 
-                    <i class="fa-solid fa-xmark"></i>
+                    ${canRetry
+                                ? `
+                    <button type="button"
+                            class="js-retry-upload flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 transition hover:border-amber-400 hover:bg-amber-500/20 hover:text-amber-200"
+                            data-upload-id="${escapeAttribute(uploadItem.id)}"
+                            aria-label="Retry upload of ${escapeAttribute(fileName)}"
+                            title="Retry upload">
 
-                </button>`
-                : ""}
+                        <i class="fa-solid fa-rotate-right"></i>
+
+                    </button>`
+                                : `
+                    <span aria-hidden="true"></span>`}
+
+                    ${canCancel
+                                ? `
+                    <button type="button"
+                            class="js-cancel-upload flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-300"
+                            data-upload-id="${escapeAttribute(uploadItem.id)}"
+                            aria-label="Cancel upload of ${escapeAttribute(fileName)}"
+                            title="Cancel upload">
+
+                        <i class="fa-solid fa-xmark"></i>
+
+                    </button>`
+                                : canRemove
+                                    ? `
+                    <button type="button"
+                            class="js-remove-upload flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+                            data-upload-id="${escapeAttribute(uploadItem.id)}"
+                            aria-label="Remove ${escapeAttribute(fileName)} from upload list"
+                            title="Remove from upload list">
+
+                        <i class="fa-solid fa-xmark"></i>
+
+                    </button>`
+                                    : `
+                    <span aria-hidden="true"></span>`}
+
+                </div>
 
             </div>
 
@@ -1180,6 +1351,14 @@ ${escapeHtml(subject.name)}`;
 
     function renderDocumentList(documents, totalDocuments, canDelete) {
 
+        if (!documents?.forSubjectId) {
+
+            return renderEmpty(
+                "fa-file",
+                "No Subject Selected",
+                "Select a subject to view its documents.");
+        }
+
         if (!documents?.length) {
 
             return `
@@ -1187,7 +1366,7 @@ ${escapeHtml(subject.name)}`;
 
     ${renderEmpty(
                 "fa-file",
-                "No documents",
+                "No Documents",
                 "No documents match the current selection.")}
 
 </div>`;
@@ -1409,28 +1588,11 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
         return `
 <div class="px-8 py-14">
 
-    <div class="rounded-2xl border border-red-900/50 bg-red-950/20 px-10 py-12 text-center">
-
-        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
-
-            <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
-
-        </div>
-
-        <h3 class="mt-5 text-xl font-semibold text-red-100">
-
-            Unable to load documents
-
-        </h3>
-
-        <p class="mt-3 text-sm leading-6 text-slate-400">
-
-            The requested document list could not be retrieved.
-            Please refresh the page or try again later.
-
-        </p>
-
-    </div>
+    ${renderLoadFailed({
+            title: "Unable to load documents",
+            description: "The requested document list could not be retrieved.",
+            retryClass: "js-retry-documents",
+        })}
 
 </div>
 
@@ -1442,8 +1604,7 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
 
     </div>
 
-</div>
-`;
+</div>`;
     }
 
     /* =========================================================
@@ -1539,7 +1700,7 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
 
         <div class="min-w-0 flex-1 text-center truncate font-medium ${titleColorClass}">
 
-            ${title}
+            ${escapeHtml(title)}
 
         </div>
 
@@ -1581,6 +1742,8 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
 
         renderUploadSubjectSummary,
         renderUploadChapterTags,
+        renderUploadChapterTagsLoading,
+        renderUploadChapterTagsLoadFailed,
         renderUploadRow,
 
         renderDocumentList,

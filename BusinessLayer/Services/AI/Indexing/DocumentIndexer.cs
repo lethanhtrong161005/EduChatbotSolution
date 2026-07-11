@@ -61,7 +61,7 @@ public class DocumentIndexer(
         }
         catch (Exception ex)
         {
-            await SaveFailure(doc, ex, cxlTkn);
+            await SaveFailure(doc, ex);
             throw;
         }
     }
@@ -128,7 +128,7 @@ public class DocumentIndexer(
         }
         catch (Exception ex)
         {
-            await SaveFailure(doc, ex, cxlTkn);
+            await SaveFailure(doc, ex);
             throw;
         }
     }
@@ -202,7 +202,7 @@ public class DocumentIndexer(
         }
         catch (Exception ex)
         {
-            await SaveFailure(doc, ex, cxlTkn);
+            await SaveFailure(doc, ex);
             throw;
         }
     }
@@ -249,11 +249,10 @@ public class DocumentIndexer(
 
     private async Task SaveFailure(
         Document doc,
-        Exception ex,
-        CancellationToken cxlTkn)
+        Exception ex)
     {
         doc.IndexingErrors = ex.ToString();
-        await MoveToDir(doc, DocumentFileDirectory.Failed, cxlTkn);
-        await SaveAndUpdate(doc, DocumentStatus.Failed, cancellationToken: cxlTkn);
+        await MoveToDir(doc, DocumentFileDirectory.Failed);
+        await SaveAndUpdate(doc, DocumentStatus.Failed);
     }
 }
