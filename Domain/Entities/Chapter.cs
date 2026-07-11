@@ -15,6 +15,9 @@ public class Chapter : CategoryLikeEntity
     /// <summary>Gets or sets the chapter name.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Gets or sets the chapter description (optional).</summary>
+    public string? Description { get; set; }
+
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent subject.</summary>
     public virtual Subject Subject { get; set; } = null!;

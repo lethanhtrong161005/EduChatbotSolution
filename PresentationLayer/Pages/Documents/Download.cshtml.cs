@@ -31,12 +31,12 @@ public class DownloadModel(
         if (doc == null)
             return NotFound();
 
-        var result = await _fileService.Download(doc.Id, cxlTkn);
+        var result = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
         if (!result.Success)
             return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve document file.");
 
         return File(
-            fileStream: System.IO.File.OpenRead(result.FilePath),
+            fileStream: result.FileStream,
             contentType: doc.ContentType,
             fileDownloadName: doc.OriginalFileName);
     }

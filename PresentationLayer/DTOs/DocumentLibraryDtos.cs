@@ -1,6 +1,6 @@
 ﻿namespace Presentation.DTOs;
 
-public sealed class SubjectSidebarDto
+public sealed class SubjectSummaryDto
 {
     public int Id { get; set; }
 
@@ -8,24 +8,26 @@ public sealed class SubjectSidebarDto
 
     public string Name { get; set; } = string.Empty;
 
+    public string? Description { get; set; }
+
     public int ChapterCount { get; set; }
 
     public int DocumentCount { get; set; }
 
-    public bool CanUpload { get; set; }
+    public int MemberCount { get; set; }
+
+    public bool IsChief { get; set; }
 }
 
-public sealed class ChapterSidebarDto
+public sealed class ChapterSummaryDto
 {
     public int Id { get; set; }
 
     public int SubjectId { get; set; }
 
-    public int? ChapterNumber { get; set; }
+    public int ChapterNumber { get; set; }
 
     public string Name { get; set; } = string.Empty;
-
-    public int DocumentCount { get; set; }
 }
 
 public sealed class SubjectDetailsDto
@@ -44,7 +46,11 @@ public sealed class SubjectDetailsDto
 
     public int MemberCount { get; set; }
 
-    public IReadOnlyList<ChapterSidebarDto> Chapters { get; set; } = [];
+    public bool IsChief { get; set; }
+
+    public DateTime LastUpdated { get; set; }
+
+    public IReadOnlyList<ChapterSummaryDto> Chapters { get; set; } = [];
 }
 
 public sealed class ChapterDetailsDto
@@ -60,6 +66,8 @@ public sealed class ChapterDetailsDto
     public int? ChapterNumber { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
 
     public int DocumentCount { get; set; }
 }
@@ -80,14 +88,5 @@ public sealed class DocumentFileDto
 
     public long? FileSize { get; set; }
 
-    public IReadOnlyList<ChapterInfoDto> Chapters { get; set; } = [];
-}
-
-public sealed class ChapterInfoDto
-{
-    public int Id { get; set; }
-
-    public int ChapterNumber { get; set; }
-
-    public string ChapterName { get; set; } = string.Empty;
+    public IReadOnlyList<ChapterSummaryDto> Chapters { get; set; } = [];
 }

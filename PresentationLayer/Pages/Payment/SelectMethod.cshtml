@@ -5,7 +5,6 @@
 }
 
 <link rel="stylesheet" href="~/css/payment-methods.css" />
-<script src="~/js/payment/payment-methods.js"></script>
 
 <div class="payment-page">
 
@@ -75,7 +74,7 @@
         <aside class="order-summary">
 
             <form id="paymentForm"
-                  method="post" 
+                  method="post"
                   asp-page-handler="MakePayment" asp-route-id="@Model.ViewModel.PendingOrder.Id">
 
                 <input type="hidden"
@@ -153,3 +152,8 @@
     </div>
 
 </div>
+
+@section Scripts
+{
+    <script src="~/js/payment/payment-methods.js"></script>
+}

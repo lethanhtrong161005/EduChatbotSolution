@@ -5,8 +5,7 @@ using Domain.Contracts.DTOs;
 using Domain.Entities;
 using System.Text;
 using UglyToad.PdfPig;
-
-using Ent = Domain.Entities;
+using DomainDocumentType = Domain.Entities.DocumentType;
 
 namespace Business.Services.AI.Indexing.Parsing;
 
@@ -14,40 +13,46 @@ public class LocationAnnotatedParser : IDocumentParser
 {
     public string ParserName => "Location Annotated Parser";
 
-    public async Task<ParsedDocument> ParseAsync(string path, Ent.DocumentType type, CancellationToken cxlTkn = default)
+    public async Task<ParsedDocument> ParseAsync(Stream source, DomainDocumentType type, CancellationToken cxlTkn = default)
     {
+        if (!source.CanRead || !source.CanSeek)
+            throw new ArgumentException("Parser input must be a readable, seekable stream.", nameof(source));
+        if (source.Position != 0)
+            throw new ArgumentException("Parser input must be positioned at the beginning.", nameof(source));
+
         return type switch
         {
-            Ent.DocumentType.TXT =>
-                await ParseTxtAsync(path, cxlTkn),
+            DomainDocumentType.TXT =>
+                await ParseTxtAsync(source, cxlTkn),
 
-            Ent.DocumentType.PDF =>
-                await ParsePdfAsync(path, cxlTkn),
+            DomainDocumentType.PDF =>
+                ParsePdf(source, cxlTkn),
 
-            Ent.DocumentType.DOCX =>
-                await ParseDocxAsync(path, cxlTkn),
+            DomainDocumentType.DOCX =>
+                ParseDocx(source, cxlTkn),
 
-            Ent.DocumentType.PPTX =>
-                await ParsePptxAsync(path, cxlTkn),
+            DomainDocumentType.PPTX =>
+                ParsePptx(source, cxlTkn),
 
             _ => throw new NotSupportedException()
         };
     }
 
-    private async Task<ParsedDocument> ParseTxtAsync(string path, CancellationToken cxlTkn = default)
+    private static async Task<ParsedDocument> ParseTxtAsync(Stream source, CancellationToken cxlTkn = default)
     {
+        using var reader = new StreamReader(source, Encoding.UTF8, true, 1024, leaveOpen: true);
         var section = new ParsedSection
         {
             PageNumber = null,
             SectionTitle = null,
-            Text = await File.ReadAllTextAsync(path, cxlTkn),
+            Text = await reader.ReadToEndAsync(cxlTkn),
         };
         return new ParsedDocument { Sections = [section] };
     }
 
-    private async Task<ParsedDocument> ParsePdfAsync(string path, CancellationToken cxlTkn = default)
+    private static ParsedDocument ParsePdf(Stream source, CancellationToken cxlTkn = default)
     {
-        using var pdf = PdfDocument.Open(path);
+        using var pdf = PdfDocument.Open(source);
 
         var parsedDoc = new ParsedDocument { Sections = [] };
 
@@ -68,9 +73,9 @@ public class LocationAnnotatedParser : IDocumentParser
         return parsedDoc;
     }
 
-    private async Task<ParsedDocument> ParseDocxAsync(string path, CancellationToken cxlTkn = default)
+    private static ParsedDocument ParseDocx(Stream source, CancellationToken cxlTkn = default)
     {
-        using var wordDoc = WordprocessingDocument.Open(path, false);
+        using var wordDoc = WordprocessingDocument.Open(source, false);
 
         var parsedDoc = new ParsedDocument { Sections = [] };
 
@@ -166,10 +171,10 @@ public class LocationAnnotatedParser : IDocumentParser
         return parsedDoc;
     }
 
-    private async Task<ParsedDocument> ParsePptxAsync(string path, CancellationToken cxlTkn = default)
+    private static ParsedDocument ParsePptx(Stream source, CancellationToken cxlTkn = default)
     {
         var parsedDoc = new ParsedDocument { Sections = [] };
-        using var ppt = PresentationDocument.Open(path, false);
+        using var ppt = PresentationDocument.Open(source, false);
         var presentationPart = ppt.PresentationPart;
         if (presentationPart == null) return parsedDoc;
 

@@ -67,7 +67,7 @@ public class DetailsModel(
             if (doc == null)
                 return NotFound();
 
-            IsPhysicalFileAvailable = await _fileService.Exists(doc.Id, cxlTkn);
+            IsPhysicalFileAvailable = await _fileService.ExistsAsync(doc.Id, cxlTkn);
 
             // Verify if the user has permission to access this document
             var isAdmin = User.IsInRole(nameof(UserRole.Admin));
@@ -91,15 +91,19 @@ public class DetailsModel(
             var vm = _mapper.Map<DocumentDetailsVm>(doc);
 
             // Fallback for TXT/HTML files: read directly from file if ExtractedText is empty
-            if (string.IsNullOrWhiteSpace(vm.ExtractedText) && await _fileService.Exists(doc.Id, cxlTkn))
+            if (string.IsNullOrWhiteSpace(vm.ExtractedText) && await _fileService.ExistsAsync(doc.Id, cxlTkn))
             {
                 try
                 {
                     if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
                     {
-                        var result = await _fileService.Download(doc.Id, cxlTkn);
+                        var result = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
                         if (result.Success)
-                            vm.ExtractedText = await System.IO.File.ReadAllTextAsync(result.FilePath, cxlTkn);
+                        {
+                            await using var fileStream = result.FileStream;
+                            using var reader = new StreamReader(fileStream);
+                            vm.ExtractedText = await reader.ReadToEndAsync(cxlTkn);
+                        }
                     }
                 }
                 catch

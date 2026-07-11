@@ -36,6 +36,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
     public DbSet<Membership> Memberships { get; set; }
 
+    public DbSet<SubjectStorageConfiguration> SubjectStorageConfigurations { get; set; }
+
     public DbSet<SubjectAiConfiguration> SubjectAiConfigurations { get; set; }
 
     public DbSet<GlobalAiConfiguration> GlobalAiConfigurations { get; set; }
@@ -113,10 +115,12 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<Payment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Subject>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Membership>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<SubjectStorageConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<SubjectAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<GlobalAiConfiguration>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Chapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Document>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<Document>().Property(e => e.StorageMethod).HasDefaultValue(DocumentStorageMethod.Unspecified);
         modelBuilder.Entity<DocumentChapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<DocumentComment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ParsedSection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
@@ -135,6 +139,9 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
         modelBuilder.Entity<ApplicationUserRole>()
             .HasKey(e => new { e.UserId, e.RoleId });
+        modelBuilder.Entity<ApplicationUserRole>()
+            .HasIndex(e => e.UserId)
+            .IsUnique();
         modelBuilder.Entity<ApplicationUser>()
             .HasMany(e => e.Roles)
             .WithMany(e => e.Users)
@@ -161,6 +168,11 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<Chapter>()
             .HasIndex(e => new { e.SubjectId, e.ChapterNumber })
             .IsUnique();
+
+        modelBuilder.Entity<SubjectStorageConfiguration>()
+            .HasOne(d => d.Subject)
+            .WithOne(p => p.StorageConfiguration)
+            .HasForeignKey<SubjectStorageConfiguration>(d => d.Id);
 
         modelBuilder.Entity<SubjectAiConfiguration>()
             .HasOne(d => d.Subject)

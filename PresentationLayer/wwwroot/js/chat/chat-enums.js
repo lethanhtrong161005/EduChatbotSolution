@@ -1,4 +1,6 @@
-﻿window.ChatEnums = Object.freeze({
+﻿"use strict"
+
+const ChatEnums = Object.freeze({
 
     MessageStatus: Object.freeze({
         Pending: 0,

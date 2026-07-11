@@ -257,7 +257,7 @@ function renderDocuments() {
                 </td>
                 <td>${new Date(d.uploadedAt).toLocaleString()}</td>
                 <td>
-                    <span class="status-badge ${d.status === 6 ? "status-badge-indexed" : d.status === -1 ? "status-badge-failed" : d.status === 0 ? "status-badge-uploaded" : "status-badge-indexing"}">
+                    <span class="status-badge ${d.status === 6 ? "status-badge-indexed" : d.status === -1 ? "status-badge-failed" : d.status === 0 ? "status-badge-received" : "status-badge-indexing"}">
                         ${d.status}
                      </span>
                 </td>

@@ -10,7 +10,7 @@
     transition: all .2s ease;
 }
 
-.status-uploaded {
+.status-received {
     background: rgba(107,114,128,.15);
     color: var(--color-neutral-600);
 }
@@ -21,8 +21,8 @@
 }
 
 .status-parsed {
-    background: rgba(26,188,156,.15);
-    color: #16a085;
+    background: rgba(30,136,229,.18);
+    color: #1e88e5;
 }
 
 .status-chunking {

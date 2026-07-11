@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
+using NuGet.Packaging;
 
 namespace Presentation.Extensions;
 
@@ -343,21 +344,21 @@ public static class HostExtensions
         {
             Code = "SE401",
             Name = "Software Architecture",
-            Description = "Advanced software architecture patterns and principles."
+            Description = "Advanced software architecture patterns and principles.",
         };
 
         var ai = new Subject
         {
             Code = "AI301",
             Name = "Artificial Intelligence",
-            Description = "Foundations of modern AI."
+            Description = "Foundations of modern AI.",
         };
 
         var database = new Subject
         {
             Code = "DB201",
             Name = "Database Systems",
-            Description = "Relational and non-relational databases."
+            Description = "Relational and non-relational databases.",
         };
 
         unitOfWork.Subjects.Insert(architecture);
@@ -371,36 +372,180 @@ public static class HostExtensions
 {
     // SE401
 
-    new() { SubjectId = architecture.Id, Name = "Introduction to Architecture", ChapterNumber = 1 },
-    new() { SubjectId = architecture.Id, Name = "Architectural Styles", ChapterNumber = 2 },
-    new() { SubjectId = architecture.Id, Name = "Layered Architecture", ChapterNumber = 3 },
-    new() { SubjectId = architecture.Id, Name = "Microservices", ChapterNumber = 4 },
-    new() { SubjectId = architecture.Id, Name = "Event-Driven Systems", ChapterNumber = 5 },
-    new() { SubjectId = architecture.Id, Name = "Domain Driven Design", ChapterNumber = 6 },
-    new() { SubjectId = architecture.Id, Name = "Quality Attributes", ChapterNumber = 7 },
-    new() { SubjectId = architecture.Id, Name = "Architecture Evaluation", ChapterNumber = 8 },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Introduction to Architecture",
+        ChapterNumber = 1,
+        Description = "Introduces the role of software architecture, architectural thinking, and the responsibilities of software architects."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Architectural Styles",
+        ChapterNumber = 2,
+        Description = "Explores common architectural styles, their characteristics, advantages, and trade-offs."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Layered Architecture",
+        ChapterNumber = 3,
+        Description = "Covers layered system design, separation of concerns, and practical implementation patterns."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Microservices",
+        ChapterNumber = 4,
+        Description = "Examines microservice architecture, service decomposition, communication, and deployment strategies."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Event-Driven Systems",
+        ChapterNumber = 5,
+        Description = "Introduces asynchronous messaging, event sourcing, and reactive architectural patterns."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Domain Driven Design",
+        ChapterNumber = 6,
+        Description = "Discusses strategic and tactical Domain-Driven Design concepts for complex business domains."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Quality Attributes",
+        ChapterNumber = 7,
+        Description = "Analyzes architectural qualities such as scalability, reliability, security, and maintainability."
+    },
+    new()
+    {
+        SubjectId = architecture.Id,
+        Name = "Architecture Evaluation",
+        ChapterNumber = 8,
+        Description = "Presents techniques for evaluating software architectures using scenarios, metrics, and review methods."
+    },
 
     // AI301
 
-    new() { SubjectId = ai.Id, Name = "AI Fundamentals", ChapterNumber = 1 },
-    new() { SubjectId = ai.Id, Name = "Search Algorithms", ChapterNumber = 2 },
-    new() { SubjectId = ai.Id, Name = "Knowledge Representation", ChapterNumber = 3 },
-    new() { SubjectId = ai.Id, Name = "Machine Learning Basics", ChapterNumber = 4 },
-    new() { SubjectId = ai.Id, Name = "Neural Networks", ChapterNumber = 5 },
-    new() { SubjectId = ai.Id, Name = "Natural Language Processing", ChapterNumber = 6 },
-    new() { SubjectId = ai.Id, Name = "Ethics in AI", ChapterNumber = 7 },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "AI Fundamentals",
+        ChapterNumber = 1,
+        Description = "Introduces the history, core concepts, and applications of artificial intelligence."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Search Algorithms",
+        ChapterNumber = 2,
+        Description = "Covers uninformed and informed search techniques used to solve AI problems."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Knowledge Representation",
+        ChapterNumber = 3,
+        Description = "Explores methods for representing knowledge using logic, rules, ontologies, and semantic networks."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Machine Learning Basics",
+        ChapterNumber = 4,
+        Description = "Introduces supervised, unsupervised, and reinforcement learning with fundamental algorithms."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Neural Networks",
+        ChapterNumber = 5,
+        Description = "Explains artificial neural networks, backpropagation, and the foundations of deep learning."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Natural Language Processing",
+        ChapterNumber = 6,
+        Description = "Introduces techniques for processing, understanding, and generating human language."
+    },
+    new()
+    {
+        SubjectId = ai.Id,
+        Name = "Ethics in AI",
+        ChapterNumber = 7,
+        Description = "Discusses fairness, transparency, privacy, accountability, and responsible AI development."
+    },
 
     // DB201
 
-    new() { SubjectId = database.Id, Name = "Relational Model", ChapterNumber = 1 },
-    new() { SubjectId = database.Id, Name = "SQL Fundamentals", ChapterNumber = 2 },
-    new() { SubjectId = database.Id, Name = "Normalization", ChapterNumber = 3 },
-    new() { SubjectId = database.Id, Name = "Transactions", ChapterNumber = 4 },
-    new() { SubjectId = database.Id, Name = "Indexing", ChapterNumber = 5 },
-    new() { SubjectId = database.Id, Name = "Query Optimization", ChapterNumber = 6 },
-    new() { SubjectId = database.Id, Name = "Distributed Databases", ChapterNumber = 7 },
-    new() { SubjectId = database.Id, Name = "NoSQL Databases", ChapterNumber = 8 },
-    new() { SubjectId = database.Id, Name = "Vector Databases", ChapterNumber = 9 }
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Relational Model",
+        ChapterNumber = 1,
+        Description = "Introduces relational databases, tables, keys, relationships, and data integrity."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "SQL Fundamentals",
+        ChapterNumber = 2,
+        Description = "Covers SQL syntax for querying, inserting, updating, and deleting relational data."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Normalization",
+        ChapterNumber = 3,
+        Description = "Explains normalization forms and techniques for reducing redundancy and improving consistency."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Transactions",
+        ChapterNumber = 4,
+        Description = "Introduces ACID properties, concurrency control, locking, and transaction management."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Indexing",
+        ChapterNumber = 5,
+        Description = "Examines database indexing techniques and their impact on query performance."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Query Optimization",
+        ChapterNumber = 6,
+        Description = "Explores query execution plans, optimization strategies, and performance tuning techniques."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Distributed Databases",
+        ChapterNumber = 7,
+        Description = "Introduces distributed database architectures, replication, partitioning, and consistency models."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "NoSQL Databases",
+        ChapterNumber = 8,
+        Description = "Presents document, key-value, column-family, and graph databases with their use cases."
+    },
+    new()
+    {
+        SubjectId = database.Id,
+        Name = "Vector Databases",
+        ChapterNumber = 9,
+        Description = "Introduces vector embeddings, similarity search, ANN indexing, and applications in modern AI systems."
+    }
 };
 
         foreach (var chapter in chapters)
@@ -443,130 +588,130 @@ public static class HostExtensions
          * SOFTWARE ARCHITECTURE
          * ========================================================= */
 
-        AddDoc(introArch, "Architecture Overview", "architecture-overview.pdf");
-        AddDoc(introArch, "Course Syllabus", "course-syllabus.docx");
-        AddDoc(introArch, "History of Software Architecture", "architecture-history.pptx");
+        AddDoc(architecture, "Architecture Overview", "architecture-overview.pdf", [introArch]);
+        AddDoc(architecture, "Course Syllabus", "course-syllabus.docx", [introArch]);
+        AddDoc(architecture, "History of Software Architecture", "architecture-history.pptx", [introArch]);
 
-        AddDoc(styles, "MVC Pattern", "mvc-pattern.pdf");
-        AddDoc(styles, "Client Server Architecture", "client-server.pdf");
-        AddDoc(styles, "Pipe and Filter Pattern", "pipe-filter.pdf");
-        AddDoc(styles, "Architectural Styles Comparison", "styles-comparison.docx");
+        AddDoc(architecture, "MVC Pattern", "mvc-pattern.pdf", [styles]);
+        AddDoc(architecture, "Client Server Architecture", "client-server.pdf", [styles]);
+        AddDoc(architecture, "Pipe and Filter Pattern", "pipe-filter.pdf", [styles]);
+        AddDoc(architecture, "Architectural Styles Comparison", "styles-comparison.docx", [styles]);
 
-        AddDoc(layered, "Layered Architecture Notes", "layered-notes.pdf");
-        AddDoc(layered, "N-Tier Systems", "n-tier-systems.docx");
+        AddDoc(architecture, "Layered Architecture Notes", "layered-notes.pdf", [layered]);
+        AddDoc(architecture, "N-Tier Systems", "n-tier-systems.docx", [styles, layered]);
 
-        AddDoc(microservices, "Introduction to Microservices", "microservices-intro.pdf");
-        AddDoc(microservices, "Service Discovery", "service-discovery.pdf");
-        AddDoc(microservices, "API Gateway Pattern", "api-gateway.pptx");
-        AddDoc(microservices, "Saga Pattern", "saga-pattern.pdf");
+        AddDoc(architecture, "Introduction to Microservices", "microservices-intro.pdf", [styles, microservices]);
+        AddDoc(architecture, "Service Discovery", "service-discovery.pdf", [microservices]);
+        AddDoc(architecture, "API Gateway Pattern", "api-gateway.pptx", [microservices]);
+        AddDoc(architecture, "Saga Pattern", "saga-pattern.pdf", [microservices]);
 
         /* Event Driven Systems intentionally empty */
 
-        AddDoc(ddd, "Bounded Contexts", "bounded-contexts.pdf");
-        AddDoc(ddd, "Aggregates and Repositories", "aggregates.pdf");
-        AddDoc(ddd, "Domain Events", "domain-events.docx");
+        AddDoc(architecture, "Bounded Contexts", "bounded-contexts.pdf", [ddd]);
+        AddDoc(architecture, "Aggregates and Repositories", "aggregates.pdf", [ddd]);
+        AddDoc(architecture, "Domain Events", "domain-events.docx", [ddd]);
 
-        AddDoc(quality, "Scalability Fundamentals", "scalability.pdf");
-        AddDoc(quality, "Maintainability Metrics", "maintainability.pdf");
+        AddDoc(architecture, "Scalability Fundamentals", "scalability.pdf", [quality]);
+        AddDoc(architecture, "Maintainability Metrics", "maintainability.pdf", [quality]);
 
-        AddDoc(evaluation, "ATAM Methodology", "atam.pdf");
-        AddDoc(evaluation, "Architecture Review Checklist", "review-checklist.docx");
+        AddDoc(architecture, "ATAM Methodology", "atam.pdf", [evaluation]);
+        AddDoc(architecture, "Architecture Review Checklist", "review-checklist.docx", [evaluation]);
 
 
         /* =========================================================
          * ARTIFICIAL INTELLIGENCE
          * ========================================================= */
 
-        AddDoc(aiFundamentals, "What is Artificial Intelligence", "intro-ai.pdf");
-        AddDoc(aiFundamentals, "History of AI", "history-ai.docx");
-        AddDoc(aiFundamentals, "AI Applications", "ai-applications.pdf");
-        AddDoc(aiFundamentals, "Intelligent Agents", "intelligent-agents.pptx");
+        AddDoc(ai, "What is Artificial Intelligence", "intro-ai.pdf", [aiFundamentals]);
+        AddDoc(ai, "History of AI", "history-ai.docx", [aiFundamentals]);
+        AddDoc(ai, "AI Applications", "ai-applications.pdf", [aiFundamentals]);
+        AddDoc(ai, "Intelligent Agents", "intelligent-agents.pptx", [aiFundamentals]);
 
-        AddDoc(searchAlgorithms, "Breadth First Search", "bfs.pdf");
-        AddDoc(searchAlgorithms, "Depth First Search", "dfs.pdf");
-        AddDoc(searchAlgorithms, "A Star Search", "astar-search.pdf");
+        AddDoc(ai, "Breadth First Search", "bfs.pdf", [searchAlgorithms]);
+        AddDoc(ai, "Depth First Search", "dfs.pdf", [searchAlgorithms]);
+        AddDoc(ai, "A Star Search", "astar-search.pdf", [searchAlgorithms]);
 
         /* Knowledge Representation intentionally empty */
 
-        AddDoc(machineLearning, "Machine Learning Overview", "ml-overview.pdf");
-        AddDoc(machineLearning, "Supervised Learning", "supervised-learning.pdf");
-        AddDoc(machineLearning, "Unsupervised Learning", "unsupervised-learning.pdf");
-        AddDoc(machineLearning, "Feature Engineering", "feature-engineering.docx");
-        AddDoc(machineLearning, "Model Evaluation", "model-evaluation.pdf");
+        AddDoc(ai, "Machine Learning Overview", "ml-overview.pdf", [machineLearning]);
+        AddDoc(ai, "Supervised Learning", "supervised-learning.pdf", [machineLearning]);
+        AddDoc(ai, "Unsupervised Learning", "unsupervised-learning.pdf", [machineLearning]);
+        AddDoc(ai, "Feature Engineering", "feature-engineering.docx", [machineLearning]);
+        AddDoc(ai, "Model Evaluation", "model-evaluation.pdf", [machineLearning]);
 
-        AddDoc(neuralNetworks, "Perceptrons", "perceptrons.pdf");
-        AddDoc(neuralNetworks, "Backpropagation", "backpropagation.pdf");
-        AddDoc(neuralNetworks, "Activation Functions", "activation-functions.pdf");
-        AddDoc(neuralNetworks, "Deep Learning Basics", "deep-learning.pptx");
+        AddDoc(ai, "Perceptrons", "perceptrons.pdf", [neuralNetworks]);
+        AddDoc(ai, "Backpropagation", "backpropagation.pdf", [neuralNetworks]);
+        AddDoc(ai, "Activation Functions", "activation-functions.pdf", [neuralNetworks]);
+        AddDoc(ai, "Deep Learning Basics", "deep-learning.pptx", [aiFundamentals, machineLearning, neuralNetworks]);
 
-        AddDoc(nlp, "Natural Language Processing Overview", "nlp-overview.pdf");
-        AddDoc(nlp, "Text Classification", "text-classification.docx");
+        AddDoc(ai, "Natural Language Processing Overview", "nlp-overview.pdf", [aiFundamentals, nlp]);
+        AddDoc(ai, "Text Classification", "text-classification.docx", [nlp]);
 
-        AddDoc(aiEthics, "AI Ethics Principles", "ai-ethics.pdf");
-        AddDoc(aiEthics, "Bias and Fairness", "bias-fairness.pdf");
+        AddDoc(ai, "AI Ethics Principles", "ai-ethics.pdf", [aiEthics]);
+        AddDoc(ai, "Bias and Fairness", "bias-fairness.pdf", [aiEthics]);
 
 
         /* =========================================================
          * DATABASE SYSTEMS
          * ========================================================= */
 
-        AddDoc(relationalModel, "Relational Model Fundamentals", "relational-model.pdf");
-        AddDoc(relationalModel, "Entities and Relationships", "er-model.docx");
-        AddDoc(relationalModel, "Relational Algebra", "relational-algebra.pdf");
+        AddDoc(database, "Relational Model Fundamentals", "relational-model.pdf", [relationalModel]);
+        AddDoc(database, "Entities and Relationships", "er-model.docx", [relationalModel]);
+        AddDoc(database, "Relational Algebra", "relational-algebra.pdf", [relationalModel]);
 
-        AddDoc(sqlFundamentals, "SQL Basics", "sql-basics.pdf");
-        AddDoc(sqlFundamentals, "SELECT Queries", "select-queries.pdf");
-        AddDoc(sqlFundamentals, "JOIN Operations", "joins.pdf");
-        AddDoc(sqlFundamentals, "Grouping and Aggregation", "grouping.pdf");
-        AddDoc(sqlFundamentals, "Stored Procedures", "stored-procedures.docx");
+        AddDoc(database, "SQL Basics", "sql-basics.pdf", [sqlFundamentals]);
+        AddDoc(database, "SELECT Queries", "select-queries.pdf", [sqlFundamentals]);
+        AddDoc(database, "JOIN Operations", "joins.pdf", [sqlFundamentals]);
+        AddDoc(database, "Grouping and Aggregation", "grouping.pdf", [sqlFundamentals]);
+        AddDoc(database, "Stored Procedures", "stored-procedures.docx", [sqlFundamentals]);
 
-        AddDoc(normalization, "First Normal Form", "1nf.pdf");
-        AddDoc(normalization, "Second and Third Normal Form", "2nf-3nf.pdf");
-        AddDoc(normalization, "Boyce Codd Normal Form", "bcnf.pdf");
+        AddDoc(database, "First Normal Form", "1nf.pdf", [normalization]);
+        AddDoc(database, "Second and Third Normal Form", "2nf-3nf.pdf", [normalization]);
+        AddDoc(database, "Boyce Codd Normal Form", "bcnf.pdf", [normalization]);
 
         /* Transactions intentionally empty */
 
-        AddDoc(indexing, "Database Indexes", "indexes.pdf");
-        AddDoc(indexing, "B Tree Structures", "btree.pdf");
+        AddDoc(database, "Database Indexes", "indexes.pdf", [indexing]);
+        AddDoc(database, "B Tree Structures", "btree.pdf", [indexing]);
 
-        AddDoc(queryOptimization, "Execution Plans", "execution-plans.pdf");
-        AddDoc(queryOptimization, "Cost Based Optimization", "cost-optimization.pdf");
-        AddDoc(queryOptimization, "Query Tuning", "query-tuning.docx");
+        AddDoc(database, "Execution Plans", "execution-plans.pdf", [queryOptimization]);
+        AddDoc(database, "Cost Based Optimization", "cost-optimization.pdf", [queryOptimization]);
+        AddDoc(database, "Query Tuning", "query-tuning.docx", [queryOptimization]);
 
-        AddDoc(distributedDatabases, "Distributed Database Concepts", "distributed-db.pdf");
-        AddDoc(distributedDatabases, "Replication Strategies", "replication.pdf");
+        AddDoc(database, "Distributed Database Concepts", "distributed-db.pdf", [distributedDatabases]);
+        AddDoc(database, "Replication Strategies", "replication.pdf", [distributedDatabases]);
 
-        AddDoc(noSql, "Introduction to NoSQL", "nosql-intro.pdf");
-        AddDoc(noSql, "Document Databases", "document-databases.pdf");
+        AddDoc(database, "Introduction to NoSQL", "nosql-intro.pdf", [noSql]);
+        AddDoc(database, "Document Databases", "document-databases.pdf", [noSql]);
 
-        AddDoc(vectorDatabases, "Vector Database Fundamentals", "vector-databases.pdf");
-        AddDoc(vectorDatabases, "Semantic Search Systems", "semantic-search.pdf");
+        AddDoc(database, "Vector Database Fundamentals", "vector-databases.pdf", [vectorDatabases]);
+        AddDoc(database, "Semantic Search Systems", "semantic-search.pdf", [vectorDatabases]);
 
-        void AddDoc(Chapter chapter, string title, string fileName)
+        void AddDoc(Subject subject, string title, string fileName, List<Chapter> chapters)
         {
             var document = new Document
             {
+                SubjectId = subject.Id,
                 UploaderId = uploader.Id,
 
                 Title = title,
                 Description = $"{title} learning material.",
 
                 OriginalFileName = fileName,
-                FileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}",
 
                 FileType = RandomFileType(rnd),
                 Status = RandomStatus(rnd),
 
                 FileSize = rnd.Next(250 * 1024, 15 * 1024 * 1024),
 
-                FilePath = Path.Combine(
+                StagingLocator = Path.Combine(
                     Path.GetTempPath(),
                     "EduChatAI",
                     $"{Guid.NewGuid()}{Path.GetExtension(fileName)}"),
 
                 UploadedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 180)),
             };
-            document.Chapters.Add(chapter);
+            document.Chapters.AddRange(chapters);
             unitOfWork.Documents.Insert(document);
         }
 

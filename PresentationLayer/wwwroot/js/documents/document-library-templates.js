@@ -24,304 +24,498 @@ const DocumentLibraryTemplates = (() => {
         return escapeHtml(value);
     }
 
+    function joinClasses(...classes) {
+
+        return classes
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    /* ==========================================================
+       FORMATTING HELPERS
+       ========================================================== */
+
     function formatChapterTitle(chapter) {
+
+        if (!chapter)
+            return "";
 
         if (chapter.chapterNumber == null)
             return escapeHtml(chapter.name);
 
-        return `${chapter.chapterNumber}. ${escapeHtml(chapter.name)}`;
+        return `Chapter ${chapter.chapterNumber} · ${escapeHtml(chapter.name)}`;
+    }
+
+    function formatDate(date) {
+
+        if (!date)
+            return "";
+
+        return new Intl.DateTimeFormat(
+            "en-GB",
+            {
+                dateStyle: "medium",
+                timeStyle: "short",
+            })
+            .format(new Date(date));
+    }
+
+    function formatTimeAgo(date) {
+
+        if (!date)
+            return "";
+
+        const diff = diffDate(new Date(), new Date(date));
+
+        if (diff.years > 1) return `${diff.years} years ago`;
+        if (diff.years === 1) return `A year ago`;
+        if (diff.months > 1) return `${diff.months} months ago`;
+        if (diff.months === 1) return `A month ago`;
+        if (diff.days > 1) return `${diff.days} days ago`;
+        if (diff.days === 1) return `A day ago`;
+        if (diff.hours > 1) return `${diff.hours} hours ago`;
+        if (diff.hours === 1) return `An hour ago`;
+        if (diff.minutes > 1) return `${diff.minutes} minutes ago`;
+        return `Just now`;
+    }
+
+    function diffDate(first, second) {
+        const ms = Math.abs(first.getTime() - second.getTime());
+        const seconds = Math.floor((ms / 1000) % 60);
+        const minutes = Math.floor((ms / (1000 * 60)) % 60);
+        const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+        const days = Math.floor((ms / (1000 * 60 * 60 * 24)) % (365.25 / 12));
+        const months = Math.floor((ms / (1000 * 60 * 60 * 24 * (365.25 / 12))) % 12);
+        const years = Math.floor((ms / (1000 * 60 * 60 * 24 * 365.25)));
+        return {
+            years,
+            months,
+            days,
+            hours,
+            minutes,
+            seconds,
+        };
+    }
+
+    function formatFileSize(bytes) {
+
+        if (bytes == null)
+            return "";
+
+        const units = ["B", "KB", "MB", "GB", "TB"];
+
+        let value = bytes;
+        let unit = 0;
+
+        while (value >= 1024 && unit < units.length - 1) {
+            value /= 1024;
+            unit++;
+        }
+
+        return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+    }
+
+    function getFileIcon(extension) {
+
+        switch ((extension ?? "").toUpperCase()) {
+
+            case ".PDF":
+                return "fa-file-pdf";
+
+            case ".DOC":
+            case ".DOCX":
+                return "fa-file-word";
+
+            case ".PPT":
+            case ".PPTX":
+                return "fa-file-powerpoint";
+
+            case ".TXT":
+                return "fa-file-alt";
+
+            case ".HTML":
+            case ".HTM":
+                return "fa-file-code";
+
+            default:
+                return "fa-file";
+        }
     }
 
     /* ==========================================================
-       EMPTY / LOADING
+       GENERIC PLACEHOLDERS
        ========================================================== */
 
-    function renderLoading(message = "Loading...") {
+    function renderEmpty(icon, title, description) {
 
         return `
-<div class="flex items-center justify-center py-20 text-slate-500">
-    <div class="flex items-center gap-3">
-        <i class="fa-solid fa-spinner animate-spin"></i>
-        <span>${escapeHtml(message)}</span>
+<div class="flex flex-col items-center justify-center px-6 py-12 text-center">
+
+    <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 text-3xl text-slate-500">
+
+        <i class="fa-solid ${icon}"></i>
+
     </div>
-</div>`;
-    }
 
-    function renderEmpty(
-        title,
-        description,
-        icon = "fa-folder-open") {
+    <h3 class="text-xl font-semibold text-white">
 
-        return `
-<div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 py-20">
-
-    <i class="fa-solid ${icon} mb-4 text-4xl text-slate-400"></i>
-
-    <h3 class="text-lg font-semibold text-slate-700">
         ${escapeHtml(title)}
+
     </h3>
 
-    <p class="mt-2 max-w-lg text-center text-sm text-slate-500">
+    <p class="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+
         ${escapeHtml(description)}
+
     </p>
 
 </div>`;
     }
 
+    function renderLoading({
+        title = "Loading...",
+        description = "Please wait while we retrieve the requested data.",
+        compact = false,
+    } = {}) {
+
+        if (compact) {
+
+            return `
+            <div class="flex items-center justify-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-5 mx-2 my-3">
+
+                <i class="fa-solid fa-spinner fa-spin text-lg text-emerald-400"></i>
+
+                <span class="text-sm font-medium text-slate-300">
+                    ${title}
+                </span>
+
+            </div>
+        `;
+        }
+
+        return `
+        <div class="flex flex-col items-center justify-center rounded-3xl border border-slate-700 bg-slate-900/50 px-10 py-16 text-center">
+
+            <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
+
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-400"></i>
+
+            </div>
+
+            <h3 class="text-xl font-semibold text-white">
+                ${title}
+            </h3>
+
+            <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+                ${description}
+            </p>
+
+        </div>
+    `;
+    }
+
+    function renderLoadFailed({
+        title = "Unable to load",
+        description = "An unexpected error occurred while loading this content.",
+        compact = false
+    } = {}) {
+
+        if (compact) {
+
+            return `
+            <div class="flex items-center justify-center gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-5 mx-2 my-3">
+
+                <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+
+                <span class="text-sm font-medium text-red-200">
+                    ${title}
+                </span>
+
+            </div>
+        `;
+        }
+
+        return `
+        <div class="flex flex-col items-center justify-center rounded-3xl border border-red-900/60 bg-red-950/20 px-10 py-16 text-center">
+
+            <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+
+                <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
+
+            </div>
+
+            <h3 class="text-xl font-semibold text-red-100">
+                ${title}
+            </h3>
+
+            <p class="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+                ${description}
+            </p>
+
+        </div>
+    `;
+    }
+
     /* ==========================================================
-       SUBJECT GRID
+       UPLOAD PRIVILEGE BADGE
        ========================================================== */
 
-    function renderSubjectGrid(
-        subjects,
-        selectedSubjectId) {
+    function renderUploadPrivilegeBadge(canUpload) {
+
+        const classNames = canUpload
+            ? {
+                container: "border-emerald-700 bg-emerald-600/10",
+                icon: "bg-emerald-600/20 text-emerald-300",
+                title: "text-emerald-300",
+                description: "text-slate-400",
+            }
+            : {
+                container: "border-slate-700 bg-slate-900",
+                icon: "bg-slate-800 text-slate-500",
+                title: "text-slate-300",
+                description: "text-slate-500",
+            };
+
+
+        return `
+<div class="${classNames.container} inline-flex items-center gap-3 rounded-2xl border px-5 py-3">
+
+    <div class="${classNames.icon} flex h-11 w-11 items-center justify-center rounded-xl">
+
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+
+    </div>
+
+    <div>
+
+        <div class="${classNames.title} text-sm font-semibold">
+
+            ${canUpload ? "Upload available" : "Browse only"}
+
+        </div>
+
+        <div class="${classNames.description} text-xs">
+
+            ${canUpload
+                ? "You may upload teaching resources."
+                : "You may only view documents."}
+
+        </div>
+
+    </div>
+
+</div>`;
+    }
+
+    /* ==========================================================
+       SUBJECT NAVIGATION SIDEBAR
+       ========================================================== */
+
+    function renderSubjectSidebar(subjects, selectedSubjectId) {
 
         if (!subjects?.length) {
 
             return renderEmpty(
-                "No subjects",
-                "You are not currently assigned to any subjects.");
+                "fa-book",
+                "No Subjects",
+                "No subjects are currently available.");
         }
 
-        return `
-<div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        return subjects
+            .map(subject => {
 
-${subjects.map(subject => {
+                const selected = subject.id === selectedSubjectId;
 
-            const selected =
-                subject.id === selectedSubjectId;
-
-            return `
+                return `
 <button
     type="button"
-    class="
-        js-select-subject
-        group
-        flex
-        flex-col
-        rounded-2xl
-        border
-        bg-white
-        p-6
-        text-left
-        shadow-sm
-        transition
-        hover:-translate-y-0.5
-        hover:border-blue-300
-        hover:shadow-lg
-        ${selected
-                    ? "border-blue-500 ring-2 ring-blue-200"
-                    : "border-slate-200"}
-    "
+    class="${joinClasses(
+                    "js-select-subject",
+                    "group",
+                    "flex",
+                    "w-full",
+                    "items-center",
+                    "gap-3",
+                    "border-l-4",
+                    "px-4",
+                    "py-3",
+                    "text-left",
+                    "transition",
+                    "hover:bg-slate-800/60",
+                    selected
+                        ? "border-emerald-500 bg-slate-800"
+                        : "border-transparent")}"
     data-subject-id="${subject.id}">
 
-    <div class="flex items-start justify-between">
+    <div class="${joinClasses(
+                            "mt-1",
+                            "flex",
+                            "h-10",
+                            "w-10",
+                            "shrink-0",
+                            "items-center",
+                            "justify-center",
+                            "rounded-xl",
+                            selected
+                                ? "bg-emerald-600 text-white"
+                                : "bg-slate-800 text-slate-400 group-hover:bg-slate-700")}">
 
-        <div>
+        <i class="fa-solid fa-book"></i>
 
-            <div class="text-xs font-semibold tracking-wider text-blue-600 uppercase">
-                ${escapeHtml(subject.code)}
-            </div>
+    </div>
 
-            <h3 class="mt-2 text-xl font-semibold text-slate-900">
-                ${escapeHtml(subject.name)}
-            </h3>
+    <div class="min-w-0 flex-1">
+
+        <div class="${joinClasses(
+                                    "text-xs",
+                                    "font-semibold",
+                                    "tracking-wider",
+                                    "uppercase",
+                                    selected
+                                        ? "text-emerald-300"
+                                        : "text-slate-500")}">
+
+            ${escapeHtml(subject.code)}
 
         </div>
 
-        <i class="
-            fa-solid
-            fa-book
-            text-3xl
-            ${selected
-                    ? "text-blue-600"
-                    : "text-slate-300 group-hover:text-blue-500"}
-        "></i>
+        <div class="${joinClasses(
+                                            "mt-1",
+                                            "line-clamp-2",
+                                            "text-sm",
+                                            "font-medium",
+                                            selected
+                                                ? "text-white"
+                                                : "text-slate-300")}">
+
+            ${escapeHtml(subject.name)}
+
+        </div>
 
     </div>
 
 </button>`;
+            })
+            .join("");
+    }
 
-        }).join("")}
+    function renderSubjectSidebarLoading() {
 
-</div>`;
+        return renderLoading({
+            title: "Loading subjects...",
+            compact: true,
+        });
+    }
+
+    function renderSubjectSidebarLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load subjects",
+            compact: true,
+        });
     }
 
     /* ==========================================================
-       SUBJECT SIDEBAR
+       CHAPTER NAVIGATION SIDEBAR
        ========================================================== */
 
-    function renderSubjectSidebar(
-        subjects,
-        selectedSubjectId,
-        collapsed) {
+    function renderChapterSidebar(chapters, selectedChapterId) {
 
-        if (!collapsed)
-            return "";
+        if (!chapters?.length) {
 
-        return `
-<div class="flex h-full flex-col">
+            return renderEmpty(
+                "fa-book-open",
+                "No Subject Selected",
+                "Select a subject to view its chapters.");
+        }
 
-    <div class="border-b border-slate-200 px-4 py-3">
+        const overviewSelected = !!chapters?.length && selectedChapterId === null;
 
-        <div class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-            Subjects
-        </div>
-
-    </div>
-
-    <div class="flex-1 overflow-y-auto">
-
-${subjects.map(subject => {
-
-            const selected =
-                subject.id === selectedSubjectId;
-
-            return `
+        let html = `
 <button
     type="button"
-    class="
-        js-select-subject
-        flex
-        w-full
-        flex-col
-        border-l-4
-        px-4
-        py-3
-        text-left
-        transition
-        hover:bg-slate-50
-        ${selected
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-transparent"}
-    "
-    data-subject-id="${subject.id}">
-
-    <span class="
-        text-xs
-        font-semibold
-        uppercase
-        tracking-wider
-        ${selected
-                    ? "text-blue-600"
-                    : "text-slate-500"}
-    ">
-        ${escapeHtml(subject.code)}
-    </span>
-
-    <span class="
-        mt-1
-        line-clamp-2
-        text-sm
-        font-medium
-        ${selected
-                    ? "text-slate-900"
-                    : "text-slate-700"}
-    ">
-        ${escapeHtml(subject.name)}
-    </span>
-
-</button>`;
-
-        }).join("")}
-
-    </div>
-
-</div>`;
-    }
-
-    /* ==========================================================
-       CHAPTER SIDEBAR
-       ========================================================== */
-
-    function renderChapterSidebar(
-        chapters,
-        selectedChapterId,
-        visible) {
-
-        if (!visible)
-            return "";
-
-        return `
-<div class="flex h-full flex-col">
-
-    <div class="border-b border-slate-200 px-4 py-3">
-
-        <div class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-            Chapters
-        </div>
-
-    </div>
-
-    <div class="flex-1 overflow-y-auto">
-
-<button
-    type="button"
-    class="
-        js-select-chapter
-        flex
-        w-full
-        items-center
-        gap-3
-        border-l-4
-        px-4
-        py-3
-        text-left
-        transition
-        hover:bg-slate-50
-        ${selectedChapterId == null
-                ? "border-blue-600 bg-blue-50"
-                : "border-transparent"}
-    "
+    class="${joinClasses(
+            "js-select-chapter",
+            "group",
+            "flex",
+            "w-full",
+            "items-center",
+            "gap-3",
+            "border-l-4",
+            "px-4",
+            "py-3",
+            "text-left",
+            "transition",
+            "hover:bg-slate-800/60",
+            overviewSelected
+                ? "border-emerald-500 bg-slate-800"
+                : "border-transparent")}"
     data-chapter-id="">
 
-    <i class="fa-solid fa-book-open text-slate-400"></i>
+    <div class="${joinClasses(
+                    "flex",
+                    "h-10",
+                    "w-10",
+                    "items-center",
+                    "justify-center",
+                    "rounded-xl",
+                    overviewSelected
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-800 text-slate-400")}">
 
-    <span class="font-medium">
-        Subject Overview
-    </span>
+        <i class="fa-solid fa-book-open"></i>
 
-</button>
+    </div>
 
-${chapters.map(chapter => {
+    <div>
 
-                    const selected =
-                        chapter.id === selectedChapterId;
+        <div class="${overviewSelected ? "font-semibold text-white" : "font-medium text-slate-300"}">
 
-                    return `
+            Subject Overview
+
+        </div>
+
+    </div>
+
+</button>`;
+
+        html += chapters
+            .map(chapter => {
+
+                const selected = chapter.id === selectedChapterId;
+
+                return `
 <button
     type="button"
-    class="
-        js-select-chapter
-        flex
-        w-full
-        items-start
-        gap-3
-        border-l-4
-        px-4
-        py-3
-        text-left
-        transition
-        hover:bg-slate-50
-        ${selected
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-transparent"}
-    "
+    class="${joinClasses(
+                    "js-select-chapter",
+                    "group",
+                    "flex",
+                    "w-full",
+                    "items-center",
+                    "gap-3",
+                    "border-l-4",
+                    "px-4",
+                    "py-3",
+                    "text-left",
+                    "transition",
+                    "hover:bg-slate-800/60",
+                    selected
+                        ? "border-emerald-500 bg-slate-800"
+                        : "border-transparent")}"
     data-chapter-id="${chapter.id}">
 
-    <div class="
-        mt-0.5
-        flex
-        h-7
-        w-7
-        shrink-0
-        items-center
-        justify-center
-        rounded-full
-        bg-slate-100
-        text-xs
-        font-semibold
-        text-slate-600">
+    <div class="${joinClasses(
+                            "flex",
+                            "h-10",
+                            "w-10",
+                            "shrink-0",
+                            "items-center",
+                            "justify-center",
+                            "rounded-xl",
+                            selected
+                                ? "bg-emerald-600 text-white"
+                                : "bg-slate-800 text-slate-400")}">
 
         ${chapter.chapterNumber ?? "•"}
 
@@ -329,22 +523,379 @@ ${chapters.map(chapter => {
 
     <div class="min-w-0 flex-1">
 
-        <div class="
-            truncate
-            text-sm
-            font-medium
-            ${selected
-                            ? "text-slate-900"
-                            : "text-slate-700"}
-        ">
+        <div class="${joinClasses(
+                                    "truncate",
+                                    "text-sm",
+                                    selected
+                                        ? "font-semibold text-white"
+                                        : "font-medium text-slate-300")}">
+
             ${formatChapterTitle(chapter)}
+
         </div>
 
     </div>
 
 </button>`;
+            })
+            .join("");
 
-                }).join("")}
+        return html;
+    }
+
+    function renderChapterSidebarLoading() {
+
+        return renderLoading({
+            title: "Loading chapters...",
+            compact: true,
+        });
+    }
+
+    function renderChapterSidebarLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load chapters",
+            compact: true,
+        });
+    }
+
+    /* ==========================================================
+       MAIN SECTION HEADER
+       ========================================================== */
+
+    function renderMainSectionBreadcrumb(subject, chapter) {
+
+        return `
+<span class="rounded-lg bg-emerald-500/15 px-3 py-1 text-sm font-semibold text-emerald-300">
+
+    ${subject ? subject.code : "Select Subject"}
+
+</span>
+
+            ${subject
+                ? `
+            <i class="fa-solid fa-chevron-right text-xs text-slate-600"></i>
+
+            <span class="rounded-lg bg-blue-500/20 px-3 py-1 text-sm font-semibold text-blue-300">
+
+                ${chapter ? `Chapter ${chapter.chapterNumber}` : "Subject Overview"}
+
+            </span>`
+                : ""}`;
+    }
+
+    /* ==========================================================
+       SUBJECT GRID
+       ========================================================== */
+
+    function renderSubjectGrid(subjects, selectedSubjectId) {
+
+        if (!subjects?.length) {
+            return renderEmpty(
+                "fa-book",
+                "No subjects available",
+                "You are not currently enrolled in any subjects.");
+        }
+
+        return `
+<div class="mb-8 flex items-center justify-between">
+
+    <div>
+
+        <h2 class="text-2xl font-bold">
+
+            Your Subjects
+
+        </h2>
+
+        <p class="mt-2 text-sm text-slate-400 whitespace-normal">
+
+            Select a subject to browse documents,
+            chapters and teaching resources.
+
+        </p>
+
+    </div>
+
+</div>
+
+<div id="subjectGridContainer"
+     class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+
+${subjects.map(subject => {
+
+            const selected = subject.id === selectedSubjectId;
+
+            return `
+<button
+    type="button"
+    class="${joinClasses(
+                "js-select-subject",
+                "group",
+                "overflow-hidden",
+                "rounded-2xl",
+                "border",
+                "text-left",
+                "transition",
+                "duration-200",
+                "flex",
+                "flex-col",
+                "justify-between",
+                selected
+                    ? "border-emerald-500 bg-slate-800 shadow-lg shadow-emerald-500/10"
+                    : "border-slate-700 bg-slate-800 hover:border-slate-500 hover:-translate-y-1 hover:shadow-xl"
+            )}
+    "
+    data-subject-id="${subject.id}">
+
+    <div class="flex-1 flex items-center gap-2 justify-between p-6">
+
+        <div class="min-w-0">
+
+            <div class="inline-flex rounded-lg bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+
+                ${escapeHtml(subject.code)}
+
+            </div>
+
+            <h3 class="mt-4 line-clamp-2 text-xl font-semibold text-slate-100">
+
+                ${escapeHtml(subject.name)}
+
+            </h3>
+
+            ${subject.description
+                    ? `
+                <p class="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">
+
+                    ${escapeHtml(subject.description)}
+
+                </p>`
+                    : ""}
+
+        </div>
+
+        <i class="fa-solid fa-book text-3xl ${selected ? "text-emerald-400" : "text-slate-500 group-hover:text-emerald-400"}"></i>
+
+    </div>
+
+    <div class="grid 2xl:grid-cols-3 border-t border-slate-700">
+
+        ${renderStatTile(subject.chapterCount ?? 0, "Chapters")}
+        ${renderStatTile(subject.documentCount ?? 0, "Documents")}
+        ${renderStatTile(subject.memberCount ?? 0, "Members")}
+
+    </div>
+
+</button>`;
+        }).join("")}
+
+</div>`;
+    }
+
+    function renderSubjectGridLoading() {
+
+        return renderLoading({
+            title: "Loading subjects",
+            description: "Preparing your document library...",
+        });
+    }
+
+    function renderSubjectGridLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load subjects",
+            description: "Please refresh the page or try again later.",
+        });
+    }
+
+    /* ==========================================================
+       SUBJECT DETAILS
+       ========================================================== */
+
+    function renderSubjectDetails(subject) {
+
+        if (!subject) {
+
+            return renderEmpty(
+                "fa-book",
+                "No subject selected",
+                "Select a subject to view its details.");
+        }
+
+        return `
+<div class="overflow-hidden border-b border-slate-700 px-8 py-3">
+
+    <div class="flex items-center justify-between gap-8">
+
+        <div class="min-w-0 flex-1">
+
+            <h2 class="mt-4 text-4xl font-bold text-white">
+
+                ${escapeHtml(subject.name)}
+
+            </h2>
+
+            ${subject.description
+                ? `
+                <p class="mt-6 max-w-4xl text-base leading-8 text-slate-300">
+
+                    ${escapeHtml(subject.description)}
+
+                </p>`
+                : ""}
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="grid grid-cols-2 3xl:grid-cols-4 gap-6 p-8">
+
+    ${renderInfoCard("fa-book-open", "Chapters", subject.chapterCount ?? 0)}
+    ${renderInfoCard("fa-file", "Documents", subject.documentCount ?? 0)}
+    ${renderInfoCard("fa-users", "Members", subject.memberCount ?? 0)}
+    ${renderInfoCard("fa-clock", "Updated", formatTimeAgo(subject.lastUpdated) ?? "—")}
+
+</div>`;
+    }
+
+    function renderSubjectDetailsLoading() {
+
+        return renderLoading({
+            title: "Loading subject",
+            description: "Retrieving subject information...",
+        });
+    }
+
+    function renderSubjectDetailsLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load subject",
+            description: "The selected subject could not be retrieved.",
+        });
+    }
+
+    /* ==========================================================
+       CHAPTER DETAILS
+       ========================================================== */
+
+    function renderChapterDetails(subject, chapter) {
+
+        if (!subject || !chapter) {
+
+            return renderEmpty(
+                "fa-book-open",
+                "No chapter selected",
+                "Select a chapter to view its details.");
+        }
+
+        return `
+<div class="border-b border-slate-700 px-8 py-3">
+
+    <div class="flex items-center justify-between gap-8">
+
+        <div class="min-w-0 flex-1">
+
+            <h2 class="mt-4 text-4xl font-bold text-white">
+
+                ${escapeHtml(chapter.name)}
+
+            </h2>
+
+            ${chapter.description
+                ? `
+                <p class="mt-6 max-w-4xl text-base leading-8 text-slate-300">
+
+                    ${escapeHtml(chapter.description)}
+
+                </p>`
+                : ""}
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="grid gap-6 p-8 2xl:grid-cols-3">
+
+    ${renderInfoCard("fa-book", "Subject", subject.code)}
+    ${renderInfoCard("fa-layer-group", "Chapter", chapter.chapterNumber ?? "—")}
+    ${renderInfoCard("fa-file-lines", "Documents", chapter.documentCount ?? 0)}
+
+</div>`;
+    }
+
+    function renderChapterDetailsLoading() {
+
+        return renderLoading({
+            title: "Loading chapter",
+            description: "Retrieving chapter information...",
+        });
+    }
+
+    function renderChapterDetailsLoadFailed() {
+
+        return renderLoadFailed({
+            title: "Unable to load chapter",
+            description: "The selected chapter could not be retrieved.",
+        });
+    }
+
+    /* ==========================================================
+       SHARED DETAIL HELPERS
+       ========================================================== */
+
+    function renderStatTile(value, label) {
+
+        return `
+<div class="text-center py-4 border-slate-700 max-2xl:border-b 2xl:border-r max-2xl:last:border-b-0 2xl:last:border-r-0">
+
+    <div class="text-2xl font-bold text-white">
+
+        ${escapeHtml(value)}
+
+    </div>
+
+    <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">
+
+        ${escapeHtml(label)}
+
+    </div>
+
+</div>`;
+    }
+
+    function renderInfoCard(icon, label, value) {
+
+        return `
+<div class="rounded-xl border border-slate-700 bg-slate-900/50 p-4">
+
+    <div class="flex items-center justify-start gap-3">
+
+        <div class="shrink-0 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-700 text-slate-300">
+
+            <i class="fa-solid ${icon}"></i>
+
+        </div>
+
+        <div>
+
+            <div class="text-xs uppercase tracking-wide text-slate-500">
+
+                ${escapeHtml(label)}
+
+            </div>
+
+            <div class="mt-1 text-xl font-bold text-white truncate">
+
+                ${escapeHtml(value)}
+
+            </div>
+
+        </div>
 
     </div>
 
@@ -352,391 +903,160 @@ ${chapters.map(chapter => {
     }
 
     /* =========================================================
-       DETAILS CARD SWITCH
-       ========================================================= */
-
-    function renderDetailsCard(subject, chapter, canUpload) {
-
-        const details =
-            chapter
-                ? renderChapterDetailsCard(chapter, subject, canUpload)
-                : renderSubjectDetailsCard(subject, canUpload);
-
-        const upload =
-            canUpload
-                ? renderUploadPanel(true)
-                : "";
-
-        return details + upload;
-    }
-
-    /* =========================================================
-       SUBJECT DETAILS CARD
-       ========================================================= */
-
-    function renderSubjectDetailsCard(subject, canUpload) {
-
-        if (!subject)
-            return "";
-
-        return `
-<section class="rounded-xl border border-slate-200 bg-white shadow-sm">
-
-    <div class="flex items-start justify-between border-b border-slate-200 px-6 py-5">
-
-        <div>
-
-            <div class="flex items-center gap-3">
-
-                <span class="rounded-lg bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                    ${escapeHtml(subject.code)}
-                </span>
-
-                <h2 class="text-2xl font-bold text-slate-900">
-                    ${escapeHtml(subject.name)}
-                </h2>
-
-            </div>
-
-            ${subject.description
-                ? `
-                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                    ${escapeHtml(subject.description)}
-                </p>
-                `
-                : ""}
-
-        </div>
-
-        ${canUpload
-                ? `
-            <button
-                id="showUploadBtn"
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
-
-                <i class="fas fa-cloud-upload-alt"></i>
-                Upload documents
-
-            </button>
-            `
-                : ""}
-
-    </div>
-
-    <div class="grid gap-6 p-6 lg:grid-cols-3">
-
-        <div class="rounded-lg bg-slate-50 p-4">
-
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Chapters
-            </div>
-
-            <div class="mt-2 text-3xl font-bold text-slate-900">
-                ${subject.chapterCount ?? 0}
-            </div>
-
-        </div>
-
-        <div class="rounded-lg bg-slate-50 p-4">
-
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Documents
-            </div>
-
-            <div class="mt-2 text-3xl font-bold text-slate-900">
-                ${subject.documentCount ?? 0}
-            </div>
-
-        </div>
-
-        <div class="rounded-lg bg-slate-50 p-4">
-
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Members
-            </div>
-
-            <div class="mt-2 text-3xl font-bold text-slate-900">
-                ${subject.memberCount ?? 0}
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
-`;
-    }
-
-    /* =========================================================
-       CHAPTER DETAILS CARD
-       ========================================================= */
-
-    function renderChapterDetailsCard(chapter, subject, canUpload) {
-
-        if (!chapter)
-            return "";
-
-        return `
-<section class="rounded-xl border border-slate-200 bg-white shadow-sm">
-
-    <div class="flex items-start justify-between border-b border-slate-200 px-6 py-5">
-
-        <div>
-
-            <div class="flex items-center gap-3">
-
-                ${chapter.chapterNumber != null
-                ? `
-                    <span class="rounded-lg bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                        Chapter ${chapter.chapterNumber}
-                    </span>
-                    `
-                : ""}
-
-                <h2 class="text-2xl font-bold text-slate-900">
-                    ${escapeHtml(chapter.name)}
-                </h2>
-
-            </div>
-
-            <div class="mt-2 text-sm text-slate-500">
-
-                ${escapeHtml(subject.code)}
-                ·
-                ${escapeHtml(subject.name)}
-
-            </div>
-
-            ${chapter.description
-                ? `
-                <p class="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
-                    ${escapeHtml(chapter.description)}
-                </p>
-                `
-                : ""}
-
-        </div>
-
-        ${canUpload
-                ? `
-            <button
-                id="showUploadBtn"
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
-
-                <i class="fas fa-cloud-upload-alt"></i>
-                Upload documents
-
-            </button>
-            `
-                : ""}
-
-    </div>
-
-    <div class="grid gap-6 p-6 lg:grid-cols-2">
-
-        <div class="rounded-lg bg-slate-50 p-4">
-
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Documents
-            </div>
-
-            <div class="mt-2 text-3xl font-bold text-slate-900">
-                ${chapter.documentCount ?? 0}
-            </div>
-
-        </div>
-
-        <div class="rounded-lg bg-slate-50 p-4">
-
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Subject
-            </div>
-
-            <div class="mt-2 text-lg font-semibold text-slate-900">
-                ${escapeHtml(subject.code)}
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
-`;
-    }
-
-    /* =========================================================
        UPLOAD PANEL
        ========================================================= */
 
-    function renderUploadPanel(showPanel) {
+    function renderUploadSubjectSummary(subject) {
+
+        if (!subject) {
+
+            return renderEmpty(
+                "fa-file",
+                "Select a subject",
+                "You must first select a subject to upload to.");
+        }
 
         return `
-<div id="uploadPanelContainer"
-     class="${showPanel ? "" : "hidden"} mt-6">
+Every uploaded file will belong to
+<strong class="text-emerald-400">
+    ${escapeHtml(subject.code)}
+</strong>
+—
+${escapeHtml(subject.name)}`;
+    }
 
-    <div id="uploadPanelOverlay"
-         class="hidden absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm">
+    function renderUploadChapterTags(chapters, selectedChapterIds) {
 
-        <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent">
-        </div>
+        const selectedSet = new Set(selectedChapterIds);
 
-    </div>
+        return chapters.map(chapter => {
 
-    <section id="uploadPanel"
-             class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            const selected = selectedSet.has(chapter.id);
 
-        <div class="p-6">
+            return `
+<button type="button"
+        class="${joinClasses(
+                "js-chapter-tag",
+                "rounded-full",
+                "border",
+                "px-4",
+                "py-2",
+                "text-sm",
+                "font-medium",
+                "transition-all",
+                "duration-200",
+                selected
+                    ? "border-emerald-500 bg-emerald-600/15 text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,.15)]"
+                    : "border-slate-600 bg-slate-700 text-slate-200 hover:border-emerald-500 hover:bg-slate-600"
+            )}"
+        data-chapter-id="${chapter.id}">
 
-            <div id="dropZone"
-                 class="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 px-8 py-12 text-center transition hover:border-emerald-500">
+            ${selected
+                    ? `<i class="fa-solid fa-check mr-2 text-xs"></i>`
+                    : ""}
 
-                <i class="fas fa-cloud-upload-alt text-5xl text-emerald-600"></i>
+    ${formatChapterTitle(chapter)}
 
-                <h3 class="mt-5 text-xl font-semibold text-slate-900">
-                    Drag files here
-                </h3>
+</button>`;
+        }).join("");
+    }
 
-                <p class="mt-2 text-sm text-slate-500">
-                    PDF · DOCX · PPTX · TXT · HTML
+    function renderUploadOverlay() {
+
+        return `
+        <div class="absolute inset-0 z-50 flex items-center justify-center rounded-3xl bg-slate-950/80 backdrop-blur-sm">
+
+            <div class="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-10 shadow-2xl">
+
+                <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
+
+                    <i class="fa-solid fa-cloud-arrow-up fa-beat text-4xl text-emerald-400"></i>
+
+                </div>
+
+                <h2 class="mt-6 text-center text-2xl font-bold text-white">
+                    Upload in Progress
+                </h2>
+
+                <p class="mt-4 text-center text-sm leading-relaxed text-slate-400">
+                    Files are currently being uploaded to the server.
                 </p>
 
-                <input id="fileInput"
-                       hidden
-                       multiple
-                       type="file"
-                       accept=".pdf,.docx,.pptx,.txt,.html" />
+                <p class="mt-2 text-center text-sm leading-relaxed text-slate-500">
+                    The document library is temporarily locked to prevent conflicting uploads.
+                </p>
 
-                <button id="browseBtn"
-                        class="mt-6 rounded-lg bg-emerald-600 px-5 py-2.5 font-medium text-white transition hover:bg-emerald-700">
-
-                    Browse files
-
-                </button>
-
-            </div>
-
-            <div id="uploadQueue"
-                 class="mt-6 space-y-3">
             </div>
 
         </div>
+    `;
+    }
 
-    </section>
-
-</div>
-`;
+    function renderUploadRow(file) {
+        // TODO: Implement
     }
 
     /* =========================================================
-       SHARED UI FRAGMENTS
+       DOCUMENT DRAWER
        ========================================================= */
 
-    function renderStat(label, value) {
-
-        return `
-<div class="rounded-lg bg-slate-50 p-4">
-
-    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        ${escapeHtml(label)}
-    </div>
-
-    <div class="mt-2 text-2xl font-bold text-slate-900">
-        ${escapeHtml(value)}
-    </div>
-
-</div>
-`;
-    }
-
-    function renderSectionHeading(title, subtitle = "") {
-
-        return `
-<div class="border-b border-slate-200 px-6 py-4">
-
-    <h2 class="text-lg font-semibold text-slate-900">
-        ${escapeHtml(title)}
-    </h2>
-
-    ${subtitle
-                ? `
-        <p class="mt-1 text-sm text-slate-500">
-            ${escapeHtml(subtitle)}
-        </p>
-        `
-                : ""}
-
-</div>
-`;
-    }
-
-    /* =========================================================
-   DOCUMENT DRAWER
-   ========================================================= */
-
-    function renderDocumentDrawer(documents, totalDocuments) {
+    function renderDocumentList(documents, totalDocuments, canDelete) {
 
         if (!documents?.length) {
 
             return `
-<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+<div class="px-8 py-20">
 
-    ${renderSectionHeading(
-                "Documents",
-                "No documents match the current filters.")}
+    ${renderEmpty(
+                "fa-file",
+                "No documents",
+                "No documents match the current selection.")}
 
-    <div class="p-12">
-
-        ${renderEmpty(
-                    "No documents found",
-                    "Try changing the selected chapter or search term.",
-                    "fa-file")}
-
-    </div>
-
-</section>`;
+</div>`;
         }
 
         return `
-<section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+<div class="divide-y divide-slate-700">
 
-    ${renderSectionHeading(
-            "Documents",
-            `${totalDocuments} document${totalDocuments === 1 ? "" : "s"}`)}
+${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 
-    <div class="divide-y divide-slate-200">
+</div>
 
-        ${documents.map(renderDocumentRow).join("")}
+<div class="border-t border-slate-700 bg-slate-800 px-8 py-4">
+
+    <div class="text-sm text-slate-400">
+
+        ${totalDocuments}
+        document${totalDocuments === 1 ? "" : "s"}
 
     </div>
 
-</section>`;
+</div>`;
     }
 
-    /* =========================================================
-       DOCUMENT ROW
-       ========================================================= */
-
-    function renderDocumentRow(document) {
+    function renderDocumentRow(document, canDelete) {
 
         return `
-<div class="flex items-center justify-between px-6 py-4 transition hover:bg-slate-50">
+<div
+    class="flex items-center justify-between gap-6 px-8 py-5 transition hover:bg-slate-800/60">
 
-    <div class="flex min-w-0 items-center gap-4">
+    <div class="min-w-0 flex-1 flex items-center gap-5">
 
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500">
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-700 text-2xl text-slate-300">
 
-            <i class="fas ${getFileIcon(document.extension)}"></i>
+            <i class="fa-solid ${getFileIcon(document.extension)}"></i>
 
         </div>
 
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
 
             <div class="flex flex-wrap items-center gap-3">
 
-                <a href="/documents/download/${document.id}"
-                   class="truncate font-semibold text-slate-900 hover:text-blue-600">
+                <a
+                    href="/documents/download/${document.id}"
+                    class="truncate text-lg font-semibold text-slate-100 transition hover:text-emerald-400">
 
-                    ${escapeHtml(document.title)}${escapeHtml(document.extension)}
+                    ${escapeHtml(document.title)}
 
                 </a>
 
@@ -744,7 +1064,7 @@ ${chapters.map(chapter => {
                     id="status-badge-${document.id}"
                     class="document-status-badge status-${document.status.toLowerCase()}">
 
-                    <i class="fas ${StatusSettings[document.status].iconClass}"></i>
+                    <i class="fa-solid ${StatusSettings[document.status].iconClass}"></i>
 
                     ${escapeHtml(document.status)}
 
@@ -752,27 +1072,11 @@ ${chapters.map(chapter => {
 
             </div>
 
-            <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-500">
-
-                ${document.chapterName
-                ? `
-                    <span>
-
-                        <i class="fas fa-book-open mr-1"></i>
-
-                        ${document.chapterNumber != null
-                    ? `${document.chapterNumber}. `
-                    : ""}
-
-                        ${escapeHtml(document.chapterName)}
-
-                    </span>
-                    `
-                : ""}
+            <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
 
                 <span>
 
-                    <i class="fas fa-user mr-1"></i>
+                    <i class="fa-solid fa-user mr-2"></i>
 
                     ${escapeHtml(document.uploadedBy)}
 
@@ -780,22 +1084,21 @@ ${chapters.map(chapter => {
 
                 <span>
 
-                    <i class="fas fa-calendar mr-1"></i>
+                    <i class="fa-solid fa-calendar mr-2"></i>
 
-                    ${escapeHtml(formatDate(document.uploadedAt))}
+                    ${formatDate(document.uploadedAt)}
 
                 </span>
 
-                ${document.fileSize != null
+            ${document.fileSize != null
                 ? `
-                    <span>
+                <span>
 
-                        <i class="fas fa-hard-drive mr-1"></i>
+                    <i class="fa-solid fa-hard-drive mr-2"></i>
 
-                        ${formatFileSize(document.fileSize)}
+                    ${formatFileSize(document.fileSize)}
 
-                    </span>
-                    `
+                </span>`
                 : ""}
 
             </div>
@@ -804,34 +1107,165 @@ ${chapters.map(chapter => {
 
     </div>
 
-    <div class="ml-6 flex shrink-0 items-center gap-2">
+    <div class="flex shrink-0 items-center gap-2">
 
-        <a href="/documents/download/${document.id}"
-           class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-blue-300 hover:text-blue-600">
+        <a
+        href="/documents/details/${document.id}"
+        class="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-slate-600 p-3 text-slate-300 transition hover:border-emerald-500 hover:text-emerald-400">
 
-            <i class="fas fa-download"></i>
-
-        </a>
-
-        <a href="/documents/details/${document.id}"
-           class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-blue-300 hover:text-blue-600">
-
-            <i class="fas fa-eye"></i>
+            <i class="fa-solid fa-eye"></i>
 
         </a>
 
-        <button
-            type="button"
-            class="js-delete-document inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-500 transition hover:bg-red-50"
-            data-id="${document.id}">
+        <a
+            href="/documents/download/${document.id}"
+            class="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-slate-600 p-3 text-slate-300 transition hover:border-emerald-500 hover:text-emerald-400">
 
-            <i class="fas fa-trash"></i>
+            <i class="fa-solid fa-download"></i>
 
-        </button>
+        </a>
+
+            ${canDelete
+                ? `
+            <button type="button"
+                class="js-delete-document flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-red-700 p-3 text-red-400 transition hover:bg-red-900/30"
+                data-id="${document.id}">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>`
+                : ""}
 
     </div>
 
 </div>`;
+    }
+
+    function renderDocumentListLoading(pageSize) {
+
+        const rows = Array.from(
+            { length: pageSize },
+            (_, i) => `
+
+<div class="flex items-center justify-between gap-6 px-8 py-5">
+
+    <!-- ===================================================== -->
+    <!-- INFO                                                  -->
+    <!-- ===================================================== -->
+
+    <div class="min-w-0 flex flex-1 items-center gap-5">
+
+        <!-- File icon -->
+
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-800 skeleton">
+
+            <div class="h-7 w-7 rounded bg-slate-700"></div>
+
+        </div>
+
+        <!-- Text -->
+
+        <div class="min-w-0 flex-1">
+
+            <!-- Title + status -->
+
+            <div class="flex items-center gap-3">
+
+                <div class="h-6 w-64 max-w-[45%] rounded bg-slate-700 skeleton"></div>
+
+                <div class="h-7 w-28 rounded-full bg-slate-800 skeleton"></div>
+
+            </div>
+
+            <!-- Metadata -->
+
+            <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+
+                <div class="h-4 w-28 rounded bg-slate-800 skeleton"></div>
+
+                <div class="h-4 w-36 rounded bg-slate-800 skeleton"></div>
+
+                <div class="h-4 w-20 rounded bg-slate-800 skeleton"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- ACTION BUTTONS                                        -->
+    <!-- ===================================================== -->
+
+    <div class="flex shrink-0 items-center gap-2">
+
+        <div class="h-[46px] w-[46px] rounded-xl bg-slate-800 skeleton"></div>
+
+        <div class="h-[46px] w-[46px] rounded-xl bg-slate-800 skeleton"></div>
+
+        <div class="h-[46px] w-[46px] rounded-xl bg-slate-800 skeleton"></div>
+
+    </div>
+
+</div>
+
+${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
+`).join("");
+
+        return `
+<div class="divide-y divide-slate-700">
+
+    ${rows}
+
+</div>
+
+<div class="border-t border-slate-700 bg-slate-800 px-8 py-4">
+
+    <div class="h-4 w-32 rounded bg-slate-700 skeleton"></div>
+
+</div>`;
+    }
+
+    function renderDocumentListLoadFailed() {
+
+        return `
+<div class="px-8 py-14">
+
+    <div class="rounded-2xl border border-red-900/50 bg-red-950/20 px-10 py-12 text-center">
+
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+
+            <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
+
+        </div>
+
+        <h3 class="mt-5 text-xl font-semibold text-red-100">
+
+            Unable to load documents
+
+        </h3>
+
+        <p class="mt-3 text-sm leading-6 text-slate-400">
+
+            The requested document list could not be retrieved.
+            Please refresh the page or try again later.
+
+        </p>
+
+    </div>
+
+</div>
+
+<div class="border-t border-slate-700 bg-slate-800 px-8 py-4">
+
+    <div class="text-sm text-slate-500">
+
+        0 documents
+
+    </div>
+
+</div>
+`;
     }
 
     /* =========================================================
@@ -843,27 +1277,17 @@ ${chapters.map(chapter => {
         if (!totalPages || totalPages <= 1)
             return "";
 
-        const pages = [];
+        const buttons = [];
 
         for (let page = 1; page <= totalPages; page++) {
 
-            pages.push(`
+            buttons.push(`
 <button
     type="button"
-    class="
-        js-page
-        rounded-lg
-        border
-        px-3
-        py-2
-        text-sm
-        font-medium
-        transition
-        ${page === currentPage
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-600"}
-    "
-    data-page="${page}">
+    class="js-page rounded-xl px-4 py-2 text-sm font-medium transition ${page === currentPage
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"}"
+    data-page-index="${page}">
 
     ${page}
 
@@ -871,111 +1295,124 @@ ${chapters.map(chapter => {
         }
 
         return `
-<div class="mt-6 flex items-center justify-center gap-2">
+<div class="flex items-center justify-center gap-2 px-8 py-6">
 
     <button
         type="button"
-        class="js-page rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm transition hover:border-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
-        data-page="${currentPage - 1}"
+        class="js-prev rounded-xl bg-slate-700 px-4 py-2 text-slate-300 transition hover:bg-slate-600 disabled:opacity-40"
+        data-page-index="${currentPage - 1}"
         ${currentPage === 1 ? "disabled" : ""}>
 
-        <i class="fas fa-chevron-left"></i>
+        <i class="fa-solid fa-chevron-left"></i>
 
     </button>
 
-    ${pages.join("")}
+    ${buttons.join("")}
 
     <button
         type="button"
-        class="js-page rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm transition hover:border-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
-        data-page="${currentPage + 1}"
+        class="js-next rounded-xl bg-slate-700 px-4 py-2 text-slate-300 transition hover:bg-slate-600 disabled:opacity-40"
+        data-page-index="${currentPage + 1}"
         ${currentPage === totalPages ? "disabled" : ""}>
 
-        <i class="fas fa-chevron-right"></i>
+        <i class="fa-solid fa-chevron-right"></i>
 
     </button>
 
 </div>`;
     }
 
+
     /* =========================================================
-       PRIVATE HELPERS
+       TOAST
        ========================================================= */
 
-    function formatDate(date) {
+    function renderToast({
+        id,
+        iconClass,
+        title,
+        borderClass,
+        iconColorClass,
+        titleColorClass,
+    }) {
 
-        return new Intl.DateTimeFormat(
-            "en-GB",
-            {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit"
-            })
-            .format(new Date(date));
-    }
+        return `
+<div id="${id}"
+     class="
+        pointer-events-auto
+        translate-y-5
+        opacity-0
+        rounded-xl
+        border
+        ${borderClass}
+        bg-slate-900/95
+        shadow-2xl
+        backdrop-blur
+        transition-all
+        duration-300">
 
-    function formatFileSize(bytes) {
+    <div class="flex items-center gap-3 px-4 py-3">
 
-        if (bytes == null)
-            return "";
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800">
 
-        const units = ["B", "KB", "MB", "GB"];
+            <i class="fa-solid ${iconClass} ${iconColorClass}"></i>
 
-        let value = bytes;
-        let unit = 0;
+        </div>
 
-        while (value >= 1024 && unit < units.length - 1) {
+        <div class="min-w-0 flex-1 text-center truncate font-medium ${titleColorClass}">
 
-            value /= 1024;
-            unit++;
-        }
+            ${title}
 
-        return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
-    }
+        </div>
 
-    function getFileIcon(extension) {
+    </div>
 
-        switch (extension?.toUpperCase()) {
-
-            case ".PDF":
-                return "fa-file-pdf";
-
-            case ".DOCX":
-                return "fa-file-word";
-
-            case ".PPTX":
-                return "fa-file-powerpoint";
-
-            case ".TXT":
-                return "fa-file-lines";
-
-            case ".HTML":
-                return "fa-file-code";
-
-            default:
-                return "fa-file";
-        }
+</div>
+`;
     }
 
     /* =========================================================
-       PUBLIC API
+       PUBLIC EXPORTS
        ========================================================= */
 
     return {
 
-        renderLoading,
-        renderEmpty,
+        renderUploadPrivilegeBadge,
+
+        renderSubjectSidebar,
+        renderSubjectSidebarLoading,
+        renderSubjectSidebarLoadFailed,
+
+        renderChapterSidebar,
+        renderChapterSidebarLoading,
+        renderChapterSidebarLoadFailed,
+
+        renderMainSectionBreadcrumb,
 
         renderSubjectGrid,
-        renderSubjectSidebar,
-        renderChapterSidebar,
+        renderSubjectGridLoading,
+        renderSubjectGridLoadFailed,
 
-        renderDetailsCard,
+        renderSubjectDetails,
+        renderSubjectDetailsLoading,
+        renderSubjectDetailsLoadFailed,
 
-        renderDocumentDrawer,
+        renderChapterDetails,
+        renderChapterDetailsLoading,
+        renderChapterDetailsLoadFailed,
+
+        renderUploadSubjectSummary,
+        renderUploadChapterTags,
+        renderUploadOverlay,
+        renderUploadRow,
+
+        renderDocumentList,
+        renderDocumentListLoading,
+        renderDocumentListLoadFailed,
+
         renderPagination,
+
+        renderToast,
     };
 
 })();

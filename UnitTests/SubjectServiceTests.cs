@@ -130,7 +130,7 @@ public class SubjectServiceTests
             Assert.That(result.Name, Is.EqualTo("Advanced SE"));
         });
 
-        _subjectRepoMock.Verify(r => r.InsertAsync(It.IsAny<Subject>(), It.IsAny<CancellationToken>()), Times.Once);
+        _subjectRepoMock.Verify(r => r.Insert(It.IsAny<Subject>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -249,7 +249,7 @@ public class SubjectServiceTests
             Assert.That(result.SubjectId, Is.EqualTo(subjectId));
         });
 
-        _chapterRepoMock.Verify(r => r.InsertAsync(It.IsAny<Chapter>(), It.IsAny<CancellationToken>()), Times.Once);
+        _chapterRepoMock.Verify(r => r.Insert(It.IsAny<Chapter>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -288,9 +288,9 @@ public class SubjectServiceTests
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Student);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<Membership>(m =>
-            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Student),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _membershipRepoMock.Verify(r => r.Insert(It.Is<Membership>(m =>
+            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Student)),
+            Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -341,9 +341,9 @@ public class SubjectServiceTests
         await _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief);
 
         // Assert
-        _membershipRepoMock.Verify(r => r.InsertAsync(It.Is<Membership>(m =>
-            m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Chief),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _membershipRepoMock.Verify(r => r.Insert(
+            It.Is<Membership>(m => m.SubjectId == subjectId && m.UserId == userId && m.Role == MembershipRole.Chief)),
+            Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

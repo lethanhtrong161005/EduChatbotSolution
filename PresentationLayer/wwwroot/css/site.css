@@ -66,6 +66,7 @@
     --breakpoint-lg: 992px;
     --breakpoint-xl: 1200px;
     --breakpoint-2xl: 1400px;
+    --breakpoint-3xl: 1600px;
     /* ALIASES */
     --color-chat-user: var(--color-primary);
     --color-chat-assistant: var(--color-surface-alt);
@@ -116,6 +117,10 @@ body {
     font-family: var(--font-family-base);
     color: var(--color-text-primary);
     background-color: var(--color-bg-light);
+}
+
+button {
+    cursor: pointer;
 }
 
 .btn:focus,
@@ -178,6 +183,32 @@ body {
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-neutral) var(--color-surface);
+}
+
+/* ============================================================
+   Loading Skeleton
+   ============================================================ */
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgb(51 65 85);
+}
+
+    .skeleton::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient( 90deg, transparent, rgba(255,255,255,.06), transparent);
+        animation: skeletonShimmer 1.35s infinite;
+    }
+
+@keyframes skeletonShimmer {
+
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 /* ============================================================
@@ -307,6 +338,7 @@ body {
     --tw-prose-th-borders: var(--color-red-50);
     --tw-prose-td-borders: var(--color-red-50);
 }
+
 /* ============================================================
    Sources Panel
    ============================================================ */
@@ -344,6 +376,7 @@ body {
 .citation-details {
     overflow: hidden;
 }
+
 /* ============================================================
    Profile Dropdown
    ============================================================ */
@@ -364,6 +397,7 @@ body {
         transform: translateY(0) scale(1);
     }
 }
+
 /* ============================================================
    Message Utilities
    ============================================================ */
@@ -375,6 +409,7 @@ body {
     .message-copy-btn:hover, .message-sources-btn:hover, .message-regenerate-btn:hover, .response-prev-btn:hover, .response-next-btn:hover {
         color: var(--color-text-primary);
     }
+
 /* ============================================================
    Chat Input
    ============================================================ */
@@ -400,6 +435,7 @@ body {
     .chat-input-expanded::-webkit-scrollbar {
         width: 6px;
     }
+
 /* ============================================================
    Attachments
    ============================================================ */
@@ -411,6 +447,7 @@ body {
     .attachment-pill:hover {
         background: var(--color-surface-hover);
     }
+
 /* ============================================================
    Modal
    ============================================================ */
@@ -446,6 +483,7 @@ body {
         transform: translateY(0) scale(1);
     }
 }
+
 /* ============================================================
    Session List
    ============================================================ */
@@ -462,6 +500,7 @@ body {
     .chat-session-item-active:hover {
         background: color-mix( in srgb, var(--color-primary) 16%, transparent);
     }
+
 /* ============================================================
    New Chat Landing
    ============================================================ */
@@ -482,6 +521,7 @@ body {
         transform: translateY(0);
     }
 }
+
 /* ============================================================
    Mobile
    ============================================================ */

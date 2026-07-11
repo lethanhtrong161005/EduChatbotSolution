@@ -178,7 +178,7 @@ public class ProfileModel(
                 SubjectId = e.SubjectId.ToString(),
                 SubjectCode = e.Subject.Code,
                 SubjectName = e.Subject.Name,
-                e.FileName,
+                e.OriginalFileName,
                 FileType = e.FileType.ToString(),
                 e.FileSize,
                 e.UploadedAt,

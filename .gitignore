@@ -60,3 +60,6 @@ yarn-error.log*
 .idea/
 
 **/wwwroot/css/styles.css
+
+# Personal agent workflow notes
+/.agents/

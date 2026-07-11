@@ -107,14 +107,21 @@ builder.Services.Configure<FileStorageOptions>(opts =>
 {
     opts.AppDirectory = AppConstants.AppDir;
     opts.FileDirectoryBuffer = AppConstants.FileDirBuffer;
-    opts.FileDirectoryUploaded = AppConstants.FileDirUploaded;
+    opts.FileDirectoryStaging = AppConstants.FileDirStaging;
+    opts.FileDirectoryReceived = AppConstants.FileDirReceived;
     opts.FileDirectoryProcessing = AppConstants.FileDirProcessing;
     opts.FileDirectoryIndexed = AppConstants.FileDirIndexed;
     opts.FileDirectoryFailed = AppConstants.FileDirFailed;
 });
 
-//builder.Services.AddScoped<IDocumentFileService, LocalHardDriveDocumentFileService>();
-builder.Services.AddScoped<IDocumentFileService, SupabaseDocumentFileService>();
+builder.Services.AddKeyedScoped<IDurableStorageStrategy, LocalHardDriveDurableStorageStrategy>(DocumentStorageMethod.LocalHardDrive);
+builder.Services.AddKeyedScoped<IDurableStorageStrategy, SupabaseDurableStorageStrategy>(DocumentStorageMethod.Supabase);
+builder.Services.AddScoped<IDocumentStorageMethodResolver, DocumentStorageMethodResolver>();
+builder.Services.AddScoped<IDocumentFileService, DocumentFileService>();
+builder.Services.AddScoped<IDocumentFileReceptionService, DocumentFileReceptionService>();
+builder.Services.AddScoped<DocumentPersistenceJob>();
+builder.Services.AddSingleton<IStagingFileStore, LocalStagingFileStore>();
+builder.Services.AddSingleton<ILocalFileBuffer, LocalFileBuffer>();
 
 // ── File Validation ──────────────────────────────────────
 
@@ -152,7 +159,7 @@ builder.Services.Configure<FileValidationOptions>(opts =>
     opts.AllowedMimeType = mimeTypes;
 });
 
-builder.Services.AddSingleton<ITemporaryStorageService, TempPathStorageService>();
+builder.Services.AddSingleton<IDocumentFileValidator, DocumentFileValidator>();
 
 // ── AI Model Providers ──────────────────────────────────────
 var ollamaOpts = builder.Configuration.GetSection("AI:Ollama").Get<OllamaOptions>()

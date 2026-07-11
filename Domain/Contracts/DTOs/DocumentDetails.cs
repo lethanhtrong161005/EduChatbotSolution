@@ -14,8 +14,6 @@ public record DocumentDetails
 
     public required string? Description { get; init; } = string.Empty;
 
-    public required string FileName { get; init; } = string.Empty;
-
     public required string OriginalFileName { get; init; } = string.Empty;
 
     public required DocumentType FileType { get; init; }

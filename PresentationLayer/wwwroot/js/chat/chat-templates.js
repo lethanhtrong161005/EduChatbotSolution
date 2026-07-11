@@ -1,4 +1,6 @@
-﻿window.ChatTemplates = (function () {
+﻿"use strict"
+
+const ChatTemplates = (function () {
 
     function escapeHtml(text) {
 
@@ -391,8 +393,7 @@
         return `
             <section
                 class="source-card rounded-xl border border-border bg-card overflow-hidden"
-                data-id="${citation.id}"
-                data-client-id="${citation._clientId}"
+                data-citation-id="${citation.id}"
                 data-citation-index="${citation.citationIndex}">
 
         <div

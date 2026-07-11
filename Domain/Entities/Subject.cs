@@ -18,6 +18,8 @@ public class Subject : CategoryLikeEntity
     // ── Navigation ──────────────────────────────────────────
     public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
 
+    public virtual SubjectStorageConfiguration? StorageConfiguration { get; set; }
+
     /// <summary>Gets or sets the chapters belonging to this subject.</summary>
     public virtual ICollection<Chapter> Chapters { get; } = [];
 

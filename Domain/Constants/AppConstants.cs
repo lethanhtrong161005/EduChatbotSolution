@@ -63,7 +63,8 @@ public static class AppConstants
 
     public const string AppDir = "educhatai";
     public const string FileDirBuffer = "buffer";
-    public const string FileDirUploaded = "uploaded";
+    public const string FileDirStaging = "staging";
+    public const string FileDirReceived = "received";
     public const string FileDirProcessing = "processing";
     public const string FileDirIndexed = "indexed";
     public const string FileDirFailed = "failed";

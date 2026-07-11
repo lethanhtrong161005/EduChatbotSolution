@@ -1,0 +1,288 @@
+﻿@using Domain.Entities
+@using Microsoft.AspNetCore.Identity
+@using Presentation.Common
+
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
+    var authenticated = SignInManager.IsSignedIn(User);
+    var isAdmin = User.IsInRole(UserRole.Admin.ToString());
+    var isLecturer = User.IsInRole(UserRole.Lecturer.ToString());
+    var isStudent = User.IsInRole(UserRole.Student.ToString());
+}
+
+<!DOCTYPE html>
+
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - EduChatAI</title>
+
+    <script type="importmap"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="~/Presentation.styles.css" asp-append-version="true" />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="~/css/colors.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
+
+    <!-- Layout Styles (non-Bootstrap) -->
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="~/font-awesome/css/all.min.css" asp-append-version="true" />
+</head>
+
+<body class="min-h-screen bg-[var(--color-bg-neutral)] text-[var(--color-text-primary)]">
+
+    <!-- ======================================================
+         BACKGROUND
+         ====================================================== -->
+
+    <div class="page-background"></div>
+
+    <!-- ======================================================
+         APP SHELL
+         ====================================================== -->
+
+    <div class="flex min-h-screen flex-col">
+
+        <!-- ======================================================
+             HEADER
+             ====================================================== -->
+
+        <header class="z-50 border-b border-[var(--color-border-light)] bg-white/90 backdrop-blur-xl shadow-sm">
+
+            <div class="mx-auto flex h-16 max-w-[1900px] items-center justify-between px-4 lg:px-6">
+
+                <!-- Brand -->
+
+                <a asp-area=""
+                   asp-page="/Home/Index"
+                   class="flex shrink-0 items-center gap-3 no-underline">
+
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+                        <i class="fas fa-robot"></i>
+                    </div>
+
+                    <span class="text-xl font-bold text-slate-900">
+                        EduChatAI
+                    </span>
+                </a>
+
+                <!-- Main Navigation -->
+
+                <nav class="hidden flex-1 items-center justify-between lg:flex">
+
+                    <div class="ml-10 flex items-center gap-2">
+
+                        <a asp-page="/Home/Index"
+                           class="rounded-lg px-4 py-2 text-sm font-medium transition
+                            @(NavBar.HomeNavClass(Context) == "active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                            Home
+                        </a>
+
+                        <a asp-page="/Chat/Index"
+                           class="rounded-lg px-4 py-2 text-sm font-medium transition
+                            @(NavBar.ChatNavClass(Context) == "active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                            Chat
+                        </a>
+
+                        @if (isLecturer || isAdmin)
+                        {
+                            <a asp-page="/Documents/Library"
+                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                @(NavBar.DocumentsNavClass(Context) == "active"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                Documents
+                            </a>
+                        }
+
+                        @if (isAdmin)
+                        {
+                            <a asp-page="/Admin/SubjectManage"
+                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                @(NavBar.AdminNavClass(Context) == "active"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                Manage
+                            </a>
+
+                            <a href="/rbl"
+                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                @(NavBar.RblNavClass(Context) == "active"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                Analyze
+                            </a>
+                        }
+
+                    </div>
+
+                    <div class="flex items-center gap-2">
+
+                        @if (authenticated)
+                        {
+                            @if (isStudent || isLecturer)
+                            {
+                                <a asp-page="/Subscriptions/SelectPlan"
+                                   class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                    @(NavBar.PlansNavClass(Context) == "active"
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                    Plans
+                                </a>
+                            }
+
+                            <a asp-page="/Account/Profile"
+                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                @(NavBar.ProfileNavClass(Context) == "active"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                Profile
+                            </a>
+
+                            <form method="post"
+                                  asp-page="/Account/Logout"
+                                  asp-route-return-url="@Context.Request.Path">
+
+                                <button type="submit"
+                                        class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                                    Log out
+                                </button>
+
+                            </form>
+                        }
+                        else
+                        {
+                            <a asp-page="/Account/Register"
+                               asp-route-return-url="@Context.Request.Path"
+                               class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                                Register
+                            </a>
+
+                            <a asp-page="/Account/Login"
+                               asp-route-return-url="@Context.Request.Path"
+                               class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                Log in
+                            </a>
+                        }
+
+                    </div>
+
+                </nav>
+
+            </div>
+
+        </header>
+
+        <!-- ======================================================
+             MAIN CONTENT
+             ====================================================== -->
+
+        <main class="flex-1 py-8">
+
+            <div class="mx-auto w-full max-w-[1900px] px-4">
+
+                @if (ViewData["PageTitle"] != null)
+                {
+                    <header class="mb-8">
+
+                        <h1 class="text-4xl font-bold tracking-tight text-slate-900">
+                            @ViewData["PageTitle"]
+                        </h1>
+
+                        @if (ViewData["PageSubtitle"] != null)
+                        {
+                            <p class="mt-2 text-slate-600">
+                                @ViewData["PageSubtitle"]
+                            </p>
+                        }
+
+                    </header>
+                }
+
+                @RenderBody()
+
+            </div>
+
+        </main>
+
+        <!-- ======================================================
+             FOOTER
+             ====================================================== -->
+
+        <footer class="border-t border-[var(--color-border-light)] bg-white">
+
+            <div class="mx-auto flex max-w-[1900px] flex-col gap-6 px-4 py-6 lg:flex-row lg:items-center lg:justify-between">
+
+                <!-- Brand -->
+
+                <div class="flex items-center gap-3">
+
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow">
+                        <i class="fas fa-robot"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="font-semibold text-slate-900">
+                            EduChatAI
+                        </div>
+
+                        <div class="text-sm text-slate-500">
+                            Smart Educational Companion
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Links -->
+
+                <div class="flex flex-wrap items-center gap-6 text-sm">
+
+                    <a asp-page="/Home/Privacy"
+                       class="text-slate-500 transition hover:text-emerald-600">
+                        Privacy
+                    </a>
+
+                    <a href="#"
+                       class="text-slate-500 transition hover:text-emerald-600">
+                        Terms
+                    </a>
+
+                    <a href="#"
+                       class="text-slate-500 transition hover:text-emerald-600">
+                        Contact
+                    </a>
+
+                </div>
+
+                <!-- Copyright -->
+
+                <div class="text-sm text-slate-500">
+                    © @DateTime.UtcNow.Year EduChatAI
+                </div>
+
+            </div>
+
+        </footer>
+
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

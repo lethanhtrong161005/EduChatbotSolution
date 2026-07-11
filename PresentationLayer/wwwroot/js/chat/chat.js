@@ -1,4 +1,6 @@
-﻿window.Chat = (function () {
+﻿"use strict"
+
+window.Chat = (function () {
 
     /* ==========================================================
        State
@@ -45,7 +47,7 @@
 
         sessionHeader.lastMessageAt = val;
 
-        updateDom_SidebarSessionList();
+        updateUi_SidebarSessionList();
     }
 
     /* ==========================================================
@@ -58,16 +60,16 @@
 
         $("#chat-message-input").val(_messageContent);
 
-        updateDom_InputDrawer();
-        updateDom_SendButton();
+        updateUi_InputDrawer();
+        updateUi_SendButton();
     }
 
     function setInputEnabled(val) {
 
         _inputEnabled = val;
 
-        updateDom_InputBar();
-        updateDom_SendButton();
+        updateUi_InputBar();
+        updateUi_SendButton();
     }
 
     function getCanSend() {
@@ -86,7 +88,7 @@
 
         if (!_activeSession) { // Landing session
             _scopeSubjectHeaders = [];
-            updateDom_SubjectSelectList();
+            updateUi_SubjectSelectList();
         }
         else { // Existing session
             const subjectId = _activeSession.subjectId;
@@ -97,8 +99,8 @@
                 _scopeSubjectHeaders = [..._subjectHeaders];
             }
             else {
-                const subjectHeader = _subjectHeaders
-                    .find(x => x.id === subjectId);
+                const subjectHeader = _subjectHeaders.find(
+                    x => x.id === subjectId);
 
                 if (!subjectHeader) {
                     _scopeSubjectHeaders = [];
@@ -109,14 +111,14 @@
             }
         }
 
-        updateDom_SidebarSubjectList();
+        updateUi_SidebarSubjectList();
     }
 
     /* ==========================================================
        Observers -- UI
        ========================================================== */
 
-    function updateDom_InputBar() {
+    function updateUi_InputBar() {
 
         // On:
         // * _inputEnabled
@@ -133,13 +135,13 @@
             .toggleClass("cursor-not-allowed", !_inputEnabled);
     }
 
-    function updateDom_SendButton() {
+    function updateUi_SendButton() {
 
         // On:
         // * _messageContent
         // * _inputEnabled
 
-        let canSend = getCanSend();
+        const canSend = getCanSend();
 
         $("#btn-send-message")
             .prop("disabled", !canSend)
@@ -151,7 +153,7 @@
             .toggleClass("cursor-not-allowed", !canSend);
     }
 
-    function updateDom_SidebarSubjectList() {
+    function updateUi_SidebarSubjectList() {
 
         // On:
         // * _scopeSubjectHeaders
@@ -163,7 +165,7 @@
             ChatTemplates.renderSidebarSubjectList(_scopeSubjectHeaders));
     }
 
-    function updateDom_SidebarSessionList() {
+    function updateUi_SidebarSessionList() {
 
         // On:
         // * _sessionHeaders[*].*
@@ -176,10 +178,10 @@
         $("#session-list").html(
             ChatTemplates.renderSidebarSessionList(_sessionHeaders));
 
-        updateDom_ActiveSessionHighlight();
+        updateUi_ActiveSessionHighlight();
     }
 
-    function updateDom_ActiveSessionHighlight() {
+    function updateUi_ActiveSessionHighlight() {
 
         // On:
         // * _activeSession.id
@@ -195,7 +197,7 @@
             .addClass("chat-session-item-active");
     }
 
-    function updateDom_SubjectSelectList() {
+    function updateUi_SubjectSelectList() {
 
         // On:
         // * _scopeSubjectHeaders
@@ -206,10 +208,10 @@
         $("#chat-message-input-container").html(
             ChatTemplates.renderChatMessageInput(_subjectHeaders));
 
-        clearInput();
+        setMessageContent(_messageContent);
     }
 
-    function updateDom_AssistantMessage(message) {
+    function updateUi_AssistantMessage(message) {
 
         // On:
         // * _activeSession.messages[#].*
@@ -217,9 +219,8 @@
         const $container =
             $(`[data-client-id='${message._clientId}']`);
 
-        if ($container.length === 0) {
+        if ($container.length === 0)
             return;
-        }
 
         $container.replaceWith(
             ChatTemplates.renderAssistantMessage(message));
@@ -227,7 +228,7 @@
 
     const StreamingMessageReRenderIntervalMs = 15;
 
-    function updateDom_StreamingMessageContent(message) {
+    function updateUi_StreamingMessageContent(message) {
 
         // On:
         // * _activeSession.messages[#].content
@@ -519,11 +520,8 @@
             "#chat-message-input",
             function (e) {
 
-                if (e.key === "Enter" &&
-                    !e.shiftKey) {
-
+                if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-
                     sendCurrentMessage();
                 }
             });
@@ -534,12 +532,8 @@
             "click",
             ".message-copy-btn",
             async function () {
-
-                const msgClientId =
-                    $(this).data("client-id");
-
-                await copyMessage(
-                    msgClientId);
+                const msgClientId = $(this).data("client-id");
+                await copyMessage(msgClientId);
             });
 
         /* Sources */
@@ -550,7 +544,6 @@
             function () {
 
                 const msgClientId = $(this).data("client-id");
-
                 openSourcesPanel(msgClientId);
             });
 
@@ -673,7 +666,7 @@
 
         const subjectHeaderDtos =
             await $.ajax({
-                url: `/chat?handler=GetSubjectHeaders`,
+                url: `/chat?handler=SubjectHeaders`,
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
@@ -709,8 +702,7 @@
 
     function normalizeSubjectHeader(subjectHeader) {
 
-        subjectHeader._clientId ??= crypto.randomUUID();
-
+        subjectHeader.id += "";
         return subjectHeader;
     }
 
@@ -718,7 +710,7 @@
 
         const sessionHeaderDtos =
             await $.ajax({
-                url: `/chat?handler=GetSessionHeaders`,
+                url: `/chat?handler=SessionHeaders`,
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
@@ -730,12 +722,10 @@
 
         _sessionHeaders = sessionHeaderDtos.map(normalizeSessionHeader);
 
-        updateDom_SidebarSessionList();
+        updateUi_SidebarSessionList();
     }
 
     function normalizeSessionHeader(sessionHeader) {
-
-        sessionHeader._clientId ??= crypto.randomUUID();
 
         return sessionHeader;
     }
@@ -758,7 +748,7 @@
             return;
 
         updateState_ScopeSubjectHeaders();
-        updateDom_ActiveSessionHighlight();
+        updateUi_ActiveSessionHighlight();
 
         clearInput();
         setInputEnabled(true);
@@ -789,7 +779,7 @@
 
         const dto =
             await $.ajax({
-                url: `/chat?handler=GetSession&id=${sessionId}`,
+                url: `/chat?handler=Session&id=${sessionId}`,
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
@@ -881,10 +871,7 @@
 
     function normalizeCitation(citation) {
 
-        citation._clientId ??= crypto.randomUUID();
-
         citation._snippet = citation.chunkText.substring(0, 200);
-
         return citation;
     }
 
@@ -918,7 +905,7 @@
        Input Drawer
        ========================================================== */
 
-    function updateDom_InputDrawer() {
+    function updateUi_InputDrawer() {
 
         // On:
         // * _messageContent
@@ -1085,7 +1072,7 @@
 
         const response =
             await $.ajax({
-                url: "/chat?handler=CreateSession",
+                url: "/chat?handler=Session",
                 method: "POST",
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
@@ -1108,7 +1095,6 @@
         const message = normalizeMessage(
             {
                 id: null,
-                _clientId: crypto.randomUUID(),
                 chatRole: ChatEnums.ChatRole.User,
                 content, // TODO: Impl. variants
                 sentAt: null,
@@ -1129,7 +1115,6 @@
         const message = normalizeMessage(
             {
                 id: null,
-                _clientId: crypto.randomUUID(),
                 chatRole: ChatEnums.ChatRole.Assistant,
                 content: "", // TODO: Impl. variants
                 sentAt: null,
@@ -1153,7 +1138,8 @@
 
         switch (resUpd.resourceType) {
             case ResourceType.Subject:
-                await loadSubjectList(_concurrencyToken = crypto.randomUUID());
+                if (_subjectHeaders.some(x => x.id === resUpd.resourceId))
+                    await loadSubjectList(_concurrencyToken = crypto.randomUUID());
                 break;
             case ResourceType.Membership:
                 if (resUpd.properties["userId"] === Razor.userId)
@@ -1175,7 +1161,7 @@
 
         const dto =
             await $.ajax({
-                url: `/chat?handler=GetSession&id=${_activeSession.id}`,
+                url: `/chat?handler=Session&id=${_activeSession.id}`,
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
@@ -1212,7 +1198,7 @@
         }
 
         message.status = ChatEnums.MessageStatus.Generating;
-        updateDom_AssistantMessage(message);
+        updateUi_AssistantMessage(message);
     }
 
     function onReceiveToken(assistantMessageId, assistantMessageClientId, token) {
@@ -1228,13 +1214,13 @@
             || message.status === ChatEnums.MessageStatus.Generating) {
 
             message.status = ChatEnums.MessageStatus.Streaming;
-            updateDom_AssistantMessage(message);
+            updateUi_AssistantMessage(message);
         }
 
         message.setContent(message.getContent() + token);
 
         if (token) {
-            updateDom_StreamingMessageContent(message);
+            updateUi_StreamingMessageContent(message);
             scrollToBottomIfNeeded();
         }
     }
@@ -1262,7 +1248,7 @@
             (chatMessageDto.citations ?? [])
                 .map(normalizeCitation));
 
-        updateDom_AssistantMessage(message);
+        updateUi_AssistantMessage(message);
         scrollToBottom();
 
         setInputEnabled(true);
@@ -1280,7 +1266,7 @@
         message.status = ChatEnums.MessageStatus.Failed;
         message.generationErrors = error;
 
-        updateDom_AssistantMessage(message);
+        updateUi_AssistantMessage(message);
         scrollToBottom();
 
         setInputEnabled(true);
@@ -1320,7 +1306,7 @@
 
         updateMessageFromVariant(message);
 
-        updateDom_AssistantMessage(message);
+        updateUi_AssistantMessage(message);
 
         if (_activeSourcesClientId === message._clientId) {
 
@@ -1385,7 +1371,7 @@
 
         updateMessageFromVariant(message);
 
-        updateDom_AssistantMessage(message);
+        updateUi_AssistantMessage(message);
 
         if (_activeSourcesClientId === message._clientId) {
 
@@ -1416,18 +1402,13 @@
         $content.empty();
 
         citations
-            .sort(
-                (a, b) =>
-                    a.citationIndex -
-                    b.citationIndex)
+            .sort((a, b) => a.citationIndex - b.citationIndex)
             .forEach(citation => {
-
                 $content.append(
                     ChatTemplates.renderSourceCard(citation));
             });
 
-        $panel
-            .removeClass("hidden");
+        $panel.removeClass("hidden");
 
         requestAnimationFrame(() => {
 
@@ -1442,52 +1423,36 @@
 
         _isSourcesPanelOpen = false;
 
-        const $panel =
-            $("#sources-panel");
+        const $panel = $("#sources-panel");
 
         $panel
-            .removeClass(
-                "w-[420px] opacity-100")
-            .addClass(
-                "w-0 opacity-0");
+            .removeClass("w-[420px] opacity-100")
+            .addClass("w-0 opacity-0");
 
-        setTimeout(
-            () => {
+        setTimeout(() => {
 
-                if (!_isSourcesPanelOpen) {
-
-                    $panel.addClass("hidden");
-
-                }
-
-            },
-            200);
+            if (!_isSourcesPanelOpen) {
+                $panel.addClass("hidden");
+            }
+        }, 200);
     }
 
     function flashCitation(citationIndex) {
 
-        const $card =
-            $(`.source-card[data-citation-index='${citationIndex}']`);
+        const $card = $(`.source-card[data-citation-index='${citationIndex}']`);
 
-        if ($card.length === 0) {
+        if ($card.length === 0)
             return;
-        }
 
         $card[0]
             .scrollIntoView({
                 block: "center",
-                behavior: "smooth"
+                behavior: "smooth",
             });
 
         $card
-            .removeClass(
-                "source-card-flash");
-
-        void $card[0].offsetWidth;
-
-        $card
-            .addClass(
-                "source-card-flash");
+            .removeClass("source-card-flash")
+            .addClass("source-card-flash");
     }
 
     /* ==========================================================

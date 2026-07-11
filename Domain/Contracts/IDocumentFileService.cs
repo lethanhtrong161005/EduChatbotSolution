@@ -4,20 +4,20 @@ namespace Domain.Contracts;
 
 public interface IDocumentFileService
 {
-    Task<bool> Exists(Guid documentId, CancellationToken cancellationToken = default);
+    Task<bool> ExistsAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-    Task<FileOperationResult> Upload(Guid documentId, CancellationToken cancellationToken = default);
+    Task<FileLocatorResult> PersistAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-    Task<FileOperationResult> Download(Guid documentId, CancellationToken cancellationToken = default);
+    Task<FileReadResult> OpenReadAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-    Task<FileOperationResult> Move(Guid documentId, DocumentFileDirectory newDirectory, CancellationToken cancellationToken = default);
+    Task<FileLocatorResult> MoveAsync(Guid documentId, DocumentFileDirectory newDirectory, CancellationToken cancellationToken = default);
 
-    Task<FileOperationResult> Delete(Guid documentId, CancellationToken cancellationToken = default);
+    Task<FileDeletionResult> DeleteAsync(Guid documentId, CancellationToken cancellationToken = default);
 }
 
 public enum DocumentFileDirectory
 {
-    Uploaded,
+    Received,
     Processing,
     Indexed,
     Failed,

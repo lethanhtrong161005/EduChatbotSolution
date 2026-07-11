@@ -1,6 +1,6 @@
 ﻿const StatusNames = Object.freeze({
     "-1": "Failed",
-    "0": "Uploaded",
+    "0": "Received",
     "1": "Parsing",
     "2": "Parsed",
     "3": "Chunking",
@@ -13,41 +13,41 @@ const StatusSettings = Object.freeze({
     "Failed": {
         text: "Failed",
         className: "status-failed",
-        iconClass: "fa-triangle-exclamation"
+        iconClass: "fa-triangle-exclamation",
     },
-    "Uploaded": {
-        text: "Uploaded",
-        className: "status-uploaded",
-        iconClass: "fa-clock"
+    "Received": {
+        text: "Received",
+        className: "status-received",
+        iconClass: "fa-clock",
     },
     "Parsing": {
         text: "Parsing ({{PROGRESS}}%)",
         className: "status-parsing",
-        iconClass: "fa-file-lines"
+        iconClass: "fa-magnifying-glass",
     },
     "Parsed": {
         text: "Parsed",
         className: "status-parsed",
-        iconClass: "fa-check"
+        iconClass: "fa-file-lines",
     },
     "Chunking": {
         text: "Chunking ({{PROGRESS}}%)",
         className: "status-chunking",
-        iconClass: "fa-scissors"
+        iconClass: "fa-scissors",
     },
     "Chunked": {
         text: "Chunked",
         className: "status-chunked",
-        iconClass: "fa-layer-group"
+        iconClass: "fa-layer-group",
     },
     "Embedding": {
         text: "Embedding ({{PROGRESS}}%)",
         className: "status-embedding",
-        iconClass: "fa-brain"
+        iconClass: "fa-brain",
     },
     "Indexed": {
         text: "Indexed",
         className: "status-indexed",
-        iconClass: "fa-circle-check"
+        iconClass: "fa-circle-check",
     },
 });

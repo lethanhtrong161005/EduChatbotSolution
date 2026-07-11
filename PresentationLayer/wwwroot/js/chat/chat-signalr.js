@@ -1,4 +1,6 @@
-﻿window.ChatSignalR = (function () {
+﻿"use strict"
+
+const ChatSignalR = (function () {
 
     let connection = null;
 

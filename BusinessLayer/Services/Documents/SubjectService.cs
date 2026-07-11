@@ -99,7 +99,7 @@ public class SubjectService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await _unitOfWork.Subjects.InsertAsync(subject);
+        _unitOfWork.Subjects.Insert(subject);
         await _unitOfWork.SaveAsync();
 
         return subject;
@@ -180,7 +180,7 @@ public class SubjectService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await _unitOfWork.Chapters.InsertAsync(chapter);
+        _unitOfWork.Chapters.Insert(chapter);
         await _unitOfWork.SaveAsync();
 
         return chapter;

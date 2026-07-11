@@ -78,7 +78,7 @@ public class IndexModel(
     /// Returns the list of subjects accessible to the current user.
     /// </summary>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetSubjectHeadersAsync(CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetSubjectHeadersAsync(CancellationToken cxlTkn)
     {
         try
         {
@@ -97,7 +97,7 @@ public class IndexModel(
     /// Returns the list of chat session headers for the current user.
     /// </summary>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetSessionHeadersAsync(CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetSessionHeadersAsync(CancellationToken cxlTkn)
     {
         try
         {
@@ -117,7 +117,7 @@ public class IndexModel(
     /// </summary>
     /// <param name="id">The session identifier.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnGetGetSessionAsync([FromQuery] Guid id, CancellationToken cxlTkn)
+    public async Task<IActionResult> OnGetSessionAsync([FromQuery] Guid id, CancellationToken cxlTkn)
     {
         var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(id, cancellationToken: cxlTkn);
 
@@ -133,7 +133,7 @@ public class IndexModel(
     /// </summary>
     /// <param name="req">Session creation request.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
-    public async Task<IActionResult> OnPostCreateSessionAsync(
+    public async Task<IActionResult> OnPostSessionAsync(
         [FromForm] CreateChatSessionRequest req,
         CancellationToken cxlTkn)
     {

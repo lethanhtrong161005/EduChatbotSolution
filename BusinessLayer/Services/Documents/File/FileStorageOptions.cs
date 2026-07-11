@@ -6,7 +6,9 @@ public sealed class FileStorageOptions
 
     public string FileDirectoryBuffer { get; set; } = string.Empty;
 
-    public string FileDirectoryUploaded { get; set; } = string.Empty;
+    public string FileDirectoryStaging { get; set; } = string.Empty;
+
+    public string FileDirectoryReceived { get; set; } = string.Empty;
 
     public string FileDirectoryProcessing { get; set; } = string.Empty;
 

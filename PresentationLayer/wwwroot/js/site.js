@@ -27,3 +27,18 @@ const ResourceAction = Object.freeze({
     Disabled: "disabled",
     Enabled: "enabled",
 });
+
+function getKey(obj, val) {
+
+    return Object.keys(obj).find(x => obj[x] === val);
+}
+
+function getValue(obj, val) {
+
+    return Object.values(obj).find(x => x === val);
+}
+
+function getAntiForgery() {
+
+    return document.querySelector("input[name='__RequestVerificationToken']")?.value ?? "";
+}

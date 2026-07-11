@@ -16,9 +16,6 @@ public class Document : NaturalEntity
 
     public string? Description { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the stored file name (server-side).</summary>
-    public string FileName { get; set; } = string.Empty;
-
     /// <summary>Gets or sets the original file name as provided by the user.</summary>
     public string OriginalFileName { get; set; } = string.Empty;
 
@@ -28,8 +25,14 @@ public class Document : NaturalEntity
     /// <summary>Gets or sets the file size in bytes.</summary>
     public long? FileSize { get; set; }
 
-    /// <summary>Gets or sets the server path to the stored file.</summary>
-    public string FilePath { get; set; } = string.Empty;
+    /// <summary>Gets or sets the opaque locator in durable storage.</summary>
+    public string? StorageLocator { get; set; }
+
+    /// <summary>Gets or sets the opaque locator in staging storage.</summary>
+    public string? StagingLocator { get; set; }
+
+    /// <summary>Gets or sets the backend used to store the document file.</summary>
+    public DocumentStorageMethod StorageMethod { get; set; } = DocumentStorageMethod.Unspecified;
 
     /// <summary>Gets or sets whether the document has been indexed for vector search.</summary>
     public DocumentStatus Status { get; set; }
@@ -82,10 +85,17 @@ public enum DocumentType
     Other,
 }
 
+public enum DocumentStorageMethod
+{
+    Unspecified = 0,
+    LocalHardDrive = 1,
+    Supabase = 2,
+}
+
 public enum DocumentStatus
 {
     Failed = -1,
-    Uploaded,
+    Received = 0,
     Parsing,
     Parsed,
     Chunking,

@@ -39,16 +39,17 @@ public class DocumentIndexer(
         {
             doc.IndexingErrors = null;
 
-            await MoveToDir(doc, DocumentFileDirectory.Processing);
+            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
 
-            var result = await _fileService.Download(doc.Id, cxlTkn);
+            var result = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
             if (!result.Success)
-                throw new FileNotFoundException("Failed to download document file.");
+                throw new FileNotFoundException("Failed to read document file.");
 
             doc.ParserUsed = _parser.ParserName;
             await SaveAndUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cancellationToken: cxlTkn);
 
-            var parsedDoc = await _parser.ParseAsync(result.FilePath, doc.FileType, cxlTkn);
+            await using var fileStream = result.FileStream;
+            var parsedDoc = await _parser.ParseAsync(fileStream, doc.FileType, cxlTkn);
 
             foreach (var section in parsedDoc.Sections)
             {
@@ -79,7 +80,7 @@ public class DocumentIndexer(
         try
         {
             doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Processing);
+            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
             await SaveAndUpdate(doc, DocumentStatus.Chunking, chunkCount: 0, cancellationToken: cxlTkn);
 
             var sections = doc.ParsedSections.OrderBy(e => e.SectionIndex);
@@ -151,7 +152,7 @@ public class DocumentIndexer(
         {
             // TODO: Log WARN
             doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Indexed);
+            await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
             await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
             return;
         }
@@ -165,7 +166,7 @@ public class DocumentIndexer(
             var progress = 100d * cur / total;
 
             doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Processing);
+            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
             await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, embeddingModel: aiConfig.EmbeddingModel, cancellationToken: cxlTkn);
 
             foreach (var batch in pendingChunks.Chunk(BatchSize))
@@ -194,7 +195,7 @@ public class DocumentIndexer(
                 await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, cancellationToken: cxlTkn);
             }
 
-            await MoveToDir(doc, DocumentFileDirectory.Indexed);
+            await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
             await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
         }
         catch (Exception ex)
@@ -203,11 +204,18 @@ public class DocumentIndexer(
         }
     }
 
-    private async Task MoveToDir(Document doc, DocumentFileDirectory dir)
+    private async Task MoveToDir(
+        Document doc,
+        DocumentFileDirectory dir,
+        CancellationToken cxlTkn = default)
     {
-        if (!await _fileService.Exists(doc.Id))
-            throw new FileNotFoundException($"Could not locate document file at '{doc.FilePath}'");
-        await _fileService.Move(doc.Id, dir);
+        if (!await _fileService.ExistsAsync(doc.Id, cxlTkn))
+            throw new FileNotFoundException($"Could not locate document file at '{doc.StorageLocator}'");
+        
+        var result = await _fileService.MoveAsync(doc.Id, dir, cxlTkn);
+        
+        if (!result.Success)
+            throw new IOException(string.Join(Environment.NewLine, result.Errors));
     }
 
     private async Task SaveAndUpdate(
@@ -242,7 +250,7 @@ public class DocumentIndexer(
         CancellationToken cxlTkn)
     {
         doc.IndexingErrors = ex.ToString();
-        await MoveToDir(doc, DocumentFileDirectory.Failed);
+        await MoveToDir(doc, DocumentFileDirectory.Failed, cxlTkn);
         await SaveAndUpdate(doc, DocumentStatus.Failed, cancellationToken: cxlTkn);
     }
 }

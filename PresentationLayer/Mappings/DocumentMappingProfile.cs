@@ -15,53 +15,39 @@ public class DocumentMappingProfile : Profile
         // Library
         // ===========================
 
-        CreateMap<Subject, SubjectSidebarDto>()
-            .ForMember(d => d.ChapterCount,
-                o => o.MapFrom(s => s.Chapters.Count))
-            .ForMember(d => d.DocumentCount,
-                o => o.MapFrom(s => s.Chapters.SelectMany(c => c.Documents).Count()));
+        CreateMap<Subject, SubjectSummaryDto>()
+            .ForMember(d => d.ChapterCount, o => o.MapFrom(s => s.Chapters.Count))
+            .ForMember(d => d.DocumentCount, o => o.MapFrom(s => s.Chapters.SelectMany(c => c.Documents).Count()))
+            .ForMember(d => d.MemberCount, o => o.MapFrom(s => s.Memberships.Count));
 
-        CreateMap<Chapter, ChapterSidebarDto>()
-            .ForMember(d => d.DocumentCount,
-                o => o.MapFrom(s => s.Documents.Count));
+        CreateMap<Chapter, ChapterSummaryDto>();
 
         CreateMap<Subject, SubjectDetailsDto>()
-            .ForMember(d => d.ChapterCount,
-                o => o.MapFrom(s => s.Chapters.Count))
-            .ForMember(d => d.DocumentCount,
-                o => o.MapFrom(s => s.Chapters.SelectMany(c => c.Documents).Count()))
-            .ForMember(d => d.MemberCount,
-                o => o.MapFrom(s => s.Memberships.Count));
+            .ForMember(d => d.ChapterCount, o => o.MapFrom(s => s.Chapters.Count))
+            .ForMember(d => d.DocumentCount, o => o.MapFrom(s => s.Chapters.SelectMany(c => c.Documents).Count()))
+            .ForMember(d => d.MemberCount, o => o.MapFrom(s => s.Memberships.Count))
+            .ForMember(d => d.LastUpdated, o => o.MapFrom(s => s.UpdatedAt ?? s.CreatedAt));
 
         CreateMap<Chapter, ChapterDetailsDto>()
-            .ForMember(d => d.SubjectCode,
-                o => o.MapFrom(s => s.Subject.Code))
-            .ForMember(d => d.SubjectName,
-                o => o.MapFrom(s => s.Subject.Name))
-            .ForMember(d => d.DocumentCount,
-                o => o.MapFrom(s => s.Documents.Count));
+            .ForMember(d => d.SubjectCode, o => o.MapFrom(s => s.Subject.Code))
+            .ForMember(d => d.SubjectName, o => o.MapFrom(s => s.Subject.Name))
+            .ForMember(d => d.DocumentCount, o => o.MapFrom(s => s.Documents.Count));
 
         CreateMap<Document, DocumentFileDto>()
-            .ForMember(d => d.Extension,
-                o => o.MapFrom(s => Path.GetExtension(s.FileName)))
-            .ForMember(d => d.Status,
-                o => o.MapFrom(s => s.Status.ToString()))
-            .ForMember(d => d.UploadedBy,
-                o => o.MapFrom(s => s.Uploader.FullName))
-            .ForMember(d => d.Chapters,
-                o => o.MapFrom(s => s.Chapters));
-
-        CreateMap<Chapter, ChapterInfoDto>()
-            .ForMember(d => d.ChapterName,
-                o => o.MapFrom(s => s.Name));
+            .ForMember(d => d.Extension, o => o.MapFrom(s => Path.GetExtension(s.OriginalFileName)))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.UploadedBy, o => o.MapFrom(s => s.Uploader.FullName))
+            .ForMember(d => d.Chapters, o => o.MapFrom(s => s.Chapters));
 
         // ===========================
         // Details
         // ===========================
 
         CreateMap<DocumentDetails, DocumentDetailsVm>()
-            .ForMember(dest => dest.Extension, opts => opts.MapFrom(src => Path.GetExtension(src.FileName)))
+            .ForMember(dest => dest.Extension, opts => opts.MapFrom(src => Path.GetExtension(src.OriginalFileName)))
             .ForMember(dest => dest.ExtractedText, opts => opts.MapFrom(src => string.Join("\n\n", src.ParsedSections.OrderBy(s => s.SectionIndex).Select(x => x.Text))));
+
+        CreateMap<ChapterInfo, ChapterInfoVm>();
 
         CreateMap<ParsedSectionDetails, ParsedSectionVm>();
 

@@ -22,6 +22,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<Payment>? _payments;
     GenericRepository<Subject>? _subjects;
     GenericRepository<Membership>? _memberships;
+    GenericRepository<SubjectStorageConfiguration>? _subjectStorageConfigurations;
     GenericRepository<SubjectAiConfiguration>? _subjectAiConfigurations;
     GenericRepository<GlobalAiConfiguration>? _globalAiConfigurations;
     GenericRepository<Chapter>? _chapters;
@@ -62,6 +63,8 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<Subject> Subjects => _subjects ??= new GenericRepository<Subject>(_context);
     /// <inheritdoc/>
     public GenericRepository<Membership> Memberships => _memberships ??= new GenericRepository<Membership>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<SubjectStorageConfiguration> SubjectStorageConfigurations => _subjectStorageConfigurations ??= new GenericRepository<SubjectStorageConfiguration>(_context);
     /// <inheritdoc/>
     public GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations => _subjectAiConfigurations ??= new GenericRepository<SubjectAiConfiguration>(_context);
     /// <inheritdoc/>

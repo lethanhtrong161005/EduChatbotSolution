@@ -170,6 +170,10 @@ namespace DataAccessLayer.Migrations
                     b.HasIndex("RoleId")
                         .HasDatabaseName("ix_user_roles_role_id");
 
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_roles_user_id");
+
                     b.ToTable("user_roles", (string)null);
                 });
 
@@ -191,6 +195,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -707,16 +715,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_name");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_path");
-
                     b.Property<long?>("FileSize")
                         .HasColumnType("bigint")
                         .HasColumnName("file_size");
@@ -738,9 +736,23 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("parser_used");
 
+                    b.Property<string>("StagingLocator")
+                        .HasColumnType("text")
+                        .HasColumnName("staging_locator");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
+
+                    b.Property<string>("StorageLocator")
+                        .HasColumnType("text")
+                        .HasColumnName("storage_locator");
+
+                    b.Property<int>("StorageMethod")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("storage_method");
 
                     b.Property<int>("SubjectId")
                         .HasColumnType("integer")
@@ -1462,6 +1474,34 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("subject_ai_configurations", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.SubjectStorageConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int?>("StorageMethod")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage_method");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subject_storage_configurations");
+
+                    b.ToTable("subject_storage_configurations", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2037,6 +2077,18 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Subject");
                 });
 
+            modelBuilder.Entity("Domain.Entities.SubjectStorageConfiguration", b =>
+                {
+                    b.HasOne("Domain.Entities.Subject", "Subject")
+                        .WithOne("StorageConfiguration")
+                        .HasForeignKey("Domain.Entities.SubjectStorageConfiguration", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_subject_storage_configurations_subjects_id");
+
+                    b.Navigation("Subject");
+                });
+
             modelBuilder.Entity("Domain.Entities.Subscription", b =>
                 {
                     b.HasOne("Domain.Entities.PlanOption", "PlanOption")
@@ -2201,6 +2253,8 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Chapters");
 
                     b.Navigation("Memberships");
+
+                    b.Navigation("StorageConfiguration");
                 });
 
             modelBuilder.Entity("Domain.Entities.Subscription", b =>

@@ -43,6 +43,9 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Membership"/> entities.</summary>
     GenericRepository<Membership> Memberships { get; }
 
+    /// <summary>Gets the repository for <see cref="SubjectStorageConfiguration"/> entities.</summary>
+    GenericRepository<SubjectStorageConfiguration> SubjectStorageConfigurations { get; }
+
     /// <summary>Gets the repository for <see cref="SubjectAiConfiguration"/> entities.</summary>
     GenericRepository<SubjectAiConfiguration> SubjectAiConfigurations { get; }
 

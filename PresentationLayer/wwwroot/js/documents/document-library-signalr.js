@@ -12,17 +12,15 @@
 
     async function start() {
 
-        if (started)
-            return;
-
+        if (started) return;
         started = true;
 
         await resourceHub.start();
 
         window.ResourceConnectionId = resourceHub.connectionId;
 
-        $(document).trigger("resourcehub:connected", {
-            connectionId: resourceHub.connectionId
+        $(document).trigger("resource:connected", {
+            connectionId: resourceHub.connectionId,
         });
 
         await joinInitialGroups();
@@ -32,27 +30,12 @@
 
         const tasks = [];
 
-        tasks.push(resourceHub.invoke(
-            HubMethod.JoinResourceType,
-            ResourceType.Subject));
+        tasks.push(resourceHub.invoke(HubMethod.JoinResourceType, ResourceType.Subject));
+        tasks.push(resourceHub.invoke(HubMethod.JoinResourceType, ResourceType.Chapter));
+        tasks.push(resourceHub.invoke(HubMethod.JoinResourceType, ResourceType.Document));
+        tasks.push(resourceHub.invoke(HubMethod.JoinResourceType, ResourceType.User));
 
-        tasks.push(resourceHub.invoke(
-            HubMethod.JoinResourceType,
-            ResourceType.Chapter));
-
-        tasks.push(resourceHub.invoke(
-            HubMethod.JoinResourceType,
-            ResourceType.Document));
-
-        tasks.push(resourceHub.invoke(
-            HubMethod.JoinResourceType,
-            ResourceType.User));
-
-        tasks.push(resourceHub.invoke(
-            HubMethod.JoinResourceCollection,
-            ResourceType.User,
-            Razor.userId,
-            ResourceType.Membership));
+        tasks.push(resourceHub.invoke(HubMethod.JoinResourceCollection, ResourceType.User, Razor.userId, ResourceType.Membership));
 
         await Promise.all(tasks);
     }
@@ -60,10 +43,7 @@
     resourceHub.on(
         "ResourceChanged",
         resourceUpdate => {
-
-            $(document).trigger(
-                "resource:changed",
-                resourceUpdate);
+            $(document).trigger("resource:changed", resourceUpdate);
         });
 
     resourceHub.onreconnected(async connectionId => {
@@ -72,16 +52,13 @@
 
         await joinInitialGroups();
 
-        $(document).trigger(
-            "resourcehub:reconnected",
-            {
-                connectionId
-            });
+        $(document).trigger("resource:reconnected", {
+            connectionId,
+        });
     });
 
     resourceHub.onclose(() => {
-
-        $(document).trigger("resourcehub:disconnected");
+        $(document).trigger("resource:disconnected");
     });
 
     //
@@ -99,10 +76,7 @@
     statusHub.on(
         "UpdateStatus",
         update => {
-
-            $(document).trigger(
-                "document:statusChanged",
-                update);
+            $(document).trigger("document:status", update);
         });
 
     statusHub.start()
@@ -114,66 +88,34 @@
     // ------------------------------------------------------------
     //
 
-    window.LibraryRealtime = {
+    window.ResourceRealtime = {
 
         async joinType(type) {
-
-            await resourceHub.invoke(
-                HubMethod.JoinResourceType,
-                type);
+            await resourceHub.invoke(HubMethod.JoinResourceType, type);
         },
 
         async leaveType(type) {
-
-            await resourceHub.invoke(
-                HubMethod.JoinResourceType,
-                type);
+            await resourceHub.invoke(HubMethod.JoinResourceType, type);
         },
 
         async joinResource(type, id) {
-
-            if (!id)
-                return;
-
-            await resourceHub.invoke(
-                HubMethod.JoinResource,
-                type,
-                id);
+            if (!id) return;
+            await resourceHub.invoke(HubMethod.JoinResource, type, id + "");
         },
 
         async leaveResource(type, id) {
-
-            if (!id)
-                return;
-
-            await resourceHub.invoke(
-                HubMethod.LeaveResource,
-                type,
-                id);
+            if (!id) return;
+            await resourceHub.invoke(HubMethod.LeaveResource, type, id + "");
         },
 
         async joinCollection(primaryType, primaryId, foreignType) {
-
-            if (!primaryId)
-                return;
-
-            await resourceHub.invoke(
-                HubMethod.JoinResourceCollection,
-                primaryType,
-                primaryId,
-                foreignType);
+            if (!primaryId) return;
+            await resourceHub.invoke(HubMethod.JoinResourceCollection, primaryType, primaryId + "", foreignType);
         },
 
         async leaveCollection(primaryType, primaryId, foreignType) {
-
-            if (!primaryId)
-                return;
-
-            await resourceHub.invoke(
-                HubMethod.LeaveResourceCollection,
-                primaryType,
-                primaryId,
-                foreignType);
+            if (!primaryId) return;
+            await resourceHub.invoke(HubMethod.LeaveResourceCollection, primaryType, primaryId + "", foreignType);
         }
     };
 

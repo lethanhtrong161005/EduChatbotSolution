@@ -43,7 +43,6 @@ public class DocumentService(
                 SubjectName = e.Subject.Name,
                 Title = e.Title,
                 Description = e.Description,
-                FileName = e.FileName,
                 OriginalFileName = e.OriginalFileName,
                 FileType = e.FileType,
                 FileSize = e.FileSize,

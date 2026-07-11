@@ -1,301 +1,438 @@
 @page "{id:guid?}/{handler?}"
-@using Domain.Entities
+
 @using System.Security.Claims
+
 @model Presentation.Pages.Documents.LibraryModel
 
 @{
     ViewData["Title"] = "Knowledge Base";
+    Layout = "_TailwindLayout";
 }
 
-<link rel="stylesheet" href="~/css/colors.css" />
-<link rel="stylesheet" href="~/css/status-badge.css" />
+<link rel="stylesheet" href="~/css/status-badge.css" asp-append-version="true" />
 
-<div class="min-h-screen bg-neutral-50">
+<div class="min-h-screen bg-slate-950 text-slate-100">
 
-    <div class="mx-auto max-w-[1800px] p-6">
+    <div class="mx-auto max-w-[1900px] p-8">
 
-        <!-- ========================================================= -->
-        <!-- PAGE HEADER                                                -->
-        <!-- ========================================================= -->
+        <!-- ===================================================== -->
+        <!-- PAGE HEADER                                            -->
+        <!-- ===================================================== -->
 
-        <div class="mb-6 flex items-start justify-between">
+        <header class="mb-8 flex items-center justify-between">
 
             <div>
 
-                <h1 class="text-3xl font-bold text-slate-900">
+                <h1 class="text-4xl font-bold tracking-tight">
                     Knowledge Base
                 </h1>
 
-                <p class="mt-2 text-sm text-slate-500">
-                    Browse subjects, chapters and learning materials used by EduChatAI.
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+
+                    Browse subjects, chapters and knowledge sources powering
+                    EduChatAI.
+
                 </p>
 
             </div>
 
-            @if (User.IsInRole(nameof(UserRole.Admin)) || User.IsInRole(nameof(UserRole.Lecturer)))
-            {
-                <button id="showUploadBtn"
-                        class="hidden rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700">
+            <div id="uploadPrivilegeBadge">
 
-                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i>
+                <!-- Rendered dynamically -->
 
-                    Upload Documents
+            </div>
 
-                </button>
-            }
+        </header>
 
-        </div>
+        <!-- ===================================================== -->
+        <!-- MAIN SHELL                                             -->
+        <!-- ===================================================== -->
 
-        <!-- ========================================================= -->
-        <!-- MAIN SPA LAYOUT                                            -->
-        <!-- ========================================================= -->
+        <section class="grid grid-cols-[280px_280px_minmax(0,1fr)] gap-6">
 
-        <div class="grid grid-cols-[320px_320px_minmax(0,1fr)] gap-6">
+            <!-- ================================================= -->
+            <!-- SUBJECT SIDEBAR                                   -->
+            <!-- ================================================= -->
 
-            <!-- ===================================================== -->
-            <!-- SUBJECT SIDEBAR                                       -->
-            <!-- ===================================================== -->
+            <aside id="subjectSidebar"
+                   class="h-[calc(100vh-calc(var(--spacing)*20))] sticky top-10 flex flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
 
-            <aside
-                id="subjectSidebar"
-                class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-800 px-6 py-5">
 
-                <div class="border-b border-slate-200 px-5 py-4">
+                    <div>
 
-                    <div class="flex items-center justify-between">
+                        <div class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                            Navigation
+                        </div>
 
-                        <h2 class="font-semibold text-slate-900">
+                        <h2 class="mt-2 text-lg font-semibold">
                             Subjects
                         </h2>
 
-                        <button id="btnExpandSubjects"
-                                class="hidden rounded-lg p-2 text-slate-500 transition hover:bg-slate-100">
-
-                            <i class="fa-solid fa-table-large"></i>
-
-                        </button>
-
                     </div>
 
                 </div>
 
-                <div
-                    id="subjectSidebarContent"
-                    class="max-h-[calc(100vh-220px)] overflow-y-auto">
+                <div id="subjectSidebarContent"
+                     class="flex-1 overflow-y-auto">
 
-                    <!-- Filled asynchronously -->
+                    <!-- Filled by document-library.js -->
 
                 </div>
 
             </aside>
 
-            <!-- ===================================================== -->
-            <!-- CHAPTER SIDEBAR                                       -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- CHAPTER SIDEBAR                                   -->
+            <!-- ================================================= -->
 
-            <aside
-                id="chapterSidebar"
-                class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <aside id="chapterSidebar"
+                   class="h-[calc(100vh-calc(var(--spacing)*20))] sticky top-10 flex flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
 
-                <div class="border-b border-slate-200 px-5 py-4">
+                <div class="border-b border-slate-800 px-6 py-5">
 
-                    <h2 class="font-semibold text-slate-900">
-                        Chapters
-                    </h2>
+                    <div>
+
+                        <div class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                            Navigation
+                        </div>
+
+                        <h2 class="mt-2 text-lg font-semibold">
+                            Chapters
+                        </h2>
+
+                    </div>
 
                 </div>
 
-                <div
-                    id="chapterSidebarContent"
-                    class="max-h-[calc(100vh-220px)] overflow-y-auto">
+                <div id="chapterSidebarContent"
+                     class="flex-1 overflow-y-auto">
 
-                    <!-- Filled asynchronously -->
+                    <!-- Filled by document-library.js -->
 
                 </div>
 
             </aside>
 
-            <!-- ===================================================== -->
-            <!-- DETAILS COLUMN                                         -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- MAIN CONTENT COLUMN                               -->
+            <!-- ================================================= -->
 
-            <section
-                class="flex min-w-0 flex-col gap-6">
+            <main class="min-w-0">
 
-                <!-- ================================================ -->
-                <!-- LANDING / DETAILS CARD                           -->
-                <!-- ================================================ -->
+                <div class="space-y-8">
 
-                <section
-                    id="detailsCard"
-                    class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <!-- ========================================= -->
+                    <!-- MAIN SECTION                              -->
+                    <!-- ========================================= -->
 
-                    <div id="detailsCardContent">
+                    <section id="mainSection"
+                             class="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
 
-                        <div class="flex min-h-[420px] items-center justify-center p-10">
+                        <!-- ===================================== -->
+                        <!-- HEADER                               -->
+                        <!-- ===================================== -->
 
-                            <div class="text-center">
+                        <header class="border-b border-slate-800 px-8 py-4">
 
-                                <div class="mb-6 text-6xl">
+                            <div class="flex items-center justify-between gap-6">
 
-                                    📚
+                                <!-- Breadcrumb -->
 
-                                </div>
+                                <div id="mainBreadcrumb"
+                                     class="flex items-center justify-center gap-3 overflow-hidden">
 
-                                <h2 class="text-2xl font-semibold text-slate-900">
-
-                                    Knowledge Base
-
-                                </h2>
-
-                                <p class="mt-4 text-slate-500">
-
-                                    Select a subject to begin browsing chapters and documents.
-
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- ================================================ -->
-                <!-- DOCUMENT DRAWER                                  -->
-                <!-- ================================================ -->
-
-                <section
-                    id="documentDrawer"
-                    class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-                    <div class="border-b border-slate-200 px-6 py-5">
-
-                        <div class="flex items-center justify-between gap-6">
-
-                            <div>
-
-                                <h3 class="text-lg font-semibold text-slate-900">
-
-                                    Documents
-
-                                </h3>
-
-                                <p class="mt-1 text-sm text-slate-500">
-
-                                    Documents belonging to the currently selected subject or chapter.
-
-                                </p>
-
-                            </div>
-
-                            <div class="w-80">
-
-                                <input id="searchInput"
-                                       type="text"
-                                       placeholder="Search documents..."
-                                       class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 outline-none transition focus:border-emerald-500" />
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <div id="documentList">
-
-                        <!-- Filled asynchronously -->
-
-                    </div>
-
-                    <div
-                        id="documentPagination"
-                        class="border-t border-slate-200">
-
-                        <!-- Filled asynchronously -->
-
-                    </div>
-
-                </section>
-
-                <!-- ================================================ -->
-                <!-- UPLOAD PANEL                                     -->
-                <!-- ================================================ -->
-
-                <section
-                    id="uploadSection"
-                    class="hidden">
-
-                    <div
-                        id="uploadPanelContainer"
-                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-                        <div id="uploadPanelOverlay"
-                             class="absolute inset-0 z-20 hidden items-center justify-center bg-white/50 backdrop-blur-sm">
-
-                            <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
-
-                        </div>
-
-                        <div
-                            id="uploadPanel"
-                            class="p-6">
-
-                            <div id="dropZone"
-                                 class="rounded-2xl border-2 border-dashed border-emerald-500 bg-emerald-50/40 p-10 text-center transition">
-
-                                <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-2xl text-emerald-700">
-
-                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <!-- Rendered dynamically -->
 
                                 </div>
 
-                                <h3 class="text-lg font-semibold text-slate-900">
+                                <!-- Navigation -->
 
-                                    Drag files here
+                                <div class="flex items-center gap-3">
 
-                                </h3>
+                                    <button id="mainBackBtn"
+                                            type="button"
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 transition hover:border-emerald-500 hover:text-white disabled:pointer-events-none disabled:opacity-40">
 
-                                <p class="mt-2 text-sm text-slate-500">
+                                        <i class="fa-solid fa-chevron-left"></i>
 
-                                    PDF, DOCX, PPTX, HTML and TXT
+                                    </button>
 
-                                </p>
+                                    <button id="mainForwardBtn"
+                                            type="button"
+                                            class="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-300 transition hover:border-emerald-500 hover:text-white disabled:pointer-events-none disabled:opacity-40">
 
-                                <input id="fileInput"
-                                       hidden
-                                       multiple
-                                       type="file"
-                                       accept=".pdf,.docx,.pptx,.txt,.html" />
+                                        <i class="fa-solid fa-chevron-right"></i>
 
-                                <button id="browseBtn"
-                                        class="mt-6 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700">
+                                    </button>
 
-                                    Browse Files
-
-                                </button>
+                                </div>
 
                             </div>
 
-                            <div
-                                id="uploadQueue"
-                                class="mt-6 space-y-3">
+                        </header>
+
+                        <!-- ===================================== -->
+                        <!-- CONTENT                               -->
+                        <!-- ===================================== -->
+
+                        <div id="mainSectionContent"
+                             class="relative">
+
+                            <section id="subjectGridLayer"
+                                     class="inset-0 overflow-y-auto px-5 py-0 transition-all duration-300 ease-out">
+                            </section>
+
+                            <section id="subjectDetailsLayer"
+                                     class="inset-0 overflow-y-auto px-5 py-0 transition-all duration-300 ease-out">
+                            </section>
+
+                            <section id="chapterDetailsLayer"
+                                     class="inset-0 overflow-y-auto px-5 py-0 transition-all duration-300 ease-out">
+                            </section>
+
+                        </div>
+
+                        <!-- ===================================== -->
+                        <!-- FOOTER                                -->
+                        <!-- ===================================== -->
+
+                        <footer class="border-t border-slate-800 p-6">
+
+                            <button id="showUploadBtn"
+                                    type="button"
+                                    class="group flex w-full items-center justify-between rounded-2xl px-6 py-5 text-left border transition">
+
+                                <div>
+
+                                    <div class="text-lg font-semibold text-emerald-300">
+
+                                        Upload Documents
+
+                                    </div>
+
+                                    <div class="mt-1 text-sm text-slate-400">
+
+                                        Upload files into the selected subject.
+
+                                    </div>
+
+                                </div>
+
+                                <i id="showUploadChevron"
+                                   class="fa-solid fa-chevron-down text-xl text-emerald-300 transition-transform duration-300"></i>
+
+                            </button>
+
+                        </footer>
+
+                    </section>
+
+                    <!-- ========================================= -->
+                    <!-- UPLOAD PANEL                              -->
+                    <!-- ========================================= -->
+
+                    <div id="uploadSectionContainer"
+                         class="transition-all duration-300">
+
+                        <section id="uploadSection"
+                                 class="rounded-3xl border border-slate-700 bg-slate-800 shadow-2xl">
+
+                            <div class="border-b border-slate-700 px-8 py-6">
+
+                                <div class="flex items-center justify-between">
+
+                                    <div>
+
+                                        <div class="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400">
+                                            Upload
+                                        </div>
+
+                                        <h2 class="text-xl font-semibold text-slate-100">
+                                            Upload documents
+                                        </h2>
+
+                                        <p id="uploadSubjectSummary">
+
+                                            <!-- Rendered dynamically -->
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="space-y-8 p-8">
+
+                                <!-- ====================================== -->
+                                <!-- DROP ZONE                              -->
+                                <!-- ====================================== -->
+
+                                <section>
+
+                                    <div id="dropZone"
+                                         class="rounded-2xl border-2 border-dashed border-emerald-500 bg-slate-900/60 px-10 py-14 text-center transition hover:border-emerald-400 [&.dragover]:bg-[#2ecc7114]">
+
+                                        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-600/15 text-4xl text-emerald-400">
+
+                                            <i class="fa-solid fa-cloud-arrow-up"></i>
+
+                                        </div>
+
+                                        <h3 class="mt-6 text-xl font-semibold text-slate-100">
+                                            Drag files here
+                                        </h3>
+
+                                        <p class="mt-3 text-sm text-slate-400">
+                                            PDF · DOCX · PPTX · HTML · TXT
+                                        </p>
+
+                                        <input id="fileInput"
+                                               hidden
+                                               multiple
+                                               type="file"
+                                               accept=".pdf,.docx,.pptx,.txt,.html" />
+
+                                        <button id="browseBtn"
+                                                type="button"
+                                                class="mt-8 rounded-xl bg-emerald-600 px-6 py-3 font-medium text-white transition hover:bg-emerald-500">
+
+                                            Browse Files
+
+                                        </button>
+
+                                    </div>
+
+                                </section>
+
+                                <!-- ====================================== -->
+                                <!-- CHAPTER TAGS                           -->
+                                <!-- ====================================== -->
+
+                                <section>
+
+                                    <div class="mb-4">
+
+                                        <h3 class="text-lg font-semibold text-slate-100">
+
+                                            Chapter tags
+
+                                        </h3>
+
+                                        <p class="mt-1 text-sm text-slate-400">
+
+                                            Optional. Leave empty for subject-wide documents.
+
+                                        </p>
+
+                                    </div>
+
+                                    <div id="uploadChapterTags"
+                                         class="flex flex-wrap gap-3">
+
+                                        <!-- Rendered dynamically -->
+
+                                    </div>
+
+                                </section>
+
+                            </div>
+
+                            <div id="uploadOverlay"
+                                 class="absolute inset-0 hidden items-center justify-center rounded-3xl bg-slate-900/70 backdrop-blur-sm">
+
+                                <div class="h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+
+                            </div>
+
+                        </section>
+
+                    </div>
+
+                    <!-- ========================================= -->
+                    <!-- DOCUMENT DRAWER                           -->
+                    <!-- ========================================= -->
+
+                    <section id="documentDrawerSection"
+                             class="overflow-hidden opacity-0 -translate-y-4 scale-[0.985] pointer-events-none transition-all duration-300 ease-out max-h-0">
+
+                        <div class="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
+
+                            <div class="border-b border-slate-800 px-8 py-6">
+
+                                <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+
+                                    <div>
+
+                                        <div class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+
+                                            Library
+
+                                        </div>
+
+                                        <h2 class="mt-2 text-2xl font-bold">
+
+                                            Documents
+
+                                        </h2>
+
+                                        <p class="mt-2 text-sm text-slate-400">
+
+                                            Browse documents belonging to the
+                                            selected subject or chapter.
+
+                                        </p>
+
+                                    </div>
+
+                                    <div class="w-full lg:w-96">
+
+                                        <input id="searchInput"
+                                               type="text"
+                                               placeholder="Search documents..."
+                                               class="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-emerald-500" />
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div id="documentList">
+
+                                <!-- Filled dynamically -->
+
+                            </div>
+
+                            <div id="documentPagination"
+                                 class="border-t border-slate-800">
+
+                                <!-- Filled dynamically -->
 
                             </div>
 
                         </div>
 
-                    </div>
+                    </section>
 
-                </section>
+                </div>
 
-            </section>
+            </main>
 
-        </div>
+        </section>
 
     </div>
 
+</div>
+
+<!-- ===================================================== -->
+<!-- TOAST CONTAINER                                       -->
+<!-- ===================================================== -->
+
+<div id="toastContainer"
+     class="pointer-events-none fixed bottom-6 left-1/2 z-[1100] flex w-full max-w-2xs -translate-x-1/2 flex-col items-stretch gap-3 px-4">
 </div>
 
 @Html.AntiForgeryToken()
@@ -304,7 +441,7 @@
 {
     <script>
         window.Razor = {
-            userId: '@Model.User.FindFirstValue(ClaimTypes.NameIdentifier)'
+            userId:'@Model.User.FindFirstValue(ClaimTypes.NameIdentifier)',
         };
     </script>
 
