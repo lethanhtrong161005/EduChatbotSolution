@@ -26,6 +26,13 @@
         Aborted: -2,
     });
 
+    const ListAction = Object.freeze({
+
+        Add: "add",
+        Update: "update",
+        Delete: "delete",
+    });
+
     const StateEvent = Object.freeze({
 
         Subjects: "state:subjects",
@@ -47,8 +54,11 @@
             SelectedChapterIds: "state:upload:selectedChapterIds",
 
             List: "state:upload:list",
-            ActiveCount: "state:upload:activeCount",
-            OutstandingCount: "state:upload:outstandingCount",
+
+            CountsByStatus: "state:upload:countsByStatus",
+
+            ShowQueue: "state:upload:showQueue",
+            QueueMinimized: "state:upload:queueMinimized",
         }),
 
         File: Object.freeze({
@@ -116,8 +126,13 @@
             selectedChapterIds: [],
 
             list: [],
-            activeCount: function () { return this.list.filter(x => x.status === UploadStatus.Active).length; },
-            outstandingCount: function () { return this.list.filter(x => x.status !== UploadStatus.Succeeded && x.status !== UploadStatus.Failed).length; },
+
+            inFlightCount: function () { return this.list.filter(x => x.isInFlight).length; },
+            settledCount: function () { return this.list.filter(x => x.isSettled).length; },
+            outstandingCount: function () { return this.list.filter(x => x.isOutstanding).length; },
+
+            showQueue: false,
+            queueMinimized: false,
         },
 
         file: {
@@ -152,6 +167,57 @@
     };
 
     window.DocumentLibraryState = state;
+
+    /* =========================================================
+       STATE TYPES
+       ========================================================= */
+
+    class UploadItem {
+
+        constructor({
+            file,
+            subjectId,
+            chapterIds,
+        }) {
+            this.id = crypto.randomUUID();
+
+            this.file = file;
+
+            this.subjectId = String(subjectId);
+            this.chapterIds = Object.freeze(
+                Array.from(chapterIds ?? [], String));
+
+            this.progress = 0;
+            this.transfer = null;
+            this.status = UploadStatus.Pending;
+            this.error = null;
+        }
+
+        get isSettled() {
+            return this.status === UploadStatus.Succeeded
+                || this.status === UploadStatus.Failed
+                || this.status === UploadStatus.Aborted;
+        }
+
+        get isOutstanding() {
+            return this.status === UploadStatus.Pending
+                || this.status === UploadStatus.Starting
+                || this.status === UploadStatus.Active;
+        }
+
+        get isInFlight() {
+            return this.status === UploadStatus.Starting
+                || this.status === UploadStatus.Active;
+        }
+
+        get canCancel() {
+            return this.isOutstanding;
+        }
+
+        get statusName() {
+            return getKey(UploadStatus, this.status) ?? "Pending";
+        }
+    }
 
     /* =========================================================
        STATE MUTATORS
@@ -217,7 +283,7 @@
 
     function mutateState_ShowUploadPanel(val, raiseEvent = true) {
 
-        state.showUploadPanel = val ?? false;
+        state.showUploadPanel = !!val;
         if (raiseEvent) {
             $(document).trigger(StateEvent.ShowUploadPanel);
         }
@@ -225,32 +291,36 @@
 
     function mutateState_Upload_SelectedChapterIds(val, raiseEvent = true) {
 
-        state.upload.selectedChapterIds = val ?? [];
+        state.upload.selectedChapterIds = Array.from(val ?? [], String);
         if (raiseEvent) {
             $(document).trigger(StateEvent.Upload.SelectedChapterIds);
         }
     }
 
-    function mutateState_Upload_List_Enqueue(file, raiseEvent = true) {
+    function mutateState_Upload_List_Enqueue(files, raiseEvent = true) {
 
-        if (!file) return;
+        if (!files || !(files.length > 0)) return;
 
-        const id = crypto.randomUUID();
+        const ids = [];
 
-        state.upload.list.push({
-            id,
-            file,
-            progress: 0,
-            transfer: null,
-            status: UploadStatus.Pending,
-        });
+        for (const file of Array.from(files)) {
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[id]]);
-            $(document).trigger(StateEvent.Upload.OutstandingCount);
+            const uploadItem = new UploadItem({
+                file,
+                subjectId: state.selectedSubjectId,
+                chapterIds: state.upload.selectedChapterIds,
+            });
+
+            state.upload.list.push(uploadItem);
+            ids.push(uploadItem.id);
         }
 
-        return id;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Add, items: ids });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+
+        return ids;
     }
 
     function mutateState_Upload_List_Dequeue(raiseEvent = true) {
@@ -261,94 +331,144 @@
         uploadItem.status = UploadStatus.Starting;
 
         if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: [uploadItem.id] });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
         }
 
         return uploadItem;
     }
 
-    function mutateState_Upload_List_Start(id, transfer, raiseEvent = true) {
+    function mutateState_Upload_List_Start(idTransfers, raiseEvent = true) {
 
-        const uploadItem = state.upload.list.find(x => x.id === id);
-        if (!uploadItem || uploadItem.status !== UploadStatus.Starting) return;
+        // idTransfers: [{ id: string(uuid), transfer: XMLHttpRequest }]
+        if (!idTransfers || !(idTransfers.length > 0)) return;
 
-        uploadItem.transfer = transfer;
-        uploadItem.status = UploadStatus.Active;
+        const transferLookup = new Map(Array.from(idTransfers).map(x => [x.id, x.transfer]));
+        if (transferLookup.size === 0) return;
+        const uploadItems = state.upload.list.filter(x => transferLookup.has(x.id));
+        if (uploadItems.length === 0) return;
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
-            $(document).trigger(StateEvent.Upload.ActiveCount);
+        for (const item of uploadItems) {
+
+            if (item.status !== UploadStatus.Starting) continue;
+            const transfer = transferLookup.get(item.id);
+            if (!transfer) continue;
+            item.transfer = transfer;
+            item.status = UploadStatus.Active;
         }
 
-        return uploadItem;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: uploadItems.map(x => x.id) });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+
+        return uploadItems;
     }
 
-    function mutateState_Upload_List_Progress(id, percent, raiseEvent = true) {
+    function mutateState_Upload_List_Progress(idPercents, raiseEvent = true) {
 
-        const uploadItem = state.upload.list.find(x => x.id === id);
-        if (!uploadItem || uploadItem.status !== UploadStatus.Active) return;
+        // idPercents: [{ id: string(uuid), percent: number }]
+        if (!idPercents || !(idPercents.length > 0)) return;
 
-        uploadItem.progress = percent;
+        const percentLookup = new Map(Array.from(idPercents).map(x => [x.id, x.percent]));
+        if (percentLookup.size === 0) return;
+        const uploadItems = state.upload.list.filter(x => percentLookup.has(x.id));
+        if (uploadItems.length === 0) return;
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
+        for (const item of uploadItems) {
+
+            if (item.status !== UploadStatus.Active) continue;
+            const percent = percentLookup.get(item.id);
+            if (!Number.isFinite(percent) || percent < 0 || percent > 100) continue;
+            item.progress = percent;
         }
 
-        return uploadItem;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: uploadItems.map(x => x.id) });
+        }
+
+        return uploadItems;
     }
 
-    function mutateState_Upload_List_Succeed(id, raiseEvent = true) {
+    function mutateState_Upload_List_Succeed(ids, raiseEvent = true) {
 
-        const uploadItem = state.upload.list.find(x => x.id === id);
-        if (!uploadItem || uploadItem.status !== UploadStatus.Active) return;
+        if (!ids || !(ids.length > 0)) return;
 
-        uploadItem.status = UploadStatus.Succeeded;
+        const idSet = new Set(Array.from(ids, String));
+        const uploadItems = state.upload.list.filter(x => idSet.has(x.id));
+        if (!uploadItems || uploadItems.length === 0) return;
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
-            $(document).trigger(StateEvent.Upload.OutstandingCount);
-            $(document).trigger(StateEvent.Upload.ActiveCount);
+        for (const item of uploadItems) {
+
+            if (item.status !== UploadStatus.Active) continue;
+            item.progress = 100;
+            item.status = UploadStatus.Succeeded;
         }
 
-        return uploadItem;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: uploadItems.map(x => x.id) });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+
+        return uploadItems;
     }
 
-    function mutateState_Upload_List_Fail(id, raiseEvent = true) {
+    function mutateState_Upload_List_Fail(ids, raiseEvent = true) {
 
-        const uploadItem = state.upload.list.find(x => x.id === id);
-        if (!uploadItem || uploadItem.status !== UploadStatus.Active) return;
+        if (!ids || !(ids.length > 0)) return;
 
-        uploadItem.status = UploadStatus.Failed;
+        const idSet = new Set(Array.from(ids, String));
+        const uploadItems = state.upload.list.filter(x => idSet.has(x.id));
+        if (!uploadItems || uploadItems.length === 0) return;
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
-            $(document).trigger(StateEvent.Upload.OutstandingCount);
-            $(document).trigger(StateEvent.Upload.ActiveCount);
+        for (const item of uploadItems) {
+
+            if (item.status !== UploadStatus.Starting
+                && item.status !== UploadStatus.Active)
+                continue;
+            item.status = UploadStatus.Failed;
         }
 
-        return uploadItem;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: uploadItems.map(x => x.id) });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+
+        return uploadItems;
     }
 
-    function mutateState_Upload_List_Abort(id, remove = false, raiseEvent = true) {
+    function mutateState_Upload_List_Abort(ids, remove = false, raiseEvent = true) {
 
-        const idx = state.upload.list.findIndex(x => x.id === id);
-        if (idx < 0) return;
+        if (!ids || !(ids.length > 0)) return;
 
-        const uploadItem = state.upload.list[idx];
-        if (!uploadItem || uploadItem.status !== UploadStatus.Active) return;
+        const uploadItems = [];
 
-        if (remove)
-            state.upload.list.splice(idx, 1);
-        else
-            uploadItem.status = UploadStatus.Aborted;
+        for (const id of Array.from(ids, String)) {
 
-        if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List, [[uploadItem.id]]);
-            $(document).trigger(StateEvent.Upload.OutstandingCount);
-            $(document).trigger(StateEvent.Upload.ActiveCount);
+            const idx = state.upload.list.findIndex(x => x.id === id);
+            if (idx < 0) continue;
+
+            const item = state.upload.list[idx];
+            if (!item || item.isSettled)
+                continue;
+
+            uploadItems.push(item);
+
+            if (remove)
+                state.upload.list.splice(idx, 1);
+            else
+                item.status = UploadStatus.Aborted;
         }
 
-        return uploadItem;
+        if (raiseEvent) {
+            if (remove)
+                $(document).trigger(StateEvent.Upload.List, { action: ListAction.Delete, items: uploadItems.map(x => x.id) });
+            else
+                $(document).trigger(StateEvent.Upload.List, { action: ListAction.Update, items: uploadItems.map(x => x.id) });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+
+        return uploadItems;
     }
 
     function mutateState_Upload_List_Clear(raiseEvent = true) {
@@ -356,15 +476,30 @@
         state.upload.list.length = 0;
 
         if (raiseEvent) {
-            $(document).trigger(StateEvent.Upload.List);
-            $(document).trigger(StateEvent.Upload.OutstandingCount);
-            $(document).trigger(StateEvent.Upload.ActiveCount);
+            $(document).trigger(StateEvent.Upload.List, { action: ListAction.Delete, items: null /* all items */ });
+            $(document).trigger(StateEvent.Upload.CountsByStatus);
+        }
+    }
+
+    function mutateState_Upload_ShowQueue(val, raiseEvent = true) {
+
+        state.upload.showQueue = !!val;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.ShowQueue);
+        }
+    }
+
+    function mutateState_Upload_QueueMinimized(val, raiseEvent = true) {
+
+        state.upload.queueMinimized = !!val;
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Upload.QueueMinimized);
         }
     }
 
     function mutateState_File_Search(val, raiseEvent = true) {
 
-        state.file.search = val ?? "";
+        state.file.search = val ? val + "" : "";
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.Query);
         }
@@ -372,7 +507,7 @@
 
     function mutateState_File_PageSize(val, raiseEvent = true) {
 
-        state.file.pageSize = val ? Math.max(val, 1) : DEFAULT_PAGE_SIZE;
+        state.file.pageSize = +val ? Math.max(val, 1) : DEFAULT_PAGE_SIZE;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.Query);
         }
@@ -380,7 +515,7 @@
 
     function mutateState_File_PageIndex(val, raiseEvent = true) {
 
-        state.file.pageIndex = val ? Math.max(val, 1) : 1;
+        state.file.pageIndex = +val ? Math.max(val, 1) : 1;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.Query);
         }
@@ -388,7 +523,7 @@
 
     function mutateState_File_TotalCount(val, raiseEvent = true) {
 
-        state.file.totalCount = val ? Math.max(val, 0) : 0;
+        state.file.totalCount = +val ? Math.max(val, 0) : 0;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.TotalCount);
         }
@@ -396,7 +531,7 @@
 
     function mutateState_File_TotalPages(val, raiseEvent = true) {
 
-        state.file.totalPages = val ? Math.max(val, 0) : 0;
+        state.file.totalPages = +val ? Math.max(val, 0) : 0;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.TotalPages);
         }
@@ -404,7 +539,7 @@
 
     function mutateState_Documents(val, raiseEvent = true) {
 
-        state.documents = val ?? [];
+        state.documents = Array.from(val ?? []);
         if (raiseEvent) {
             $(document).trigger(StateEvent.Documents);
         }
@@ -463,14 +598,50 @@
             elem: function () { return ui.uploadPanel.find(this.sel); },
         },
 
+        uploadQueue: $("#uploadQueue"),
+
+        uploadHeader: $("#uploadHeader"),
+        uploadQueueSummary: $("#uploadQueueSummary"),
+
+        uploadSettledCount: $("#uploadSettledCount"),
+        uploadTotalCount: $("#uploadTotalCount"),
+        uploadTotalProgress: $("#uploadTotalProgress"),
+
+        uploadMinimizeBtn: $("#uploadMinimizeBtn"),
+        uploadMinimizeIcon: $("#uploadMinimizeIcon"),
+
+        uploadItemSection: $("#uploadQueueItemSection"),
         uploadList: $("#uploadList"),
-        uploadOverlay: $("#uploadOverlay"),
+
+        uploadQuitBtn: $("#uploadQuitBtn"),
+        uploadQuitIcon: $("#uploadQuitIcon"),
+        uploadQuitLabel: $("#uploadQuitLabel"),
+
+        uploadItem: {
+            sel: ".js-upload-item",
+            data: "data-upload-id",
+            elem: function (id) { return ui.uploadList.find(`${this.sel}[${this.data}="${id}"]`); },
+        },
+        uploadPercent: {
+            sel: ".js-upload-percent",
+            elem: function (id) { return ui.uploadItem.elem(id).find(this.sel); },
+        },
+        uploadProgressBar: {
+            sel: ".js-upload-progress-bar",
+            elem: function (id) { return ui.uploadItem.elem(id).find(this.sel); },
+        },
+        uploadCancelBtn: {
+            sel: ".js-cancel-upload",
+            elem: function (id) { return ui.uploadItem.elem(id).find(this.sel); },
+        },
 
         documentDrawer: $("#documentDrawerSection"),
 
         search: $("#searchInput"),
         documentList: $("#documentList"),
         pagination: $("#documentPagination"),
+
+        // TODO: By marker classes -- Document status badge
 
         deleteDocBtn: {
             sel: ".js-delete-document",
@@ -638,6 +809,21 @@
                 mutateState_Upload_SelectedChapterIds([...selected]);
             });
 
+        ui.uploadList.on(
+            "click",
+            ui.uploadCancelBtn.sel,
+            onUploadItemCancel);
+
+        ui.uploadMinimizeBtn.on(
+            "click",
+            () => {
+                mutateState_Upload_QueueMinimized(!state.upload.queueMinimized);
+            });
+
+        ui.uploadQuitBtn.on(
+            "click",
+            onUploadQueueQuit);
+
         ui.search.on(
             "input",
             e => {
@@ -702,12 +888,12 @@
 
         $(document).on(StateEvent.Upload.SelectedChapterIds, updateUi_UploadPanel_ChapterTags);
 
-        $(document).on(StateEvent.Upload.List, (_, id) => updateUi_UploadQueue_Row(id));
+        $(document).on(StateEvent.Upload.List, (_, payload) => updateUi_UploadQueue_Row(payload));
+        $(document).on(StateEvent.Upload.List, (_, payload) => updateState_UploadQueueSettings(payload));
 
-        $(document).on(StateEvent.Upload.OutstandingCount, updateUi_UploadOverlay);
-        $(document).on(StateEvent.Upload.OutstandingCount, updateUi_UploadQueue_Header);
-
-        $(document).on(StateEvent.Upload.ActiveCount, updateUi_UploadQueue_Header);
+        $(document).on(StateEvent.Upload.CountsByStatus, updateUi_UploadQueue_Header);
+        $(document).on(StateEvent.Upload.ShowQueue, updateUi_UploadQueue_Visibility);
+        $(document).on(StateEvent.Upload.QueueMinimized, updateUi_UploadQueue_ItemSection);
 
         $(document).on(StateEvent.File.Query, updateState_PerformDocumentSearch);
 
@@ -781,6 +967,945 @@
         // Upload
         $(document).on(LoadEvent.UploadStart, () => updateUi_ShowToast(LoadEvent.UploadStart));
         $(document).on(LoadEvent.UploadFinish, () => updateUi_ShowToast(LoadEvent.UploadFinish));
+    }
+
+    /* =========================================================
+       UI EVENT HANDLERS
+       ========================================================= */
+
+    function onSubjectSelected(e) {
+        let subjectId = $(e.currentTarget).data("subject-id") + "";
+        if (subjectId === state.selectedSubjectId) subjectId = null;
+        mutateState_SelectedSubjectId(subjectId);
+    }
+
+    function onChapterSelected(e) {
+        let chapterId = $(e.currentTarget).data("chapter-id") + "";
+        if (chapterId === state.selectedChapterId) chapterId = null;
+        mutateState_SelectedChapterId(chapterId);
+    }
+
+    function onUploadItemCancel(e) {
+
+        const uploadId = $(e.currentTarget).attr(ui.uploadItem.data);
+        if (!uploadId) return;
+
+        const uploadItem = state.upload.list.find(
+            x => x.id === uploadId);
+
+        cancelUploadItem(uploadItem);
+    }
+
+    function onUploadQueueQuit() {
+
+        const outstandingItems = state.upload.list.filter(
+            x => x.isOutstanding);
+
+        if (outstandingItems.length > 0) {
+            cancelUploadItems(outstandingItems);
+            return;
+        }
+
+        mutateState_Upload_List_Clear();
+        mutateState_Upload_ShowQueue(false);
+    }
+
+    function onPageIndexChanged(e) {
+        const pageIndex = $(e.currentTarget).data("page-index");
+        if (pageIndex === state.file.pageIndex) return;
+        mutateState_File_PageIndex(pageIndex);
+    }
+
+    /* =========================================================
+       REALTIME EVENT HANDLERS
+       ========================================================= */
+
+    async function onRealtimeResourceUpdate(_, update) {
+
+        switch (update.resourceType) {
+
+            case ResourceType.Subject:
+                await loadSubjects();
+                if (update.resourceId === state.selectedSubjectId)
+                    await loadSubjectDetails();
+                break;
+
+            case ResourceType.Chapter:
+                await loadChapters();
+                if (update.resourceId === state.selectedChapterId)
+                    await loadChapterDetails();
+                if (update.properties["subjectId"] === state.selectedSubjectId)
+                    await loadSubjectDetails();
+                break;
+
+            case ResourceType.Document:
+            case ResourceType.User:
+                await loadDocuments();
+                break;
+
+            case ResourceType.Membership:
+                if (update.properties["userId"] === Razor.userId)
+                    await loadSubjects();
+                break;
+        }
+    }
+
+    function onResourceHubReconnected() {
+
+        core.callerConnectionId = window.ResourceConnectionId;
+    }
+
+    function onResourceHubDisconnected() {
+
+        core.callerConnectionId = "";
+    }
+
+    function onDocumentStatusUpdate(_, update) {
+
+        // FIXME: Mutate document state instead
+        const $badge = $(`#status-badge-${update.id}`);
+        if ($badge.length === 0) return;
+
+        const settings = StatusSettings[StatusNames[update.status]];
+        if (!settings) return;
+
+        const text =
+            update.progress
+                ? settings.text.replace("{{PROGRESS}}", update.progress.toFixed(2))
+                : settings.text.replace("({{PROGRESS}}%)", "").trim();
+
+        $badge.html(`
+            <i class="fas ${settings.iconClass}"></i>
+            ${text}
+        `);
+
+        $badge.removeClass().addClass(`document-status-badge ${settings.className}`);
+    }
+
+    /* =========================================================
+       STATE MUTATION CASCADES
+       ========================================================= */
+
+    function updateState_RefindSelectedSubject() {
+
+        if (!state.selectedSubjectId)
+            return;
+
+        const stillExists = state.subjects.some(x =>
+            x.id === state.selectedSubjectId);
+
+        if (!stillExists) {
+            mutateState_SelectedSubjectId(null);
+        }
+    }
+
+    function updateState_ResolveSelectedSubject() {
+
+        if (state.selectedSubject?.id === state.selectedSubjectId)
+            mutateState_SelectedSubject(state.selectedSubject);
+        else
+            loadSubjectDetails();
+    }
+
+    function updateState_ResetAndResolveChapters() {
+
+        mutateState_SelectedChapterId(null, false);
+        mutateState_SelectedChapter(null, false);
+        mutateState_Upload_SelectedChapterIds([], false);
+
+        if (state.chapters.forSubjectId === state.selectedSubjectId)
+            mutateState_Chapters(state.chapters);
+        else
+            loadChapters();
+    }
+
+    function updateState_RefindSelectedChapter() {
+
+        if (!state.selectedChapterId)
+            return;
+
+        const stillExists = state.chapters.some(x =>
+            x.id === state.selectedChapterId);
+
+        if (!stillExists) {
+            mutateState_SelectedChapterId(null);
+        }
+    }
+
+    function updateState_SortChapters() {
+
+        const sorted = state.chapters.toSorted((a, b) =>
+            a.chapterNumber - b.chapterNumber);
+
+        mutateState_Chapters(sorted, false);
+    }
+
+    function updateState_ResolveSelectedChapter() {
+
+        if (state.selectedChapter?.id === state.selectedChapterId)
+            mutateState_SelectedChapter(state.selectedChapter);
+        else
+            loadChapterDetails();
+    }
+
+    function updateState_ResetAndResolveDocuments() {
+
+        mutateState_File_Search("", false);
+        mutateState_File_PageIndex(1, false);
+
+        if (state.documents.forSubjectId === state.selectedSubjectId
+            && state.documents.forChapterId === state.selectedChapterId)
+            mutateState_Documents(state.documents);
+        else
+            loadDocuments();
+    }
+
+    function updateState_PerformDocumentSearch() {
+
+        loadDocuments();
+    }
+
+    function updateState_MainSectionLevel(suggestedLevel) {
+
+        let level = getValue(MainSectionLevel, suggestedLevel) ?? MainSectionLevel.SubjectGrid;
+
+        if (level === MainSectionLevel.ChapterDetails
+            && !state.selectedChapterId) {
+
+            level = MainSectionLevel.SubjectDetails;
+        }
+
+        if (level === MainSectionLevel.SubjectDetails
+            && !state.selectedSubjectId) {
+
+            level = MainSectionLevel.SubjectGrid;
+        }
+
+        mutateState_MainSectionLevel(level);
+    }
+
+    function updateState_UploadQueueSettings({ action }) {
+
+        if (action === ListAction.Add
+            && !state.upload.showQueue) {
+
+            mutateState_Upload_QueueMinimized(false);
+            mutateState_Upload_ShowQueue(true);
+        }
+    }
+
+    function updateState_RollBackSubjects() {
+
+        mutateState_Subjects(state.subjects);
+    }
+
+    function updateState_RollBackSelectedSubject() {
+
+        mutateState_SelectedSubjectId(core.old.selectedSubjectId);
+    }
+
+    function updateState_RollBackChapters() {
+
+        mutateState_Chapters(state.chapters);
+    }
+
+    function updateState_RollBackSelectedChapter() {
+
+        mutateState_SelectedChapterId(core.old.selectedChapterId);
+    }
+
+    function updateState_RollBackDocuments() {
+
+        mutateState_Documents(state.documents);
+    }
+
+    /* ==========================================================
+       UI UPDATE ENTRY POINTS
+       ========================================================== */
+
+    function updateUi_UploadBadge() {
+
+        ui.uploadBadge.html(
+            DocumentLibraryTemplates.renderUploadPrivilegeBadge(
+                state.selectedSubject?.isChief)
+        );
+    }
+
+    function updateUi_SubjectSidebar() {
+
+        ui.subjectSidebar.html(
+            DocumentLibraryTemplates.renderSubjectSidebar(
+                state.subjects,
+                state.selectedSubjectId)
+        );
+    }
+
+    function updateUi_SubjectSidebarLoading() {
+
+        ui.subjectSidebar.html(
+            DocumentLibraryTemplates.renderSubjectSidebarLoading()
+        );
+    }
+
+    function updateUi_SubjectSidebarLoadFailed() {
+
+        ui.subjectSidebar.html(
+            DocumentLibraryTemplates.renderSubjectSidebarLoadFailed()
+        );
+    }
+
+    function updateUi_ChapterSidebar() {
+
+        ui.chapterSidebar.html(
+            DocumentLibraryTemplates.renderChapterSidebar(
+                state.chapters,
+                state.selectedChapterId)
+        );
+    }
+
+    function updateUi_ChapterSidebarLoading() {
+
+        ui.chapterSidebar.html(
+            DocumentLibraryTemplates.renderChapterSidebarLoading()
+        );
+    }
+
+    function updateUi_ChapterSidebarLoadFailed() {
+
+        ui.chapterSidebar.html(
+            DocumentLibraryTemplates.renderChapterSidebarLoadFailed()
+        );
+    }
+
+    function updateUi_MainBreadcrumb() {
+
+        ui.mainBreadcrumb.html(
+            DocumentLibraryTemplates.renderMainSectionBreadcrumb(
+                state.subjects.find(x => x.id === state.selectedSubjectId),
+                state.chapters.find(x => x.id === state.selectedChapterId))
+        );
+    }
+
+    function updateUi_MainSection() {
+
+        const active = "opacity-100 translate-x-0 pointer-events-auto";
+
+        const hide = "opacity-0 pointer-events-none";
+        const moveLeft = "absolute -translate-x-8";
+        const moveRight = "absolute translate-x-8";
+
+        const exitLeft = [hide, moveLeft].join(" ");
+        const exitRight = [hide, moveRight].join(" ");
+        const inactive = [hide, moveLeft, moveRight].join(" ");
+
+        switch (state.mainSectionLevel) {
+
+            case MainSectionLevel.SubjectGrid:
+
+                ui.mainBackBtn.prop("disabled", true);
+                ui.mainForwardBtn.prop("disabled", !state.selectedSubjectId);
+
+                ui.subjectGrid.removeClass(inactive).addClass(active);
+                ui.subjectDetails.removeClass(active).addClass(exitRight);
+                ui.chapterDetails.removeClass(active).addClass(exitRight);
+
+                break;
+
+            case MainSectionLevel.SubjectDetails:
+
+                ui.mainBackBtn.prop("disabled", false);
+                ui.mainForwardBtn.prop("disabled", !state.selectedChapterId);
+
+                ui.subjectGrid.removeClass(active).addClass(exitLeft);
+                ui.subjectDetails.removeClass(inactive).addClass(active);
+                ui.chapterDetails.removeClass(active).addClass(exitRight);
+
+                break;
+
+            case MainSectionLevel.ChapterDetails:
+
+                ui.mainBackBtn.prop("disabled", false);
+                ui.mainForwardBtn.prop("disabled", true);
+
+                ui.subjectGrid.removeClass(active).addClass(exitLeft);
+                ui.subjectDetails.removeClass(active).addClass(exitLeft);
+                ui.chapterDetails.removeClass(inactive).addClass(active);
+
+                break;
+
+        }
+    }
+
+    function updateUi_SubjectGrid() {
+
+        ui.subjectGrid.html(
+            DocumentLibraryTemplates.renderSubjectGrid(
+                state.subjects,
+                state.selectedSubjectId)
+        );
+    }
+
+    function updateUi_SubjectGridLoading() {
+
+        ui.subjectGrid.html(
+            DocumentLibraryTemplates.renderSubjectGridLoading()
+        );
+    }
+
+    function updateUi_SubjectGridLoadFailed() {
+
+        ui.subjectGrid.html(
+            DocumentLibraryTemplates.renderSubjectGridLoadFailed()
+        );
+    }
+
+    function updateUi_SubjectDetails() {
+
+        ui.subjectDetails.html(
+            DocumentLibraryTemplates.renderSubjectDetails(
+                state.selectedSubject)
+        );
+    }
+
+    function updateUi_SubjectDetailsLoading() {
+
+        ui.subjectDetails.html(
+            DocumentLibraryTemplates.renderSubjectDetailsLoading()
+        );
+    }
+
+    function updateUi_SubjectDetailsLoadFailed() {
+
+        ui.subjectDetails.html(
+            DocumentLibraryTemplates.renderSubjectDetailsLoadFailed()
+        );
+    }
+
+    function updateUi_ChapterDetails() {
+
+        ui.chapterDetails.html(
+            DocumentLibraryTemplates.renderChapterDetails(
+                state.selectedSubject,
+                state.selectedChapter)
+        );
+    }
+
+    function updateUi_ChapterDetailsLoading() {
+
+        ui.chapterDetails.html(
+            DocumentLibraryTemplates.renderChapterDetailsLoading()
+        );
+    }
+
+    function updateUi_ChapterDetailsLoadFailed() {
+
+        ui.chapterDetails.html(
+            DocumentLibraryTemplates.renderChapterDetailsLoadFailed()
+        );
+    }
+
+    function updateUi_UploadToggle() {
+
+        ui.uploadToggle.toggleClass("hidden", !state.selectedSubject?.isChief);
+    }
+
+    function updateUi_UploadPanel_Visibility() {
+
+        const active = "border-emerald-700 bg-emerald-600/10 hover:border-emerald-500 hover:bg-emerald-600/20";
+        const inactive = "border-slate-700 bg-slate-900 hover:border-slate-600 hover:bg-slate-800";
+
+        const show = state.selectedSubject?.isChief && state.showUploadPanel;
+
+        ui.uploadToggle.toggleClass(inactive, !show).toggleClass(active, show);
+        ui.uploadChevron.toggleClass("rotate-180", show);
+        ui.uploadContainer.toggleClass("m-0", !show);
+
+        if (show)
+            ui.uploadPanel.slideDown(300);
+        else
+            ui.uploadPanel.slideUp(300);
+    }
+
+    function updateUi_UploadPanel_SubjectSummary() {
+
+        ui.uploadSubjectSummary.html(
+            DocumentLibraryTemplates.renderUploadSubjectSummary(
+                state.selectedSubject)
+        );
+    }
+
+    function updateUi_UploadPanel_ChapterTags() {
+
+        ui.uploadChapterTags.html(
+            DocumentLibraryTemplates.renderUploadChapterTags(
+                state.chapters,
+                state.upload.selectedChapterIds)
+        );
+    }
+
+    function updateUi_UploadQueue_Row({
+        action,
+        items,
+    } = {}) {
+
+        const renderRow = uploadItem =>
+            DocumentLibraryTemplates.renderUploadRow(uploadItem);
+
+        /*
+         * A null item collection means the caller did not target
+         * individual rows. Render the queue's current canonical state.
+         *
+         * This also handles Clear(), because state.upload.list is empty
+         * by the time the event is raised.
+         */
+        if (items == null) {
+
+            ui.uploadList.html(
+                state.upload.list
+                    .map(renderRow)
+                    .join(""));
+
+            return;
+        }
+
+        const ids = Array.from(items, String);
+
+        switch (action) {
+
+            case ListAction.Add:
+            case ListAction.Update:
+
+                for (const id of ids) {
+
+                    const uploadItem = state.upload.list.find(
+                        x => x.id === id);
+
+                    const currentRow = ui.uploadItem.elem(id);
+
+                    if (!uploadItem) {
+                        currentRow.remove();
+                        continue;
+                    }
+
+                    const markup = renderRow(uploadItem);
+
+                    if (currentRow.length > 0)
+                        currentRow.replaceWith(markup);
+                    else
+                        ui.uploadList.append(markup);
+                }
+
+                break;
+
+            case ListAction.Delete:
+
+                for (const id of ids)
+                    ui.uploadItem.elem(id).remove();
+
+                break;
+
+            default:
+
+                ui.uploadList.html(
+                    state.upload.list
+                        .map(renderRow)
+                        .join(""));
+
+                break;
+        }
+    }
+
+    function updateUi_UploadQueue_Header() {
+
+        const uploadItems = state.upload.list;
+
+        const total = uploadItems.length;
+        const settled = state.upload.settledCount();
+        const outstanding = state.upload.outstandingCount();
+
+        const pending = uploadItems.filter(
+            x => x.status === UploadStatus.Pending).length;
+
+        const starting = uploadItems.filter(
+            x => x.status === UploadStatus.Starting).length;
+
+        const active = uploadItems.filter(
+            x => x.status === UploadStatus.Active).length;
+
+        const succeeded = uploadItems.filter(
+            x => x.status === UploadStatus.Succeeded).length;
+
+        const failed = uploadItems.filter(
+            x => x.status === UploadStatus.Failed).length;
+
+        const aborted = uploadItems.filter(
+            x => x.status === UploadStatus.Aborted).length;
+
+        const finishedPercent = total > 0
+            ? Math.round(settled / total * 100)
+            : 0;
+
+        ui.uploadSettledCount.text(settled);
+        ui.uploadTotalCount.text(total);
+
+        ui.uploadTotalProgress
+            .attr("aria-valuenow", finishedPercent)
+            .attr(
+                "aria-label",
+                `${settled} of ${total} uploads finished`);
+
+        ui.uploadTotalProgress
+            .find("circle:last-child")
+            .attr(
+                "stroke-dashoffset",
+                100 - finishedPercent);
+
+        let summary;
+
+        if (total === 0) {
+
+            summary = "No uploads";
+        }
+        else if (outstanding > 0) {
+
+            const parts = [];
+            const uploading = starting + active;
+
+            if (uploading > 0)
+                parts.push(
+                    `${uploading} uploading`);
+
+            if (pending > 0)
+                parts.push(
+                    `${pending} queued`);
+
+            if (settled > 0)
+                parts.push(
+                    `${settled} finished`);
+
+            summary = parts.join(" · ");
+        }
+        else {
+
+            const parts = [];
+
+            if (succeeded > 0)
+                parts.push(
+                    `${succeeded} uploaded`);
+
+            if (failed > 0)
+                parts.push(
+                    `${failed} failed`);
+
+            if (aborted > 0)
+                parts.push(
+                    `${aborted} cancelled`);
+
+            summary = parts.length > 0
+                ? parts.join(" · ")
+                : "All uploads finished";
+        }
+
+        ui.uploadQueueSummary.text(summary);
+
+        const cancelMode = outstanding > 0;
+
+        const cancelClasses =
+            "border-red-500/40 bg-red-500/10 text-red-300 hover:border-red-400 hover:bg-red-500/20 hover:text-red-200";
+
+        const closeClasses =
+            "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:bg-slate-700 hover:text-white";
+
+        ui.uploadQuitBtn
+            .toggleClass("hidden", total === 0)
+            .toggleClass("flex", total > 0)
+            .toggleClass(cancelClasses, cancelMode)
+            .toggleClass(closeClasses, !cancelMode)
+            .attr(
+                "aria-label",
+                cancelMode
+                    ? "Cancel all uploads"
+                    : "Close upload queue")
+            .attr(
+                "title",
+                cancelMode
+                    ? "Cancel all uploads"
+                    : "Close upload queue");
+
+        ui.uploadQuitIcon
+            .removeClass("fa-ban fa-xmark")
+            .addClass(
+                cancelMode
+                    ? "fa-ban"
+                    : "fa-xmark");
+
+        ui.uploadQuitLabel.text(
+            cancelMode
+                ? "Cancel all uploads"
+                : "Close upload queue");
+
+        ui.uploadMinimizeBtn.prop(
+            "disabled",
+            total === 0);
+    }
+
+    function updateUi_UploadQueue_Visibility() {
+
+        const show = state.upload.showQueue/*  && state.upload.list.length > 0 */;
+
+        const shownClasses =
+            "pointer-events-auto translate-y-0 scale-100 opacity-100";
+
+        const hiddenClasses =
+            "pointer-events-none translate-y-4 scale-[0.98] opacity-0";
+
+        ui.uploadQueue
+            .toggleClass(shownClasses, show)
+            .toggleClass(hiddenClasses, !show)
+            .attr(
+                "aria-hidden",
+                String(!show));
+    }
+
+    function updateUi_UploadQueue_ItemSection() {
+
+        const minimized = state.upload.queueMinimized;
+
+        const expandedClasses =
+            "max-h-[32rem] opacity-100";
+
+        const minimizedClasses =
+            "pointer-events-none max-h-0 opacity-0";
+
+        ui.uploadItemSection
+            .toggleClass(expandedClasses, !minimized)
+            .toggleClass(minimizedClasses, minimized)
+            .attr(
+                "aria-hidden",
+                String(minimized));
+
+        ui.uploadMinimizeBtn
+            .attr(
+                "aria-expanded",
+                String(!minimized))
+            .attr(
+                "aria-label",
+                minimized
+                    ? "Expand upload queue"
+                    : "Minimize upload queue")
+            .attr(
+                "title",
+                minimized
+                    ? "Expand upload queue"
+                    : "Minimize upload queue");
+
+        ui.uploadMinimizeIcon.toggleClass(
+            "rotate-180",
+            minimized);
+    }
+
+    function updateUi_DocumentDrawer() {
+
+        const show = !!state.selectedSubjectId;
+
+        const showClass = "opacity-100 translate-y-0 scale-100 max-h-[2000px]";
+        const hideClass = "opacity-0 -translate-y-4 scale-[0.985] pointer-events-none max-h-0";
+
+        ui.documentDrawer
+            .toggleClass(showClass, show)
+            .toggleClass(hideClass, !show);
+    }
+
+    function updateUi_DocumentList() {
+
+        ui.documentList.html(
+            DocumentLibraryTemplates.renderDocumentList(
+                state.documents,
+                state.file.totalCount,
+                state.selectedSubject?.isChief)
+        );
+    }
+
+    function updateUi_DocumentListLoading() {
+
+        ui.documentList.html(
+            DocumentLibraryTemplates.renderDocumentListLoading(
+                state.file.pageSize)
+        );
+    }
+
+    function updateUi_DocumentListLoadFailed() {
+
+        ui.documentList.html(
+            DocumentLibraryTemplates.renderDocumentListLoadFailed()
+        );
+    }
+
+    function updateUi_Pagination() {
+
+        ui.pagination.html(
+            DocumentLibraryTemplates.renderPagination(
+                state.file.pageIndex,
+                state.file.totalPages)
+        );
+    }
+
+    function updateUi_ShowToast(eventName) {
+
+        const ToastColors = {
+
+            success: {
+
+                borderClass: "border-emerald-600/50",
+                iconColorClass: "text-emerald-400",
+                titleColorClass: "text-emerald-300",
+            },
+
+            info: {
+
+                borderClass: "border-sky-600/50",
+                iconColorClass: "text-sky-400",
+                titleColorClass: "text-sky-300",
+            },
+
+            warning: {
+
+                borderClass: "border-amber-600/50",
+                iconColorClass: "text-amber-400",
+                titleColorClass: "text-amber-300",
+            },
+
+            error: {
+
+                borderClass: "border-red-600/50",
+                iconColorClass: "text-red-400",
+                titleColorClass: "text-red-300",
+            },
+        };
+
+        const Toasts = {
+
+            [LoadEvent.SubjectsSucceed]:
+                { color: "success", icon: "fa-folder-open", title: "Subjects loaded" },
+
+            [LoadEvent.SubjectsFail]:
+                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load subjects" },
+
+            [LoadEvent.SubjectsAbort]:
+                { color: "warning", icon: "fa-ban", title: "Subject loading cancelled" },
+
+
+
+            [LoadEvent.ChaptersSucceed]:
+                { color: "success", icon: "fa-book-open", title: "Chapters loaded" },
+
+            [LoadEvent.ChaptersFail]:
+                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load chapters" },
+
+            [LoadEvent.ChaptersAbort]:
+                { color: "warning", icon: "fa-ban", title: "Chapter loading cancelled" },
+
+
+
+            [LoadEvent.SubjectDetailsSucceed]:
+                { color: "success", icon: "fa-book", title: "Subject details loaded" },
+
+            [LoadEvent.SubjectDetailsFail]:
+                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load subject" },
+
+            [LoadEvent.SubjectDetailsAbort]:
+                { color: "warning", icon: "fa-ban", title: "Subject loading cancelled" },
+
+
+
+            [LoadEvent.ChapterDetailsSucceed]:
+                { color: "success", icon: "fa-book-bookmark", title: "Chapter details loaded" },
+
+            [LoadEvent.ChapterDetailsFail]:
+                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load chapter" },
+
+            [LoadEvent.ChapterDetailsAbort]:
+                { color: "warning", icon: "fa-ban", title: "Chapter loading cancelled" },
+
+
+
+            [LoadEvent.DocumentsSucceed]:
+                { color: "success", icon: "fa-file-lines", title: "Documents loaded" },
+
+            [LoadEvent.DocumentsFail]:
+                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load documents" },
+
+            [LoadEvent.DocumentsAbort]:
+                { color: "warning", icon: "fa-ban", title: "Document loading cancelled" },
+
+
+
+            [LoadEvent.UploadStart]:
+                { color: "info", icon: "fa-cloud-arrow-up", title: "Upload started" },
+
+            [LoadEvent.UploadFinish]:
+                { color: "success", icon: "fa-circle-check", title: "Upload complete" },
+        };
+
+        const config = Toasts[eventName];
+        if (!config) return;
+
+        const MAX_TOASTS = 4;
+        const LIFE_MS = 2500;
+        const HIDE_MS = 300;
+
+        const exitingClass = "toast-exiting";
+        let liveChildren;
+
+        while ((liveChildren = ui.toastContainer.children().not("." + exitingClass))
+            .length >= MAX_TOASTS) {
+
+            const oldest = liveChildren.first();
+
+            oldest
+                .removeClass("translate-y-0 opacity-100")
+                .addClass("-translate-y-4 opacity-0")
+                .addClass(exitingClass);
+
+            setTimeout(() => oldest.remove(), HIDE_MS);
+        }
+
+        const colors = ToastColors[config.color];
+
+        const toast = $(
+            DocumentLibraryTemplates.renderToast({
+
+                id: `toast-${crypto.randomUUID()}`,
+
+                iconClass: config.icon,
+                title: config.title,
+
+                borderClass: colors.borderClass,
+                iconColorClass: colors.iconColorClass,
+                titleColorClass: colors.titleColorClass,
+            })
+        );
+
+        ui.toastContainer.append(toast);
+
+        setTimeout(() => {
+
+            toast
+                .removeClass("translate-y-5 opacity-0")
+                .addClass("translate-y-0 opacity-100");
+
+        }, 1000 / 60);
+
+        setTimeout(() => {
+
+            toast
+                .removeClass("translate-y-0 opacity-100")
+                .addClass("-translate-y-4 opacity-0")
+                .addClass(exitingClass);
+
+            setTimeout(() => toast.remove(), HIDE_MS);
+
+        }, LIFE_MS);
     }
 
     /* =========================================================
@@ -1025,691 +2150,6 @@
         return document;
     }
 
-    /* =========================================================
-       UI EVENT HANDLERS
-       ========================================================= */
-
-    function onSubjectSelected(e) {
-        let subjectId = $(e.currentTarget).data("subject-id") + "";
-        if (subjectId === state.selectedSubjectId) subjectId = null;
-        mutateState_SelectedSubjectId(subjectId);
-    }
-
-    function onChapterSelected(e) {
-        let chapterId = $(e.currentTarget).data("chapter-id") + "";
-        if (chapterId === state.selectedChapterId) chapterId = null;
-        mutateState_SelectedChapterId(chapterId);
-    }
-
-    function onPageIndexChanged(e) {
-        const pageIndex = $(e.currentTarget).data("page-index");
-        if (pageIndex === state.file.pageIndex) return;
-        mutateState_File_PageIndex(pageIndex);
-    }
-
-    /* =========================================================
-       REALTIME EVENT HANDLERS
-       ========================================================= */
-
-    async function onRealtimeResourceUpdate(_, update) {
-
-        switch (update.resourceType) {
-
-            case ResourceType.Subject:
-                await loadSubjects();
-                if (update.resourceId === state.selectedSubjectId)
-                    await loadSubjectDetails();
-                break;
-
-            case ResourceType.Chapter:
-                await loadChapters();
-                if (update.resourceId === state.selectedChapterId)
-                    await loadChapterDetails();
-                if (update.properties["subjectId"] === state.selectedSubjectId)
-                    await loadSubjectDetails();
-                break;
-
-            case ResourceType.Document:
-            case ResourceType.User:
-                await loadDocuments();
-                break;
-
-            case ResourceType.Membership:
-                if (update.properties["userId"] === Razor.userId)
-                    await loadSubjects();
-                break;
-        }
-    }
-
-    function onResourceHubReconnected() {
-
-        core.callerConnectionId = window.ResourceConnectionId;
-    }
-
-    function onResourceHubDisconnected() {
-
-        core.callerConnectionId = "";
-    }
-
-    function onDocumentStatusUpdate(_, update) {
-
-        // FIXME: Mutate document state instead
-        const $badge = $(`#status-badge-${update.id}`);
-        if ($badge.length === 0) return;
-
-        const settings = StatusSettings[StatusNames[update.status]];
-        if (!settings) return;
-
-        const text =
-            update.progress
-                ? settings.text.replace("{{PROGRESS}}", update.progress.toFixed(2))
-                : settings.text.replace("({{PROGRESS}}%)", "").trim();
-
-        $badge.html(`
-            <i class="fas ${settings.iconClass}"></i>
-            ${text}
-        `);
-
-        $badge.removeClass().addClass(`document-status-badge ${settings.className}`);
-    }
-
-    /* =========================================================
-       STATE MUTATION CASCADES
-       ========================================================= */
-
-    function updateState_RefindSelectedSubject() {
-
-        if (!state.selectedSubjectId)
-            return;
-
-        const stillExists = state.subjects.some(x =>
-            x.id === state.selectedSubjectId);
-
-        if (!stillExists) {
-            mutateState_SelectedSubjectId(null);
-        }
-    }
-
-    function updateState_ResolveSelectedSubject() {
-
-        if (state.selectedSubject?.id === state.selectedSubjectId)
-            mutateState_SelectedSubject(state.selectedSubject);
-        else
-            loadSubjectDetails();
-    }
-
-    function updateState_ResetAndResolveChapters() {
-
-        mutateState_SelectedChapterId(null, false);
-        mutateState_SelectedChapter(null, false);
-
-        if (state.chapters.forSubjectId === state.selectedSubjectId)
-            mutateState_Chapters(state.chapters);
-        else
-            loadChapters();
-    }
-
-    function updateState_RefindSelectedChapter() {
-
-        if (!state.selectedChapterId)
-            return;
-
-        const stillExists = state.chapters.some(x =>
-            x.id === state.selectedChapterId);
-
-        if (!stillExists) {
-            mutateState_SelectedChapterId(null);
-        }
-    }
-
-    function updateState_SortChapters() {
-
-        const sorted = state.chapters.toSorted((a, b) =>
-            a.chapterNumber - b.chapterNumber);
-
-        mutateState_Chapters(sorted, false);
-    }
-
-    function updateState_ResolveSelectedChapter() {
-
-        if (state.selectedChapter?.id === state.selectedChapterId)
-            mutateState_SelectedChapter(state.selectedChapter);
-        else
-            loadChapterDetails();
-    }
-
-    function updateState_ResetAndResolveDocuments() {
-
-        mutateState_File_Search("", false);
-        mutateState_File_PageIndex(1, false);
-
-        if (state.documents.forSubjectId === state.selectedSubjectId
-            && state.documents.forChapterId === state.selectedChapterId)
-            mutateState_Documents(state.documents);
-        else
-            loadDocuments();
-    }
-
-    function updateState_PerformDocumentSearch() {
-
-        loadDocuments();
-    }
-
-    function updateState_MainSectionLevel(suggestedLevel) {
-
-        let level = getValue(MainSectionLevel, suggestedLevel) ?? MainSectionLevel.SubjectGrid;
-
-        if (level === MainSectionLevel.ChapterDetails
-            && !state.selectedChapterId) {
-
-            level = MainSectionLevel.SubjectDetails;
-        }
-
-        if (level === MainSectionLevel.SubjectDetails
-            && !state.selectedSubjectId) {
-
-            level = MainSectionLevel.SubjectGrid;
-        }
-
-        mutateState_MainSectionLevel(level);
-    }
-
-    function updateState_RollBackSubjects() {
-
-        mutateState_Subjects(state.subjects);
-    }
-
-    function updateState_RollBackSelectedSubject() {
-
-        mutateState_SelectedSubjectId(core.old.selectedSubjectId);
-    }
-
-    function updateState_RollBackChapters() {
-
-        mutateState_Chapters(state.chapters);
-    }
-
-    function updateState_RollBackSelectedChapter() {
-
-        mutateState_SelectedChapterId(core.old.selectedChapterId);
-    }
-
-    function updateState_RollBackDocuments() {
-
-        mutateState_Documents(state.documents);
-    }
-
-    /* ==========================================================
-       UI UPDATE ENTRY POINTS
-       ========================================================== */
-
-    function updateUi_UploadBadge() {
-
-        ui.uploadBadge.html(
-            DocumentLibraryTemplates.renderUploadPrivilegeBadge(
-                state.selectedSubject?.isChief)
-        );
-    }
-
-    function updateUi_SubjectSidebar() {
-
-        ui.subjectSidebar.html(
-            DocumentLibraryTemplates.renderSubjectSidebar(
-                state.subjects,
-                state.selectedSubjectId)
-        );
-    }
-
-    function updateUi_SubjectSidebarLoading() {
-
-        ui.subjectSidebar.html(
-            DocumentLibraryTemplates.renderSubjectSidebarLoading()
-        );
-    }
-
-    function updateUi_SubjectSidebarLoadFailed() {
-
-        ui.subjectSidebar.html(
-            DocumentLibraryTemplates.renderSubjectSidebarLoadFailed()
-        );
-    }
-
-    function updateUi_ChapterSidebar() {
-
-        ui.chapterSidebar.html(
-            DocumentLibraryTemplates.renderChapterSidebar(
-                state.chapters,
-                state.selectedChapterId)
-        );
-    }
-
-    function updateUi_ChapterSidebarLoading() {
-
-        ui.chapterSidebar.html(
-            DocumentLibraryTemplates.renderChapterSidebarLoading()
-        );
-    }
-
-    function updateUi_ChapterSidebarLoadFailed() {
-
-        ui.chapterSidebar.html(
-            DocumentLibraryTemplates.renderChapterSidebarLoadFailed()
-        );
-    }
-
-    function updateUi_MainBreadcrumb() {
-
-        ui.mainBreadcrumb.html(
-            DocumentLibraryTemplates.renderMainSectionBreadcrumb(
-                state.subjects.find(x => x.id === state.selectedSubjectId),
-                state.chapters.find(x => x.id === state.selectedChapterId))
-        );
-    }
-
-    function updateUi_MainSection() {
-
-        const active = "opacity-100 translate-x-0 pointer-events-auto";
-
-        const hide = "opacity-0 pointer-events-none";
-        const moveLeft = "absolute -translate-x-8";
-        const moveRight = "absolute translate-x-8";
-
-        const exitLeft = [hide, moveLeft].join(" ");
-        const exitRight = [hide, moveRight].join(" ");
-        const inactive = [hide, moveLeft, moveRight].join(" ");
-
-        switch (state.mainSectionLevel) {
-
-            case MainSectionLevel.SubjectGrid:
-
-                ui.mainBackBtn.prop("disabled", true);
-                ui.mainForwardBtn.prop("disabled", !state.selectedSubjectId);
-
-                ui.subjectGrid.removeClass(inactive).addClass(active);
-                ui.subjectDetails.removeClass(active).addClass(exitRight);
-                ui.chapterDetails.removeClass(active).addClass(exitRight);
-
-                break;
-
-            case MainSectionLevel.SubjectDetails:
-
-                ui.mainBackBtn.prop("disabled", false);
-                ui.mainForwardBtn.prop("disabled", !state.selectedChapterId);
-
-                ui.subjectGrid.removeClass(active).addClass(exitLeft);
-                ui.subjectDetails.removeClass(inactive).addClass(active);
-                ui.chapterDetails.removeClass(active).addClass(exitRight);
-
-                break;
-
-            case MainSectionLevel.ChapterDetails:
-
-                ui.mainBackBtn.prop("disabled", false);
-                ui.mainForwardBtn.prop("disabled", true);
-
-                ui.subjectGrid.removeClass(active).addClass(exitLeft);
-                ui.subjectDetails.removeClass(active).addClass(exitLeft);
-                ui.chapterDetails.removeClass(inactive).addClass(active);
-
-                break;
-
-        }
-    }
-
-    function updateUi_SubjectGrid() {
-
-        ui.subjectGrid.html(
-            DocumentLibraryTemplates.renderSubjectGrid(
-                state.subjects,
-                state.selectedSubjectId)
-        );
-    }
-
-    function updateUi_SubjectGridLoading() {
-
-        ui.subjectGrid.html(
-            DocumentLibraryTemplates.renderSubjectGridLoading()
-        );
-    }
-
-    function updateUi_SubjectGridLoadFailed() {
-
-        ui.subjectGrid.html(
-            DocumentLibraryTemplates.renderSubjectGridLoadFailed()
-        );
-    }
-
-    function updateUi_SubjectDetails() {
-
-        ui.subjectDetails.html(
-            DocumentLibraryTemplates.renderSubjectDetails(
-                state.selectedSubject)
-        );
-    }
-
-    function updateUi_SubjectDetailsLoading() {
-
-        ui.subjectDetails.html(
-            DocumentLibraryTemplates.renderSubjectDetailsLoading()
-        );
-    }
-
-    function updateUi_SubjectDetailsLoadFailed() {
-
-        ui.subjectDetails.html(
-            DocumentLibraryTemplates.renderSubjectDetailsLoadFailed()
-        );
-    }
-
-    function updateUi_ChapterDetails() {
-
-        ui.chapterDetails.html(
-            DocumentLibraryTemplates.renderChapterDetails(
-                state.selectedSubject,
-                state.selectedChapter)
-        );
-    }
-
-    function updateUi_ChapterDetailsLoading() {
-
-        ui.chapterDetails.html(
-            DocumentLibraryTemplates.renderChapterDetailsLoading()
-        );
-    }
-
-    function updateUi_ChapterDetailsLoadFailed() {
-
-        ui.chapterDetails.html(
-            DocumentLibraryTemplates.renderChapterDetailsLoadFailed()
-        );
-    }
-
-    function updateUi_UploadToggle() {
-
-        ui.uploadToggle.toggleClass("hidden", !state.selectedSubject?.isChief);
-    }
-
-    function updateUi_UploadOverlay() {
-
-        const active = Boolean(state.upload.outstandingCount());
-
-        ui.uploadOverlay.toggleClass("hidden", !active);
-        ui.dropZone.toggleClass("opacity-60 pointer-events-none", active);
-    }
-
-    function updateUi_UploadPanel_Visibility() {
-
-        const active = "border-emerald-700 bg-emerald-600/10 hover:border-emerald-500 hover:bg-emerald-600/20";
-        const inactive = "border-slate-700 bg-slate-900 hover:border-slate-600 hover:bg-slate-800";
-
-        const show = state.selectedSubject?.isChief && state.showUploadPanel;
-
-        ui.uploadToggle.toggleClass(inactive, !show).toggleClass(active, show);
-        ui.uploadChevron.toggleClass("rotate-180", show);
-        ui.uploadContainer.toggleClass("m-0", !show);
-
-        if (show)
-            ui.uploadPanel.slideDown(300);
-        else
-            ui.uploadPanel.slideUp(300);
-    }
-
-    function updateUi_UploadPanel_SubjectSummary() {
-
-        ui.uploadSubjectSummary.html(
-            DocumentLibraryTemplates.renderUploadSubjectSummary(
-                state.selectedSubject)
-        );
-    }
-
-    function updateUi_UploadPanel_ChapterTags() {
-
-        ui.uploadChapterTags.html(
-            DocumentLibraryTemplates.renderUploadChapterTags(
-                state.chapters,
-                state.upload.selectedChapterIds)
-        );
-    }
-
-    function updateUi_UploadQueue_Row(id) {
-
-        // FIXME: Modal + Switch by state
-        ui.uploadList.append(
-            DocumentLibraryTemplates.renderUploadRow(file));
-    }
-
-    function updateUploadProgress(id, percent) {
-
-        // FIXME: Magic strings in selector
-
-        const row = ui.uploadList.find(`[data-file-id='${id}']`);
-
-        row.find(".upload-progress-bar").css("width", `${percent}%`);
-        row.find(".upload-percent").text(`${percent}%`);
-    }
-
-    function updateUploadStatus(id, text, failed = false) {
-
-        // FIXME: Magic strings in selector
-
-        const row = ui.uploadList.find(`[data-file-id='${id}']`);
-
-        row.find(".upload-percent").text(text);
-
-        if (failed) {
-            row.find(".upload-progress-bar").addClass("bg-red-500");
-        }
-    }
-
-    function updateUi_UploadQueue_Header() {
-
-        // TODO: Update modal header's total and tranferring counts
-    }
-
-    function updateUi_DocumentDrawer() {
-
-        const show = !!state.selectedSubjectId;
-
-        const showClass = "opacity-100 translate-y-0 scale-100 max-h-[2000px]";
-        const hideClass = "opacity-0 -translate-y-4 scale-[0.985] pointer-events-none max-h-0";
-
-        ui.documentDrawer
-            .toggleClass(showClass, show)
-            .toggleClass(hideClass, !show);
-    }
-
-    function updateUi_DocumentList() {
-
-        ui.documentList.html(
-            DocumentLibraryTemplates.renderDocumentList(
-                state.documents,
-                state.file.totalCount,
-                state.selectedSubject?.isChief)
-        );
-    }
-
-    function updateUi_DocumentListLoading() {
-
-        ui.documentList.html(
-            DocumentLibraryTemplates.renderDocumentListLoading(
-                state.file.pageSize)
-        );
-    }
-
-    function updateUi_DocumentListLoadFailed() {
-
-        ui.documentList.html(
-            DocumentLibraryTemplates.renderDocumentListLoadFailed()
-        );
-    }
-
-    function updateUi_Pagination() {
-
-        ui.pagination.html(
-            DocumentLibraryTemplates.renderPagination(
-                state.file.pageIndex,
-                state.file.totalPages)
-        );
-    }
-
-    function updateUi_ShowToast(eventName) {
-
-        const ToastColors = {
-
-            success: {
-
-                borderClass: "border-emerald-600/50",
-                iconColorClass: "text-emerald-400",
-                titleColorClass: "text-emerald-300",
-            },
-
-            info: {
-
-                borderClass: "border-sky-600/50",
-                iconColorClass: "text-sky-400",
-                titleColorClass: "text-sky-300",
-            },
-
-            warning: {
-
-                borderClass: "border-amber-600/50",
-                iconColorClass: "text-amber-400",
-                titleColorClass: "text-amber-300",
-            },
-
-            error: {
-
-                borderClass: "border-red-600/50",
-                iconColorClass: "text-red-400",
-                titleColorClass: "text-red-300",
-            },
-        };
-
-        const Toasts = {
-
-            [LoadEvent.SubjectsSucceed]:
-                { color: "success", icon: "fa-folder-open", title: "Subjects loaded" },
-
-            [LoadEvent.SubjectsFail]:
-                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load subjects" },
-
-            [LoadEvent.SubjectsAbort]:
-                { color: "warning", icon: "fa-ban", title: "Subject loading cancelled" },
-
-
-
-            [LoadEvent.ChaptersSucceed]:
-                { color: "success", icon: "fa-book-open", title: "Chapters loaded" },
-
-            [LoadEvent.ChaptersFail]:
-                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load chapters" },
-
-            [LoadEvent.ChaptersAbort]:
-                { color: "warning", icon: "fa-ban", title: "Chapter loading cancelled" },
-
-
-
-            [LoadEvent.SubjectDetailsSucceed]:
-                { color: "success", icon: "fa-book", title: "Subject details loaded" },
-
-            [LoadEvent.SubjectDetailsFail]:
-                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load subject" },
-
-            [LoadEvent.SubjectDetailsAbort]:
-                { color: "warning", icon: "fa-ban", title: "Subject loading cancelled" },
-
-
-
-            [LoadEvent.ChapterDetailsSucceed]:
-                { color: "success", icon: "fa-book-bookmark", title: "Chapter details loaded" },
-
-            [LoadEvent.ChapterDetailsFail]:
-                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load chapter" },
-
-            [LoadEvent.ChapterDetailsAbort]:
-                { color: "warning", icon: "fa-ban", title: "Chapter loading cancelled" },
-
-
-
-            [LoadEvent.DocumentsSucceed]:
-                { color: "success", icon: "fa-file-lines", title: "Documents loaded" },
-
-            [LoadEvent.DocumentsFail]:
-                { color: "error", icon: "fa-triangle-exclamation", title: "Failed to load documents" },
-
-            [LoadEvent.DocumentsAbort]:
-                { color: "warning", icon: "fa-ban", title: "Document loading cancelled" },
-
-
-
-            [LoadEvent.UploadStart]:
-                { color: "info", icon: "fa-cloud-arrow-up", title: "Upload started" },
-
-            [LoadEvent.UploadFinish]:
-                { color: "success", icon: "fa-circle-check", title: "Upload complete" },
-        };
-
-        const config = Toasts[eventName];
-        if (!config) return;
-
-        const MAX_TOASTS = 4;
-        const LIFE_MS = 2500;
-        const HIDE_MS = 300;
-
-        const exitingClass = "toast-exiting";
-        let liveChildren;
-
-        while ((liveChildren = ui.toastContainer.children().not("." + exitingClass))
-            .length >= MAX_TOASTS) {
-
-            const oldest = liveChildren.first();
-
-            oldest
-                .removeClass("translate-y-0 opacity-100")
-                .addClass("-translate-y-4 opacity-0")
-                .addClass(exitingClass);
-
-            setTimeout(() => oldest.remove(), HIDE_MS);
-        }
-
-        const colors = ToastColors[config.color];
-
-        const toast = $(
-            DocumentLibraryTemplates.renderToast({
-
-                id: `toast-${crypto.randomUUID()}`,
-
-                iconClass: config.icon,
-                title: config.title,
-
-                borderClass: colors.borderClass,
-                iconColorClass: colors.iconColorClass,
-                titleColorClass: colors.titleColorClass,
-            })
-        );
-
-        ui.toastContainer.append(toast);
-
-        setTimeout(() => {
-
-            toast
-                .removeClass("translate-y-5 opacity-0")
-                .addClass("translate-y-0 opacity-100");
-
-        }, 1000 / 60);
-
-        setTimeout(() => {
-
-            toast
-                .removeClass("translate-y-0 opacity-100")
-                .addClass("-translate-y-4 opacity-0")
-                .addClass(exitingClass);
-
-            setTimeout(() => toast.remove(), HIDE_MS);
-
-        }, LIFE_MS);
-    }
-
     /* ======================================================
        UPLOAD
        ====================================================== */
@@ -1721,9 +2161,9 @@
             return;
         }
 
-        [...files]
-            .filter(validateFile)
-            .forEach(mutateState_Upload_List_Enqueue);
+        const validFiles = Array.from(files ?? []).filter(validateFile);
+        const addedIds = mutateState_Upload_List_Enqueue(validFiles);
+        if (!addedIds?.length) return;
 
         processUploadQueue();
     }
@@ -1735,21 +2175,21 @@
             return;
         }
 
-        while (state.upload.activeCount() < MAX_CONCURRENT_UPLOADS) {
+        while (state.upload.inFlightCount() < MAX_CONCURRENT_UPLOADS) {
             const uploadItem = mutateState_Upload_List_Dequeue();
             if (!uploadItem) return;
             upload(uploadItem);
         }
     }
 
-    function upload(uploadItem) {
+    async function upload(uploadItem) {
 
         const form = new FormData();
 
-        form.append("subjectId", state.selectedSubjectId);
-        for (const chapterId of state.upload.selectedChapterIds)
-            form.append("chapterIds", chapterId);
         form.append("file", uploadItem.file);
+        form.append("subjectId", uploadItem.subjectId);
+        for (const chapterId of uploadItem.chapterIds)
+            form.append("chapterIds", chapterId);
 
         const xhr = new XMLHttpRequest();
 
@@ -1765,16 +2205,16 @@
                     return;
 
                 const pct = Math.round(e.loaded / e.total * 100);
-                mutateState_Upload_List_Progress(uploadItem.id, pct);
+                mutateState_Upload_List_Progress([{ id: uploadItem.id, percent: pct }]);
             });
 
         xhr.addEventListener(
             "load",
             () => {
                 if (xhr.status >= 200 && xhr.status < 300)
-                    mutateState_Upload_List_Succeed(uploadItem.id);
+                    mutateState_Upload_List_Succeed([uploadItem.id]);
                 else
-                    mutateState_Upload_List_Fail(uploadItem.id);
+                    mutateState_Upload_List_Fail([uploadItem.id]);
 
                 processUploadQueue();
             });
@@ -1782,18 +2222,67 @@
         xhr.addEventListener(
             "error",
             () => {
-                mutateState_Upload_List_Fail(uploadItem.id);
+                mutateState_Upload_List_Fail([uploadItem.id]);
                 processUploadQueue();
             });
 
-        xhr.send(form);
+        xhr.addEventListener(
+            "abort",
+            () => {
+                mutateState_Upload_List_Abort([uploadItem.id]);
+                processUploadQueue();
+            });
 
-        mutateState_Upload_List_Start(uploadItem.id, xhr);
+        // Aborted by another function.
+        if (uploadItem.status === UploadStatus.Aborted) return;
+        mutateState_Upload_List_Start([{ id: uploadItem.id, transfer: xhr }]);
+        xhr.send(form);
+    }
+
+    function cancelUploadItems(uploadItems) {
+
+        const cancellableItems = Array.from(uploadItems ?? [])
+            .filter(x => x?.canCancel);
+
+        if (cancellableItems.length === 0)
+            return;
+
+        /*
+         * Pending items have no XHR. Abort those in state first so
+         * synchronous XHR abort callbacks cannot start them while
+         * Cancel All is still iterating.
+         */
+        const directAbortIds = cancellableItems
+            .filter(x => !x.transfer)
+            .map(x => x.id);
+
+        if (directAbortIds.length > 0)
+            mutateState_Upload_List_Abort(directAbortIds);
+
+        const transferItems = cancellableItems.filter(x => !!x.transfer);
+
+        for (const uploadItem of transferItems)
+            uploadItem.transfer.abort();
+
+        /*
+         * Transfer-backed items resume queue processing through their
+         * XHR abort handlers. Direct-only cancellation needs to do it
+         * here.
+         */
+        if (transferItems.length === 0
+            && directAbortIds.length > 0) {
+            processUploadQueue();
+        }
+    }
+
+    function cancelUploadItem(uploadItem) {
+
+        cancelUploadItems([uploadItem]);
     }
 
     /* ======================================================
-   DELETE
-   ====================================================== */
+       DELETE
+       ====================================================== */
 
     async function deleteDocument() {
 

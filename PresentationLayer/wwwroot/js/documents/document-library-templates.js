@@ -961,39 +961,217 @@ ${escapeHtml(subject.name)}`;
         }).join("");
     }
 
-    function renderUploadOverlay() {
+    function getUploadFileExtension(fileName) {
+
+        const name = String(fileName ?? "");
+        const dotIndex = name.lastIndexOf(".");
+
+        return dotIndex >= 0
+            ? name.slice(dotIndex).toUpperCase()
+            : "";
+    }
+
+    function getUploadFileStyle(extension) {
+
+        switch (extension) {
+
+            case ".PDF":
+                return {
+                    tileClass: "bg-red-500/10",
+                    iconClass: "text-red-400",
+                };
+
+            case ".DOC":
+            case ".DOCX":
+                return {
+                    tileClass: "bg-blue-500/10",
+                    iconClass: "text-blue-400",
+                };
+
+            case ".PPT":
+            case ".PPTX":
+                return {
+                    tileClass: "bg-orange-500/10",
+                    iconClass: "text-orange-400",
+                };
+
+            case ".HTML":
+            case ".HTM":
+                return {
+                    tileClass: "bg-violet-500/10",
+                    iconClass: "text-violet-400",
+                };
+
+            case ".TXT":
+                return {
+                    tileClass: "bg-slate-700",
+                    iconClass: "text-slate-300",
+                };
+
+            default:
+                return {
+                    tileClass: "bg-slate-700",
+                    iconClass: "text-slate-300",
+                };
+        }
+    }
+
+    function getUploadStatusView(statusName) {
+
+        const views = {
+
+            Pending: {
+                label: "Queued",
+                iconClass: "fa-clock",
+                textClass: "text-slate-400",
+                barClass: "bg-slate-500",
+            },
+
+            Starting: {
+                label: "Starting",
+                iconClass: "fa-spinner fa-spin",
+                textClass: "text-amber-300",
+                barClass: "bg-amber-400",
+            },
+
+            Active: {
+                label: "Uploading",
+                iconClass: "fa-cloud-arrow-up",
+                textClass: "text-emerald-300",
+                barClass: "bg-emerald-500",
+            },
+
+            Succeeded: {
+                label: "Uploaded",
+                iconClass: "fa-circle-check",
+                textClass: "text-emerald-300",
+                barClass: "bg-emerald-500",
+            },
+
+            Failed: {
+                label: "Failed",
+                iconClass: "fa-triangle-exclamation",
+                textClass: "text-red-300",
+                barClass: "bg-red-500",
+            },
+
+            Aborted: {
+                label: "Cancelled",
+                iconClass: "fa-ban",
+                textClass: "text-slate-500",
+                barClass: "bg-slate-500",
+            },
+        };
+
+        return views[statusName] ?? views.Pending;
+    }
+
+    function renderUploadRow(uploadItem) {
+
+        const file = uploadItem?.file;
+        const fileName = file?.name ?? "Unnamed file";
+        const extension = getUploadFileExtension(fileName);
+
+        const fileStyle = getUploadFileStyle(extension);
+        const statusView = getUploadStatusView(uploadItem?.statusName);
+
+        const rawProgress = Number.isFinite(uploadItem?.progress)
+            ? uploadItem.progress
+            : 0;
+
+        const progress = uploadItem?.statusName === "Succeeded"
+            ? 100
+            : Math.min(Math.max(Math.round(rawProgress), 0), 100);
+
+        const canCancel = !!uploadItem?.canCancel;
 
         return `
-        <div class="absolute inset-0 z-50 flex items-center justify-center rounded-3xl bg-slate-950/80 backdrop-blur-sm">
+<article class="js-upload-item group px-4 py-4 transition-colors hover:bg-slate-800/70"
+         data-upload-id="${escapeAttribute(uploadItem.id)}">
 
-            <div class="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-10 shadow-2xl">
+    <div class="flex items-center gap-3">
 
-                <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
+        <div class="${fileStyle.tileClass} flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
 
-                    <i class="fa-solid fa-cloud-arrow-up fa-beat text-4xl text-emerald-400"></i>
+            <i class="fa-solid ${getFileIcon(extension)} ${fileStyle.iconClass} text-lg"></i>
+
+        </div>
+
+        <div class="min-w-0 flex-1">
+
+            <div class="flex items-start gap-3">
+
+                <div class="min-w-0 flex-1">
+
+                    <div title="${escapeAttribute(fileName)}"
+                         class="truncate text-sm font-semibold text-slate-100">
+
+                        ${escapeHtml(fileName)}
+
+                    </div>
+
+                    <div class="mt-1.5 flex min-w-0 items-center gap-2 text-xs">
+
+                        <span class="${statusView.textClass} inline-flex shrink-0 items-center gap-1.5 font-medium">
+
+                            <i class="fa-solid ${statusView.iconClass}"></i>
+
+                            ${statusView.label}
+
+                        </span>
+
+                        <span class="text-slate-600">·</span>
+
+                        <span class="truncate text-slate-500">
+
+                            ${formatFileSize(file?.size)}
+
+                        </span>
+
+                        <span class="js-upload-percent ml-auto shrink-0 font-medium text-slate-400">
+
+                            ${progress}%
+
+                        </span>
+
+                    </div>
 
                 </div>
 
-                <h2 class="mt-6 text-center text-2xl font-bold text-white">
-                    Upload in Progress
-                </h2>
+                ${canCancel
+                ? `
+                <button type="button"
+                        class="js-cancel-upload flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-300"
+                        data-upload-id="${escapeAttribute(uploadItem.id)}"
+                        aria-label="Cancel upload of ${escapeAttribute(fileName)}"
+                        title="Cancel upload">
 
-                <p class="mt-4 text-center text-sm leading-relaxed text-slate-400">
-                    Files are currently being uploaded to the server.
-                </p>
+                    <i class="fa-solid fa-xmark"></i>
 
-                <p class="mt-2 text-center text-sm leading-relaxed text-slate-500">
-                    The document library is temporarily locked to prevent conflicting uploads.
-                </p>
+                </button>`
+                : ""}
+
+            </div>
+
+            <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800"
+                 role="progressbar"
+                 aria-label="Upload progress for ${escapeAttribute(fileName)}"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="${progress}"
+                 aria-valuetext="${escapeAttribute(statusView.label)}, ${progress} percent">
+
+                <div class="js-upload-progress-bar ${statusView.barClass} h-full rounded-full transition-[width] duration-200 ease-out"
+                     style="width: ${progress}%">
+                </div>
 
             </div>
 
         </div>
-    `;
-    }
 
-    function renderUploadRow(file) {
-        // TODO: Implement
+    </div>
+
+</article>`;
     }
 
     /* =========================================================
@@ -1050,7 +1228,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 
         <div class="min-w-0 flex-1">
 
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-3">
 
                 <a
                     href="/documents/download/${document.id}"
@@ -1403,7 +1581,6 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
 
         renderUploadSubjectSummary,
         renderUploadChapterTags,
-        renderUploadOverlay,
         renderUploadRow,
 
         renderDocumentList,

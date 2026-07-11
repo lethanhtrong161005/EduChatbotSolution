@@ -248,8 +248,15 @@ public class LibraryModel(
             if (chapterIdSet.Count > 0)
             {
                 chapters = [.. await _chapterService.GetByIdsAsync(chapterIdSet, cancellationToken: cxlTkn)];
+
                 if (chapters.Count != chapterIdSet.Count)
                     return BadRequest("No such chapter.");
+
+                var violatingChapters = chapters.Where(e => e.SubjectId != subjectId).ToList();
+
+                if (violatingChapters.Count > 0)
+                    return BadRequest("Some chapters did not match target subject: " +
+                        $"{string.Join(' ', violatingChapters.Select(e => $"'{e.Id}'"))}");
             }
 
             await using var fs = file.OpenReadStream();

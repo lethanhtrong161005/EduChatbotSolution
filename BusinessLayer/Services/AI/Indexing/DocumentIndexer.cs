@@ -62,6 +62,7 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
+            throw;
         }
     }
 
@@ -128,6 +129,7 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
+            throw;
         }
     }
 
@@ -201,6 +203,7 @@ public class DocumentIndexer(
         catch (Exception ex)
         {
             await SaveFailure(doc, ex, cxlTkn);
+            throw;
         }
     }
 
@@ -211,9 +214,9 @@ public class DocumentIndexer(
     {
         if (!await _fileService.ExistsAsync(doc.Id, cxlTkn))
             throw new FileNotFoundException($"Could not locate document file at '{doc.StorageLocator}'");
-        
+
         var result = await _fileService.MoveAsync(doc.Id, dir, cxlTkn);
-        
+
         if (!result.Success)
             throw new IOException(string.Join(Environment.NewLine, result.Errors));
     }
