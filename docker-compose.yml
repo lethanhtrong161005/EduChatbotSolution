@@ -12,6 +12,12 @@ services:
       - db:/data/postgres
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edu_admin -d educhatai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - net
 
@@ -21,6 +27,11 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
       - net
 
@@ -30,10 +41,11 @@ services:
     restart: unless-stopped
     ports:
       - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - net
-    depends_on:
-      - redis
 
   web:
     image: ${DOCKER_REGISTRY-}educhatai-aspnetcore
@@ -41,18 +53,25 @@ services:
     build:
       context: .
       dockerfile: PresentationLayer/Dockerfile
+    restart: unless-stopped
     ports:
       - "8080:8080"
-      - "8081:8081"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__Container=Host=db;Port=5432;Database=educhatai_db;Username=edu_admin;Password=12345678;Include Error Detail=true
-      - ConnectionStrings__Shared=Host=100.109.127.96;Port=5432;Database=rag_chatbot_db;Username=postgres;Password=Sansnope281121;Include Error Detail=true
-      - Redis__ConnectionString=redis:6379
-      - AI__Ollama__Endpoint=http://ollama:11434
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+      HttpsRedirection__Enabled: false
+      ConnectionStrings__Database: Host=db;Port=5432;Database=educhatai_db;Username=edu_admin;Password=12345678;Include Error Detail=true
+      Redis__ConnectionString: redis:6379
+      AI__Ollama__Endpoint: http://ollama:11434
+      AppBaseUrl: http://localhost:8080
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - net
 
@@ -66,7 +85,6 @@ services:
       - ollama:/root/.ollama
     networks:
       - net
-    gpus: all
 
 networks:
   net:

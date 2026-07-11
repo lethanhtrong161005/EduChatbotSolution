@@ -116,8 +116,8 @@
             selectedChapterIds: [],
 
             list: [],
-            activeCount: function () { return this.list.filter(x => x.state === UploadStatus.Active).length; },
-            outstandingCount: function () { return this.list.filter(x => x.state !== UploadStatus.Succeeded && x.state !== UploadStatus.Failed).length; },
+            activeCount: function () { return this.list.filter(x => x.status === UploadStatus.Active).length; },
+            outstandingCount: function () { return this.list.filter(x => x.status !== UploadStatus.Succeeded && x.status !== UploadStatus.Failed).length; },
         },
 
         file: {
@@ -255,7 +255,7 @@
 
     function mutateState_Upload_List_Dequeue(raiseEvent = true) {
 
-        const uploadItem = state.upload.list.find(x => x.state === UploadStatus.Pending);
+        const uploadItem = state.upload.list.find(x => x.status === UploadStatus.Pending);
         if (!uploadItem) return;
 
         uploadItem.status = UploadStatus.Starting;
@@ -1737,6 +1737,7 @@
 
         while (state.upload.activeCount() < MAX_CONCURRENT_UPLOADS) {
             const uploadItem = mutateState_Upload_List_Dequeue();
+            if (!uploadItem) return;
             upload(uploadItem);
         }
     }

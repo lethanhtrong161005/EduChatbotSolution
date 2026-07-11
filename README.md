@@ -1,270 +1,250 @@
-# EduChatAI - Educational Chatbot Solution
+# EduChatAI
 
-EduChatAI is an enterprise-grade, **4-tier architecture** web application built with **ASP.NET Core MVC**. It uses **PostgreSQL** with the **pgvector** extension for semantic vector search, **Ollama** for local embeddings & chat generation, **Redis** for caching, and **Hangfire** for background document-indexing jobs. The result is an intelligent, context-aware educational chatbot with a built-in document library, subscription plans, and online payments.
+EduChatAI is a Vietnamese educational knowledge-base and chatbot application. It combines subject-based document management, background document indexing, retrieval-augmented chat with citations, realtime updates, authentication, subscriptions, and payment workflows.
 
----
+The application is under active development. Docker Compose is the primary setup path; running the ASP.NET Core project directly is supported for development and EF Core tooling.
 
-## 🛠️ Tech Stack
+## Technology
 
-| Concern              | Technology |
-|----------------------|------------|
-| **Framework**        | .NET 10.0 (ASP.NET Core MVC) |
-| **Database**         | PostgreSQL 18 + `pgvector` (1024-dim vector similarity search) |
-| **ORM**              | Entity Framework Core via Npgsql (snake_case naming) |
-| **Authentication**   | ASP.NET Core Identity + Cookie + Google OAuth, email confirmation required |
-| **AI / Embeddings**  | Ollama (`bge-m3` embeddings, `qwen3` chat) via `OllamaSharp` |
-| **Caching**          | Redis (StackExchange.Redis) + RedisInsight UI |
-| **Background Jobs**  | Hangfire (PostgreSQL storage) — async document parse → chunk → embed pipeline |
-| **Payments**         | ZaloPay (sandbox) |
-| **Email**            | SMTP (Gmail) for verification codes & password resets |
-| **Mapping**          | AutoMapper |
-| **Testing**          | xUnit (`UnitTests` project) |
-| **Containerization** | Docker & Docker Compose (custom bridge network) |
+| Area | Current implementation |
+| --- | --- |
+| Web | .NET 10, ASP.NET Core Razor Pages, jQuery, Tailwind CSS 4 |
+| Data | EF Core 10, PostgreSQL 18, Npgsql, pgvector |
+| Authentication | ASP.NET Core Identity, cookie authentication, Google OAuth |
+| Background work | Hangfire with PostgreSQL storage |
+| Realtime | SignalR resource, document-status, chat, and comment hubs |
+| AI providers | Ollama, OpenRouter, and Gemini through `Microsoft.Extensions.AI` |
+| File storage | Local staging plus configurable local or Supabase durable storage |
+| Cache | Redis and RedisInsight |
+| Document parsing | PDF, DOCX, PPTX, and text stream-based parsers |
+| Testing | NUnit, Moq, and coverlet |
 
----
+## What Is Implemented
 
-## 📂 Project Architecture & Structure
+- Subjects, chapters, memberships, and role-sensitive document access.
+- Multi-file document reception, validation, staging, durable persistence, and background indexing.
+- PostgreSQL vector storage and retrieval-augmented chat with streamed answers and citations.
+- Realtime resource notifications and document-processing status updates.
+- ASP.NET Core Identity, email verification, account management, and Google sign-in.
+- Subscription plans, purchases, user subscriptions, and ZaloPay integration scaffolding.
+- Subject-specific AI and document-storage configuration with application defaults.
 
-The solution follows **Separation of Concerns (SoC)** using a **4-Tier Layered Architecture** with a shared **Domain** kernel. Note that the projects' assembly/file names are short (`Domain`, `DataAccess`, `Business`, `Presentation`), while the folders keep the descriptive `*Layer` names.
+Some areas remain in progress, including the document upload progress modal, fully state-driven document status rendering, occurrence-level citation validation, and portions of external payment handling.
 
-```text
-EduChatbotSolution/ (Solution Root)
-│
-├── Domain/ (Domain.csproj -> .dll | No dependencies — shared kernel)
-│   ├── Common/                  # AppConstants, Enums, PaginatedList<T>
-│   ├── Contracts/               # Service interfaces (IAuthService, IDocumentService, IEmbeddingService, IPaymentService, ...)
-│   ├── DTOs/                    # Cross-layer data objects (ChunkDto, ParsedDocument, EmbeddingResult)
-│   ├── Entities/                # EF Core entities (ApplicationUser, Subject, Chapter, Document, Chunk,
-│   │                            #   ChatSession, ChatMessage, Citation, Plan, Subscription, Order, Payment, ...)
-│   ├── Exceptions/              # Domain exceptions (BadRequest, EntityNotFound, EntityConstraint, UserClaim)
-│   └── Utils/                   # DateTimeHelper, FileHelper
-│
-├── DataAccessLayer/ (DataAccess.csproj -> .dll | Depends on: Domain)
-│   ├── Data/                    # EduChatbotDbContext + EF Core configuration & seeding
-│   ├── Migrations/              # EF Core migrations (InitialCreate -> ...)
-│   ├── Repositories/            # GenericRepository<T> (generic CRUD)
-│   └── UnitOfWork/              # IUnitOfWork / UnitOfWork coordinating repositories
-│
-├── BusinessLayer/ (Business.csproj -> .dll | Depends on: Domain, DataAccess)
-│   ├── Background/              # DocumentIndexer (Hangfire job orchestrating the indexing pipeline)
-│   ├── Parsing/                 # SimpleParser (IDocumentParser)
-│   ├── Chunking/                # FixedLengthChunker (IDocumentChunker, 1000 chars / 200 overlap)
-│   ├── Embedding/               # OllamaEmbeddingService + OllamaOptions (IEmbeddingService)
-│   ├── ExternalPayment/         # ZaloPayService + PaymentProviderOptions
-│   ├── Services/                # Core business logic (Auth, Subject, Chapter, Document, Subscription,
-│   │                            #   Order, Payment, Email, EmailVerification, UserManagement)
-│   ├── Templates/               # HTML email templates (verification code, password reset, ...)
-│   └── Utils/                   # SubscriptionHelper
-│
-├── PresentationLayer/ (Presentation.csproj -> ASP.NET Core MVC | Depends on: Domain, Business)
-│   ├── Controllers/             # Account, Home, Admin, Documents, Subscriptions, Payment, Error
-│   ├── Models/                  # ViewModels (Vm) for the Razor views
-│   ├── Views/                   # .cshtml (Account, Admin, Documents, Home, Payment, Subscriptions, Shared)
-│   ├── Mappings/                # AutoMapper profiles (Document, Payment, Subscription)
-│   ├── Middleware/              # CustomExceptionMiddleware
-│   ├── Filters/                 # HangfireAuthFilter (dashboard authorization)
-│   ├── Extensions/              # HostExtensions (MigrateDb / SeedDb), ClaimExtensions
-│   ├── Routing/                 # SlugifyParameterTransformer, KebabCaseQueryParameterRule
-│   ├── Settings/                # AuthenticationSettings, ErrorHandlingDefaults
-│   ├── Common/                  # NavBar helper
-│   ├── wwwroot/                 # Static assets (Bootstrap, jQuery, Font Awesome, CSS, JS, images)
-│   ├── Program.cs               # Bootstrap, DI, auth, Hangfire & HTTP pipeline
-│   ├── Dockerfile               # Multi-stage build for the web image
-│   └── appsettings.json         # Connection strings, API keys, provider config
-│
-├── UnitTests/ (UnitTests.csproj — xUnit | SubjectService, Subscription, UserManagement tests)
-│
-├── docker-compose.yml           # Orchestration: db, redis, redis-ui, web, ollama
-├── docker-compose.override.yml  # Local dev overrides (ports, user secrets, https certs)
-└── EduChatbotSolution.slnx      # Solution file
-```
-
----
-
-## 🔗 Dependency Graph
+## Solution Structure
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│                    PresentationLayer                       │
-│              (ASP.NET Core MVC Web App)                    │
-└──────────┬───────────────────────────────┬────────────────┘
-           │                               │
-           ▼                               ▼
-┌────────────────────┐         ┌──────────────────────────┐
-│   BusinessLayer    │         │                          │
-│   (Services/BLL)   │         │                          │
-└────────┬───────────┘         │                          │
-         │                     │        Domain            │
-         ▼                     │   (Shared Kernel DLL)    │
-┌────────────────────┐         │  Entities, Contracts,    │
-│  DataAccessLayer   │────────▶│  DTOs, Exceptions,       │
-│  (Repositories/DAL)│         │  Common, Utils           │
-└────────────────────┘         └──────────────────────────┘
+EduChatAI.slnx
+|- Domain/             Entities, contracts, constants, DTOs, and domain exceptions
+|- DataAccessLayer/    EF Core contexts, migrations, repositories, and unit of work
+|- BusinessLayer/      Document, AI, account, subscription, and payment services
+|- PresentationLayer/ Razor Pages, SignalR, Hangfire adapters, and static assets
+|- UnitTests/          NUnit unit and service tests
+|- docker-compose.yml
+`- PresentationLayer/Dockerfile
 ```
 
-> **Domain** is the innermost layer with **zero dependencies**. All other layers reference it for shared entities, service contracts, DTOs, exceptions, and helpers.
+Project dependencies flow inward through the domain contracts:
 
----
+```text
+PresentationLayer -> BusinessLayer -> DataAccessLayer -> Domain
+PresentationLayer ------------------------------------> Domain
+```
 
-## 🐳 Running with Docker (recommended)
+## Docker Setup
 
-The entire stack runs through Docker Compose. The `web` service is built from [PresentationLayer/Dockerfile](PresentationLayer/Dockerfile); the database image already bundles `pgvector`.
+### Prerequisites
 
-### Services & ports
+- Docker Desktop or another Docker Engine with Docker Compose.
+- Credentials for the configured AI providers. These are exchanged separately and are not stored in Git.
+- An NVIDIA-compatible Docker runtime only when using the optional GPU configuration.
 
-| Service     | Container             | Image                                   | Host port(s)        | Purpose |
-|-------------|-----------------------|-----------------------------------------|---------------------|---------|
-| `web`       | `educhatbot_mvc`      | built from `PresentationLayer/Dockerfile` | `8080`, `8081`      | ASP.NET Core MVC app |
-| `db`        | `postgres`            | `pgvector/pgvector:0.8.2-pg18-trixie`   | `65432` → 5432      | PostgreSQL + pgvector |
-| `redis`     | `educhatbot_redis`    | `redis:7-alpine`                        | `6379`              | Cache |
-| `redis-ui`  | `educhatbot_redis_ui` | `redis/redisinsight:latest`             | `5540`              | Redis GUI |
-| `ollama`    | `educhatbot_ollama`   | `ollama/ollama`                         | `11434`             | Local embeddings & chat (uses GPU: `gpus: all`) |
+Node.js and the .NET SDK are not required on the host for the Docker workflow. The image builds Tailwind CSS in a dedicated Node stage and copies the generated stylesheet into the published .NET image.
 
-### 1. Configure secrets
+### 1. Configure credentials
 
-Set the values described in **[Configuration & Environment Variables](#-configuration--environment-variables)** before the first run. At minimum you should provide the **Google OAuth** credentials and the **Gmail App Password**; the `OpenAI:ApiKey` and ZaloPay sandbox keys can stay as-is for local testing.
+Create a local `.env` file from the provided template:
 
-### 2. Build & start the stack
+```powershell
+Copy-Item .env.example .env
+```
 
 ```bash
-docker compose up -d --build
+cp .env.example .env
 ```
 
-### 3. Pull the Ollama models (first run only)
+Fill in the values supplied to you. `AI__OpenRouter__ApiKey` and `AI__Gemini__ApiKey` must currently be nonempty because their clients are registered during application startup. Configure the Supabase, Google, email, and ZaloPay values for the features you intend to exercise.
 
-The `ollama` container starts empty, so pull the two models the app expects:
+ASP.NET Core environment-variable nesting uses a double underscore, so `AI__Gemini__ApiKey` maps to `AI:Gemini:ApiKey`.
+
+### 2. Start the stack
+
+CPU-portable setup:
 
 ```bash
-docker exec -it educhatbot_ollama ollama pull bge-m3   # embeddings (1024-dim)
-docker exec -it educhatbot_ollama ollama pull qwen3     # chat completion
+docker compose up --build
 ```
 
-> No NVIDIA GPU? Remove the `gpus: all` line from the `ollama` service in [docker-compose.yml](docker-compose.yml) to run on CPU.
+NVIDIA GPU acceleration for Ollama:
 
-### 4. Database migrations
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+```
 
-In the **Development** environment the app **auto-applies EF Core migrations and seeds data on startup** (see `MigrateDb` / `SeedDbAsync` in [PresentationLayer/Program.cs](PresentationLayer/Program.cs)). No manual migration step is needed.
+The base Compose file intentionally does not require a GPU.
 
-### 5. Open the app
+### 3. Pull Ollama models
 
-| URL                              | Description |
-|----------------------------------|-------------|
-| `http://localhost:8080`          | App (HTTP)  |
-| `https://localhost:8081`         | App (HTTPS) |
-| `http://localhost:8080/hangfire` | Hangfire dashboard (indexing jobs) |
-| `http://localhost:5540`          | RedisInsight UI |
+The Ollama volume starts without models. Pull the local models when you intend to select the Ollama provider:
+
+```bash
+docker exec educhatai_ollama ollama pull bge-m3
+docker exec educhatai_ollama ollama pull qwen3
+```
+
+OpenRouter is currently the seeded global default. Ollama models are therefore not required merely to start the application, but requests configured to use Ollama require the corresponding model to be installed.
+
+### 4. Open the services
+
+| URL | Service |
+| --- | --- |
+| `http://localhost:8080` | EduChatAI web application |
+| `http://localhost:8080/hangfire` | Hangfire dashboard; authorization still applies |
+| `http://localhost:5540` | RedisInsight |
+| `http://localhost:11434` | Ollama API |
+
+PostgreSQL and Redis are exposed on their standard host ports, `5432` and `6379`, for development tools.
+
+In the Compose `Development` environment, the web application waits for healthy PostgreSQL and Redis containers, applies pending EF Core migrations, and runs idempotent seed checks during startup.
 
 ### Useful commands
 
 ```bash
-docker compose logs -f web      # tail the web app logs
-docker compose ps               # service status
-docker compose down             # stop & remove containers (keeps volumes)
-docker compose down -v          # also remove db / ollama volumes (full reset)
+docker compose ps
+docker compose logs -f web
+docker compose down
+docker compose down -v
 ```
 
----
+`docker compose down -v` deletes the PostgreSQL and Ollama volumes and should only be used for a full local reset.
 
-## ⚙️ Configuration & Environment Variables
+## Visual Studio
 
-All settings live in [PresentationLayer/appsettings.json](PresentationLayer/appsettings.json). Several values are intentionally left **blank** and must be filled in before those features work. You can either edit the JSON file directly, or override any key via an environment variable using the `__` (double underscore) separator — the `docker-compose.yml` `web` service already does this for the connection string, OpenAI key, and Redis.
+The Docker Compose project preserves the Visual Studio debugging workflow:
 
-### 🔑 Values you must replace
+- `docker-compose.vs.debug.yml` mounts Windows User Secrets and development HTTPS certificates.
+- The Visual Studio override resets the CLI `.env` file, so mounted User Secrets remain authoritative for overlapping configuration keys.
+- `docker-compose.gpu.yml` is included through `AdditionalComposeFilePaths`, so Visual Studio debugging continues to request GPU-backed Ollama.
+- The ASP.NET `base` stage must remain the first Dockerfile stage because Visual Studio Fast mode targets it directly.
+- Visual Studio explicitly enables HTTPS redirection and publishes `https://localhost:8081`.
+- `DependencyAwareStart` is intentionally omitted because it tears down the Compose containers when debugging stops; the normal workflow keeps infrastructure running between debug sessions.
+- Fast-mode host builds still run `npm run tailwind:build` through `Presentation.csproj`.
 
-#### 1. Google OAuth — `Authentication:Google`
+Visual Studio development therefore requires Node.js/npm in addition to Docker and the .NET 10 SDK. The dedicated Docker asset stage is used by regular image builds; it does not remove the host npm requirement from Visual Studio Fast mode.
 
-```json
-"Authentication": {
-  "Google": {
-    "ClientId": "",
-    "ClientSecret": ""
-  }
-}
-```
+Use the Docker Compose project as the startup project and configure application credentials through the Presentation project’s .NET User Secrets. The root `.env` file is reserved for CLI Compose and does not supply Visual Studio debug credentials.
 
-These power **"Sign in with Google"**. The app **throws on startup if they are empty** (see [Program.cs](PresentationLayer/Program.cs#L92-L95)).
+## Running the Web Project on the Host
 
-**How to obtain them:**
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials**.
-2. **Create Credentials → OAuth client ID → Web application**.
-3. Add an **Authorized redirect URI**: `https://localhost:8081/signin-google` (and any other base URL you deploy to + `/signin-google`).
-4. Copy the generated **Client ID** into `ClientId` and **Client secret** into `ClientSecret`.
-
-```json
-"ClientId":     "1234567890-abcdefg.apps.googleusercontent.com",
-"ClientSecret": "GOCSPX-xxxxxxxxxxxxxxxxxxxx"
-```
-
-#### 2. Gmail App Password — `Email:AppPassword`
-
-```json
-"Email": {
-  "SmtpHost": "smtp.gmail.com",
-  "SmtpPort": 587,
-  "SenderEmail": "your-account@gmail.com",
-  "SenderName": "EduChatAI",
-  "AppPassword": ""
-}
-```
-
-Used to send **email-verification codes** and **password-reset codes**. This is **not** your normal Gmail password — it is a 16-character **App Password**.
-
-**How to obtain it:**
-1. Enable **2-Step Verification** on the Google account in `SenderEmail`.
-2. Go to [Google Account → Security → App passwords](https://myaccount.google.com/apppasswords).
-3. Generate a new app password (e.g. app name "EduChatAI").
-4. Paste the 16-character value (spaces optional) into `AppPassword`, and make sure `SenderEmail` matches that account.
-
-```json
-"AppPassword": "abcd efgh ijkl mnop"
-```
-
-#### 3. OpenAI API Key — `OpenAI:ApiKey` *(optional for local dev)*
-
-```json
-"OpenAI": { "ApiKey": "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
-```
-
-Replace the placeholder with a real key from the [OpenAI dashboard](https://platform.openai.com/api-keys) if/when you use OpenAI. For everyday local development the embeddings & chat run on **Ollama**, so this can remain a placeholder.
-
-### Other settings (sensible defaults provided)
-
-| Section                         | Key                              | Default / Notes |
-|---------------------------------|----------------------------------|-----------------|
-| `ConnectionStrings`             | `DefaultConnection`              | Points at the `db` service (`Host=db`). Overridden in compose. |
-| `Redis`                         | `ConnectionString`              | `localhost:6379` locally; `redis:6379` inside compose. |
-| `Ollama`                        | `Endpoint` / `EmbeddingModel` / `ChatModel` | `http://ollama:11434`, `bge-m3`, `qwen3`. |
-| `PaymentProviders:ZaloPay`      | `AppId` / `Key1` / `Key2` / `*Url` | ZaloPay **sandbox** keys. Update `CallbackUrl` / `RedirectUrlBase` to your public (e.g. ngrok) URL when testing real callbacks. |
-| `AppBaseUrl`                    | —                                | Base URL used to build links in emails. |
-
-> ⚠️ **Security:** `appsettings.json` currently contains sample/sandbox secrets. For anything beyond local development, move secrets to **environment variables**, **.NET User Secrets**, or a secrets manager — and never commit real production credentials.
-
-#### Overriding via environment variables
-
-Any key maps to an env var by replacing the `:` hierarchy with `__`. For example, to set the Google and email secrets for the `web` container, add to its `environment:` block in [docker-compose.yml](docker-compose.yml):
-
-```yaml
-environment:
-  - Authentication__Google__ClientId=your-client-id
-  - Authentication__Google__ClientSecret=your-client-secret
-  - Email__AppPassword=your-app-password
-```
-
----
-
-## 🧪 Running tests
+Host execution uses `ConnectionStrings:Database` from `PresentationLayer/appsettings.json`, which points to PostgreSQL on `localhost:5432`. Start the infrastructure containers first:
 
 ```bash
-dotnet test UnitTests/UnitTests.csproj
+docker compose up -d db redis ollama
 ```
 
----
-
-## 💻 Running locally without Docker (optional)
-
-You still need PostgreSQL (with `pgvector`), Redis, and Ollama reachable. Adjust `ConnectionStrings:DefaultConnection` (`Host=localhost`, `Port=65432` if using the compose DB), `Redis:ConnectionString`, and `Ollama:Endpoint` accordingly, then:
+Install frontend packages and build the application:
 
 ```bash
-dotnet restore
+npm ci --prefix PresentationLayer
+dotnet restore EduChatAI.slnx
 dotnet run --project PresentationLayer/Presentation.csproj
 ```
+
+The default launch URLs are:
+
+- `http://localhost:5158`
+- `https://localhost:7265`
+
+Set local credentials with User Secrets rather than editing `appsettings.json`:
+
+```bash
+dotnet user-secrets set --project PresentationLayer/Presentation.csproj "AI:OpenRouter:ApiKey" "<value>"
+dotnet user-secrets set --project PresentationLayer/Presentation.csproj "AI:Gemini:ApiKey" "<value>"
+dotnet user-secrets set --project PresentationLayer/Presentation.csproj "BlobStorage:Supabase:ApiSecretKey" "<value>"
+```
+
+To use a shared development database temporarily, override the same logical connection key:
+
+```bash
+dotnet user-secrets set --project PresentationLayer/Presentation.csproj "ConnectionStrings:Database" "<shared connection string>"
+```
+
+Remove that override to return to the tracked localhost database:
+
+```bash
+dotnet user-secrets remove --project PresentationLayer/Presentation.csproj "ConnectionStrings:Database"
+```
+
+Future deployments should inject the same configuration keys through the hosting environment or its secret manager.
+
+## EF Core Migrations
+
+With the database container running, create or apply migrations from the host:
+
+```bash
+dotnet ef migrations add <MigrationName> --project DataAccessLayer --startup-project PresentationLayer
+dotnet ef database update --project DataAccessLayer --startup-project PresentationLayer
+```
+
+Migrations live in `DataAccessLayer/Migrations`. Review both `Up()` and `Down()` behavior, including PostgreSQL trigger SQL, before applying schema changes.
+
+## Document and Chat Flow
+
+```text
+HTTP upload
+  -> validate content
+  -> stage through an opaque locator
+  -> create Document (Received)
+  -> Hangfire durable-persistence job
+  -> parse readable stream
+  -> chunk and embed
+  -> PostgreSQL/pgvector index
+  -> retrieval-augmented chat and citations
+```
+
+Documents may be subject-wide or tagged with chapters. Database constraints prevent a document from being tagged with a chapter belonging to another subject. Durable storage is resolved from the owning subject’s storage configuration, with Supabase used as the policy fallback; the actual storage method is persisted on each document.
+
+## Realtime Endpoints
+
+The application exposes these SignalR hubs:
+
+| Path | Purpose |
+| --- | --- |
+| `/resource` | Resource-centric change notifications |
+| `/documents/status` | Document indexing progress |
+| `/chat/answer` | Streaming chat generation |
+| `/documents/comments` | Document comment updates |
+
+The resource notification model supports resource types, individual resources, and collections related to a principal resource. It is not page-specific.
+
+## Tests
+
+Run the complete NUnit suite:
+
+```bash
+dotnet test EduChatAI.slnx
+```
+
+For a no-restore verification after a successful build:
+
+```bash
+dotnet build EduChatAI.slnx --no-restore
+dotnet test EduChatAI.slnx --no-build --no-restore
+```
+
+## Security Notes
+
+- Never commit `.env`, User Secrets, API keys, database credentials, or payment signing keys.
+- The database password in Compose is a disposable local-development credential, not a deployment secret.
+- Replace `AppBaseUrl` and payment callback/redirect URLs with externally reachable HTTPS URLs when testing provider callbacks.
+- Production hosting must supply connection strings and integration credentials through its environment or secret manager.

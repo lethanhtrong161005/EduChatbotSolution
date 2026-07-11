@@ -311,7 +311,7 @@ public class LibraryModel(
                 HangfireConstants.LowPriorityQueue,
                 e => e.EmbedAsync(doc.Id));
 
-            var dtos = _mapper.Map<List<DocumentFileDto>>(newDoc);
+            var dtos = _mapper.Map<DocumentFileDto>(newDoc);
             return new JsonResult(dtos);
         }
         catch (UserClaimException)

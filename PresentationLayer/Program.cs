@@ -42,9 +42,7 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────
-var connStrName = builder.Environment.IsDevelopment() ? "Container" : "Shared";
-
-var connStr = builder.Configuration.GetConnectionString(connStrName)
+var connStr = builder.Configuration.GetConnectionString("Database")
               ?? throw new KeyNotFoundException("Connection string not configured.");
 
 builder.Services.AddDbContext<EduChatAiDbContext>(opts =>
@@ -329,7 +327,10 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue("HttpsRedirection:Enabled", true))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseStaticFiles();
 

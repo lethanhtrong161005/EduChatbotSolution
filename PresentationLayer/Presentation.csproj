@@ -23,7 +23,7 @@
 		<PackageReference Include="NuGet.Protocol" Version="7.6.0" />
 	</ItemGroup>
 
-	<Target Name="TailwindBuild" BeforeTargets="Build">
+	<Target Name="TailwindBuild" BeforeTargets="Build" Condition="'$(SkipTailwindBuild)' != 'true'">
 		<Exec Command="npm run tailwind:build" />
 	</Target>
 

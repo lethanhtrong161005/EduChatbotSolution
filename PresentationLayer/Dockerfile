@@ -2,10 +2,23 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
+
+# Compile frontend assets independently so the .NET build image and runtime do not need Node.js.
+FROM node:24-alpine AS assets
+WORKDIR "/src/PresentationLayer"
+
+COPY ["PresentationLayer/package.json", "PresentationLayer/package-lock.json", "./"]
+RUN npm ci
+
+COPY PresentationLayer/ ./
+RUN npm run tailwind:build
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -22,16 +35,16 @@ COPY ["Domain/Domain.csproj", "Domain/"]
 RUN dotnet restore "./PresentationLayer/Presentation.csproj"
 
 COPY . .
+COPY --from=assets /src/PresentationLayer/wwwroot/css/styles.css /src/PresentationLayer/wwwroot/css/styles.css
 WORKDIR "/src/PresentationLayer"
 
-
-RUN dotnet build "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:SkipTailwindBuild=true
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 
-RUN dotnet publish "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:SkipTailwindBuild=true
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
