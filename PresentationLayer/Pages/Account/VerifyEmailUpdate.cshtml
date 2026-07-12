@@ -1,9 +1,10 @@
-@page "/verify-email-update"
+@page "/verify-email-update/{handler?}"
 @model Presentation.Pages.Account.VerifyEmailUpdateModel
 @{
-    ViewData["Title"] = "Verify Email - EduChatAI";
+  ViewData["Title"] = "Verify Email - EduChatAI";
     Layout = null;
-    var returnUrl = Model.ReturnUrl;
+  
+  var returnUrl = Model.ReturnUrl;
 }
 
 <!DOCTYPE html>
@@ -12,150 +13,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"]</title>
-
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Global Color Scheme -->
     <link rel="stylesheet" href="~/css/colors.css">
-
-    <!-- Shared Account Auth Styles (layout, sidebar, bubbles) -->
     <link rel="stylesheet" href="~/css/account-auth.css">
-
-    <!-- Verify Email Specific Styles -->
-    <link rel="stylesheet" href="~/css/account-verify-email.css">
-
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Background Animation -->
-    <div class="bg-animation"></div>
+  <!-- Background Animation -->
+  <div class="bg-animation"></div>
 
-    <!-- Main Container -->
-    <div class="container-login">
+  <!-- Main Container -->
+  <div class="container-login">
 
-        <!-- Left Sidebar - Branding -->
-        <div class="login-sidebar d-none d-lg-flex">
-            <div class="sidebar-content">
-                <div class="sidebar-logo">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <h2 class="sidebar-title">EduChatAI</h2>
-                <p class="sidebar-subtitle">Smart Educational Companion</p>
-
-                <ul class="sidebar-features">
-                    <li>
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Secure Verification</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-envelope-open-text"></i>
-                        <span>Check Your Inbox</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-lock"></i>
-                        <span>Your Data is Safe</span>
-                    </li>
-                </ul>
-            </div>
+    <!-- Left Sidebar - Branding -->
+    <div class="login-sidebar d-none d-lg-flex">
+      <div class="sidebar-content">
+        <div class="sidebar-logo">
+          <i class="fas fa-robot"></i>
         </div>
+        <h2 class="sidebar-title">EduChatAI</h2>
+        <p class="sidebar-subtitle">Smart Educational Companion</p>
 
-        <!-- Right Side - Verification Form -->
-        <div class="login-form-container">
-            <div class="login-form-box">
-
-                <!-- Header -->
-                <div class="login-header login-header--compact">
-                    <h1>Verify Your Email</h1>
-                    <p class="verify-email-hint">
-                        We sent a 6-digit code to<br>
-                        <span class="verify-email-address">@Model.ViewModel.Email</span>
-                    </p>
-                </div>
-
-                <!-- Server-side Error Messages -->
-                @if (ViewData.ModelState.Values.SelectMany(v => v.Errors).Any())
-                {
-                    <div class="alert-error">
-                        <i class="fas fa-exclamation-circle"></i>
-                        @Html.ValidationSummary(false)
-                    </div>
-                }
-
-                <!-- OTP Verification Form -->
-                <form id="verifyForm" method="post"
-                      asp-route-return-url="@returnUrl">
-
-                    @Html.AntiForgeryToken()
-
-                    <!-- Hidden fields -->
-                    <input type="hidden" asp-for="ViewModel.Email" />
-                    <input type="hidden" id="hiddenCode" asp-for="ViewModel.Code" />
-
-                    <!-- 6-Digit OTP Input Boxes -->
-                    <div class="otp-input-group" role="group" aria-label="Verification code digits">
-                        @for (int i = 0; i < 6; i++)
-                        {
-                            <input type="text"
-                                   class="otp-digit"
-                                   maxlength="1"
-                                   inputmode="numeric"
-                                   pattern="[0-9]"
-                                   autocomplete="@(i == 0 ? "one-time-code" : "off")"
-                                   aria-label="Digit @(i + 1) of 6" />
-                        }
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn-verify" id="verifyBtn">
-                        <span class="spinner-loading d-none">
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        </span>
-                        <span class="btn-text">Verify Email</span>
-                    </button>
-                </form>
-
-                <!-- Countdown + Resend -->
-                <div class="resend-section">
-                    <div id="countdownChip" class="countdown-chip">
-                        <i class="fas fa-clock"></i>
-                        Code expires in
-                        <span id="countdownDisplay" data-seconds-remaining="180">03:00</span>
-                    </div>
-
-                    <span class="resend-label">Didn't receive it?</span>
-
-                    <!-- Resend uses its own form for CSRF + AJAX -->
-                    <form id="resendForm"
-                          method="post"
-                          action="/verify-email/resend">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="email" value="@Model.ViewModel.Email" />
-                        <button type="submit" id="resendBtn" class="btn-resend" disabled>
-                            <i class="fas fa-paper-plane"></i> Resend Code
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Back to Register -->
-                <div class="signup-link mt-3">
-                    Wrong email?
-                    <a asp-page="/Account/Register" asp-route-return-url="@returnUrl">
-                        Start over
-                    </a>
-                </div>
-            </div>
-        </div>
+        <ul class="sidebar-features">
+          <li>
+            <i class="fas fa-shield-alt"></i>
+            <span>Secure Verification</span>
+          </li>
+          <li>
+            <i class="fas fa-envelope-open-text"></i>
+            <span>Check Your Inbox</span>
+          </li>
+          <li>
+            <i class="fas fa-lock"></i>
+            <span>Your Data is Safe</span>
+          </li>
+        </ul>
+      </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
+    <!-- Right Side - Verification Form -->
+    <div class="login-form-container">
+      <div class="login-form-box">
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Header -->
+        <div class="login-header login-header--compact">
+          <h1>Verify Your Email</h1>
+          <p class="verify-email-hint">
+            We sent a 6-digit code to<br>
+            <span class="verify-email-address">@Model.ViewModel.Email</span>
+          </p>
+        </div>
 
-    <!-- Verify Email Interactions Script -->
-    <script src="~/js/account/verify-email.js"></script>
+        <!-- Server-side Error Messages -->
+        @if (ViewData.ModelState.Values.SelectMany(v => v.Errors).Any())
+        {
+          <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            @Html.ValidationSummary(false)
+          </div>
+        }
+
+        <!-- OTP Verification Form -->
+        <form id="verifyForm" method="post" asp-route-return-url="@returnUrl">
+
+          @Html.AntiForgeryToken()
+
+          <!-- Hidden fields -->
+          <input type="hidden" asp-for="ViewModel.Email" />
+          <input type="hidden" id="hiddenCode" asp-for="ViewModel.Code" />
+
+          <!-- 6-Digit OTP Input Boxes -->
+          <div class="otp-input-group" role="group" aria-label="Verification code digits">
+            @for (int i = 0; i < 6; i++)
+            {
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]"
+                     autocomplete="@(i == 0 ? "one-time-code" : "off")" aria-label="Digit @(i + 1) of 6" />
+            }
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-verify" id="verifyBtn">
+            <span class="spinner-loading d-none">
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            </span>
+            <span class="btn-text">Verify Email</span>
+          </button>
+        </form>
+
+        <!-- Countdown + Resend -->
+        <div class="resend-section">
+
+          <!--
+            countdownChip is intentionally hidden from UI.
+            The countdown runs silently in the background (via verify-email.js)
+            to automatically enable the Resend button when the OTP expires.
+          -->
+          <div id="countdownChip" class="countdown-chip" hidden>
+            <i class="fas fa-clock"></i>
+            Code expires in
+            <span id="countdownDisplay"
+                  data-seconds-remaining="@Model.OtpRemainingSeconds">@(TimeSpan.FromSeconds(Model.OtpRemainingSeconds).ToString(@"mm\:ss"))</span>
+          </div>
+
+          @if (Model.OtpRemainingSeconds > 0)
+          {
+            <!-- Static message shown while OTP is still valid -->
+            <p class="resend-wait-msg">
+              <i class="fas fa-clock"></i>
+              Please try resending the code after 3 minutes.
+            </p>
+          }
+
+          <span class="resend-label">Didn't receive it?</span>
+
+          <!-- Resend uses its own form for CSRF + AJAX -->
+          <form id="resendForm" method="post" action="/verify-email-update/resend">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="email" value="@Model.ViewModel.Email" />
+            <button type="submit" id="resendBtn" class="btn-resend" disabled>
+              <i class="fas fa-paper-plane"></i> Resend Code
+            </button>
+          </form>
+        </div>
+
+        <!-- Back to Register -->
+        <div class="signup-link mt-3">
+          Wrong email?
+          <a asp-page="/Account/Register" asp-route-return-url="@returnUrl">
+            Start over
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Verify Email Interactions Script -->
+  <script src="~/js/account/verify-email.js"></script>
+
+
 </body>
 </html>
+
+

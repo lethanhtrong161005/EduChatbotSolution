@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Entities;
 
@@ -21,6 +21,13 @@ public class ApplicationUser : IdentityUser<Guid>
     /// Disabled accounts cannot authenticate.
     /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether the user must change their password on next login.
+    /// Set to <c>true</c> for admin-created accounts that receive an auto-generated password.
+    /// After the user sets a new password, this flag is cleared to <c>false</c>.
+    /// </summary>
+    public bool MustChangePassword { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the UTC timestamp of the last record update.

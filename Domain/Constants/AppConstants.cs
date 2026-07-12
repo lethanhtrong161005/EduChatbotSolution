@@ -19,6 +19,12 @@ public static class AppConstants
     /// </summary>
     public const string TempDataError = "ErrorMessage";
 
+    /// <summary>
+    /// TempData key for passing the email address to the force-change-password page.
+    /// Used when an admin-created user must change their auto-generated password on first login.
+    /// </summary>
+    public const string TempDataForceChangeEmail = "ForceChangeEmail";
+
     // ── Authentication Messages ──────────────────────────────
     /// <summary>
     /// Error message shown when login credentials are invalid.

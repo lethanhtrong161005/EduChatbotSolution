@@ -169,6 +169,17 @@
             if (data.success) {
                 showToast('A new verification code has been sent to your email.', 'success');
                 startCountdown(data.remainingSeconds ?? 180);
+
+                // Refresh the CSRF token in the verify form.
+                // After a successful resend POST, ASP.NET Core may issue a new anti-forgery
+                // cookie. If the verify form still holds the old form token it will no longer
+                // match the cookie, causing a 400 Bad Request on the next submission.
+                if (data.csrfToken && verifyForm) {
+                    const csrfInput = verifyForm.querySelector(
+                        'input[name="__RequestVerificationToken"]'
+                    );
+                    if (csrfInput) csrfInput.value = data.csrfToken;
+                }
             } else {
                 showToast(data.error ?? 'Failed to resend code. Please try again.', 'error');
                 if (resendBtn) resendBtn.disabled = false;
@@ -179,18 +190,7 @@
         }
     });
 
-    // ── Toast helper ──────────────────────────────────────────────
-    function showToast(message, type = 'success') {
-        const container = document.getElementById('toastContainer');
-        if (!container) return;
 
-        const toast = document.createElement('div');
-        toast.className = `toast toast--${type}`;
-        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-        container.appendChild(toast);
-
-        setTimeout(() => toast.remove(), 3200);
-    }
 
     // ── Bubble animation (matches login/register pages) ───────────
     const count = window.innerWidth > 768 ? 5 : 2;

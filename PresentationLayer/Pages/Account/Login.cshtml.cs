@@ -75,6 +75,13 @@ public class LoginModel(
 
         if (loginResult.Success)
         {
+            // Admin-created accounts must change their auto-generated password first
+            if (loginResult.MustChangePassword)
+            {
+                TempData[AppConstants.TempDataForceChangeEmail] = ViewModel.Email;
+                return RedirectToPage("/Account/ForceChangePassword");
+            }
+
             var authProps = new AuthenticationProperties
             {
                 IsPersistent = ViewModel.RememberMe,

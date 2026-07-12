@@ -11,38 +11,38 @@
     var isStudent = User.IsInRole(UserRole.Student.ToString());
 }
 
-<ul class="nav navbar-nav nav-pills flex-grow-1">
-    <li class="nav-item"><a class="nav-link text-dark @NavBar.HomeNavClass(Context)" id="home" asp-page="/Home/Index">Home</a></li>
-    <li class="nav-item"><a class="nav-link text-dark @NavBar.ChatNavClass(Context)" id="chat" asp-page="/Chat/Index">Chat</a></li>
+<ul class="nav navbar-nav flex-grow-1 align-items-center">
+    <li class="nav-item"><a class="nav-link @NavBar.HomeNavClass(Context)" id="home" asp-page="/Home/Index">Home</a></li>
+    <li class="nav-item"><a class="nav-link @NavBar.ChatNavClass(Context)" id="chat" asp-page="/Chat/Index">Chat</a></li>
     @if (isLecturer || isAdmin)
     {
-        <li class="nav-item"><a class="nav-link text-dark @NavBar.DocumentsNavClass(Context)" id="categories" asp-page="/Documents/Library">Documents</a></li>
+        <li class="nav-item"><a class="nav-link @NavBar.DocumentsNavClass(Context)" id="categories" asp-page="/Documents/Library">Documents</a></li>
     }
     @if (isAdmin)
     {
-        <li class="nav-item"><a class="nav-link text-dark @NavBar.AdminNavClass(Context)" id="manage" asp-page="/Admin/SubjectManage">Manage</a></li>
-        <li class="nav-item"><a class="nav-link text-dark @NavBar.RblNavClass(Context)" id="rbl" href="/rbl">Analyze</a></li>
+        <li class="nav-item"><a class="nav-link @NavBar.AdminNavClass(Context)" id="manage" asp-page="/Admin/SubjectManage">Manage</a></li>
+        <li class="nav-item"><a class="nav-link @NavBar.RblNavClass(Context)" id="rbl" href="/rbl">Analyze</a></li>
     }
 </ul>
-<ul class="nav navbar-nav nav-pills">
+<ul class="nav navbar-nav align-items-center gap-2">
     @if (authenticated)
     {
         @if (isStudent || isLecturer)
         {
-            <li class="nav-item"><a class="nav-link text-dark @NavBar.PlansNavClass(Context)" id="plans" asp-page="/Subscriptions/SelectPlan">Plans</a></li>
+            <li class="nav-item"><a class="nav-link @NavBar.PlansNavClass(Context)" id="plans" asp-page="/Subscriptions/SelectPlan">Plans</a></li>
         }
         <li class="nav-item">
-            <a class="nav-link text-dark @NavBar.ProfileNavClass(Context)" id="profile" asp-page="/Account/Profile">Profile</a>
+            <a class="nav-link @NavBar.ProfileNavClass(Context)" id="profile" asp-page="/Account/Profile">Profile</a>
         </li>
         <li class="nav-item">
-            <form class="form-inline" method="post" asp-page="/Account/Logout" asp-route-return-url="@Context.Request.Path">
-                <button type="submit" class="nav-link btn btn-link text-dark" style="line-height: normal !important;">Log out</button>
+            <form class="form-inline m-0 p-0" method="post" asp-page="/Account/Logout" asp-route-return-url="@Context.Request.Path">
+                <button type="submit" class="nav-link nav-cta-logout border-0" style="text-decoration: none;">Log out</button>
             </form>
         </li>
     }
     else
     {
-        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Account/Register" asp-route-return-url="@Context.Request.Path">Register</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" asp-page="/Account/Login" asp-route-return-url="@Context.Request.Path">Log in</a></li>
+        <li class="nav-item"><a class="nav-link nav-cta-login" asp-page="/Account/Login" asp-route-return-url="@Context.Request.Path">Log in</a></li>
+        <li class="nav-item"><a class="nav-link nav-cta-register" asp-page="/Account/Register" asp-route-return-url="@Context.Request.Path">Register</a></li>
     }
 </ul>

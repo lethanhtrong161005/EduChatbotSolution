@@ -20,323 +20,167 @@
 
     .dashboard-hero {
         position: relative;
+        border-radius: 24px;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 6rem 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        display: flex;
         align-items: center;
-        gap: var(--spacing-8);
-        padding: var(--spacing-10);
-        margin-bottom: var(--spacing-8);
-        background: var(--gradient-primary);
-        border-radius: var(--radius-xl);
-        color: var(--color-text-light);
-        box-shadow: var(--shadow-lg);
+        justify-content: center;
+        text-align: center;
+        min-height: 520px;
     }
 
-        .dashboard-hero::after {
-            content: "";
-            position: absolute;
-            width: 220px;
-            height: 220px;
-            right: -70px;
-            bottom: -95px;
-            border-radius: var(--radius-full);
-            background: rgba(255, 255, 255, 0.16);
-        }
+    .dashboard-hero-bg {
+        position: absolute;
+        inset: 0;
+        background-image: url('/images/hero-bg.png');
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+        transition: transform 10s ease;
+    }
+    
+    .dashboard-hero:hover .dashboard-hero-bg {
+        transform: scale(1.05);
+    }
+    
+    .dashboard-hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.2) 0%, rgba(17, 24, 39, 0.85) 100%);
+        z-index: 1;
+    }
 
     .dashboard-hero-content {
         position: relative;
-        z-index: 1;
-        min-width: 0;
+        z-index: 2;
+        max-width: 840px;
+        color: #ffffff;
     }
 
     .dashboard-eyebrow {
         display: inline-flex;
         align-items: center;
-        gap: var(--spacing-2);
-        padding: var(--spacing-2) var(--spacing-3);
-        margin-bottom: var(--spacing-4);
-        background: rgba(255, 255, 255, 0.16);
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        border-radius: var(--radius-full);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-semibold);
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        animation: fadeInDown 0.6s ease-out forwards;
     }
 
     .dashboard-hero h1 {
-        margin: 0 0 var(--spacing-3);
-        font-size: var(--font-size-4xl);
-        font-weight: var(--font-weight-bold);
+        font-size: 3.75rem;
+        font-weight: 800;
         line-height: 1.15;
+        margin-bottom: 1.25rem;
+        letter-spacing: -1px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        animation: fadeInUp 0.8s ease-out forwards;
     }
 
     .dashboard-hero p {
-        max-width: 680px;
-        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.6;
         color: rgba(255, 255, 255, 0.9);
-        font-size: var(--font-size-lg);
+        margin-bottom: 2.5rem;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: fadeInUp 1s ease-out forwards;
     }
-
-    .dashboard-avatar {
-        position: relative;
-        z-index: 1;
-        width: 96px;
-        height: 96px;
+    
+    .hero-actions {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.32);
-        border-radius: var(--radius-2xl);
-        color: var(--color-text-light);
-        font-size: var(--font-size-4xl);
-        font-weight: var(--font-weight-bold);
-        box-shadow: var(--shadow-md);
+        gap: 1rem;
+        animation: fadeInUp 1.2s ease-out forwards;
+    }
+    
+    .hero-btn-primary {
+        padding: 0.875rem 2.25rem;
+        border-radius: 12px;
+        background: var(--gradient-primary);
+        color: white;
+        font-size: 1.125rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 10px 25px -5px rgba(46, 204, 113, 0.4);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .hero-btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px -5px rgba(46, 204, 113, 0.6);
+        color: white;
+    }
+    
+    .hero-btn-secondary {
+        padding: 0.875rem 2.25rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: white;
+        font-size: 1.125rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .hero-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-3px);
     }
 
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: var(--spacing-5);
-        margin-bottom: var(--spacing-8);
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .dashboard-card {
-        background: var(--color-bg-light);
-        border: 1px solid var(--color-border-light);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
-    }
 
-        .dashboard-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(46, 204, 113, 0.32);
-            box-shadow: var(--shadow-md);
-        }
-
-    .metric-card {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-4);
-        min-height: 116px;
-        padding: var(--spacing-6);
-    }
-
-    .metric-icon {
-        width: 52px;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 auto;
-        border-radius: var(--radius-lg);
-        font-size: var(--font-size-xl);
-    }
-
-        .metric-icon.primary {
-            background: rgba(46, 204, 113, 0.12);
-            color: var(--color-primary-dark);
-        }
-
-        .metric-icon.secondary {
-            background: rgba(52, 152, 219, 0.12);
-            color: var(--color-secondary-dark);
-        }
-
-        .metric-icon.neutral {
-            background: var(--color-neutral-100);
-            color: var(--color-neutral-700);
-        }
-
-    .metric-value {
-        color: var(--color-text-primary);
-        font-size: var(--font-size-3xl);
-        font-weight: var(--font-weight-bold);
-        line-height: 1;
-    }
-
-    .metric-label {
-        margin-top: var(--spacing-2);
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
-    }
-
-    .profile-card {
-        padding: var(--spacing-8);
-    }
-
-    .profile-title {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-3);
-        margin: 0 0 var(--spacing-6);
-        color: var(--color-text-primary);
-        font-size: var(--font-size-xl);
-        font-weight: var(--font-weight-bold);
-    }
-
-        .profile-title i {
-            color: var(--color-primary);
-        }
-
-    .profile-list {
-        display: grid;
-        gap: var(--spacing-1);
-        margin: 0;
-    }
-
-    .profile-row {
-        display: grid;
-        grid-template-columns: 44px minmax(0, 1fr);
-        gap: var(--spacing-4);
-        align-items: center;
-        padding: var(--spacing-4) 0;
-        border-bottom: 1px solid var(--color-border-light);
-    }
-
-        .profile-row:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
-        }
-
-    .profile-icon {
-        width: 44px;
-        height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-md);
-        background: var(--color-neutral-100);
-        color: var(--color-neutral-600);
-    }
-
-    .profile-label {
-        margin-bottom: var(--spacing-1);
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-xs);
-        font-weight: var(--font-weight-semibold);
-        text-transform: uppercase;
-        letter-spacing: 0;
-    }
-
-    .profile-value {
-        min-width: 0;
-        overflow-wrap: anywhere;
-        color: var(--color-text-primary);
-        font-size: var(--font-size-base);
-        font-weight: var(--font-weight-semibold);
-    }
-
-    .role-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--spacing-2);
-        padding: var(--spacing-2) var(--spacing-3);
-        background: rgba(46, 204, 113, 0.12);
-        border: 1px solid rgba(46, 204, 113, 0.24);
-        border-radius: var(--radius-full);
-        color: var(--color-primary-dark);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-semibold);
-    }
-
-    @@media (max-width: 900px) {
-        .dashboard-hero {
-            grid-template-columns: 1fr;
-            padding: var(--spacing-8);
-        }
-
-        .dashboard-avatar {
-            display: none;
-        }
-
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 576px) {
-        .dashboard-hero {
-            padding: var(--spacing-6);
-            border-radius: var(--radius-lg);
-        }
-
-            .dashboard-hero h1 {
-                font-size: var(--font-size-3xl);
-            }
-
-            .dashboard-hero p {
-                font-size: var(--font-size-base);
-            }
-
-        .metric-card,
-        .profile-card {
-            padding: var(--spacing-5);
-        }
-    }
 </style>
 
 <section class="dashboard-page" aria-labelledby="dashboardTitle">
     <div class="dashboard-hero">
+        <div class="dashboard-hero-bg"></div>
+        <div class="dashboard-hero-overlay"></div>
         <div class="dashboard-hero-content">
             <div class="dashboard-eyebrow">
-                <i class="fas fa-shield-alt"></i>
-                <span>@userRole</span>
+                <i class="fas fa-robot text-primary"></i>
+                <span>Smart Educational Companion</span>
             </div>
-            <h1 id="dashboardTitle">Welcome back, @userName</h1>
-            <p>@userEmail</p>
+            <h1 id="dashboardTitle">Empower Your Learning with EduChatAI</h1>
+            <p>Welcome back, @userName! Your personal AI assistant is ready to help you analyze documents, answer questions, and accelerate your studies.</p>
+            <div class="hero-actions">
+                <a href="/Chat/Index" class="hero-btn-primary">
+                    <i class="fas fa-comment-dots me-2"></i> Start Chatting
+                </a>
+                <a href="/Documents/Library" class="hero-btn-secondary">
+                    <i class="fas fa-folder-open me-2"></i> Explore Library
+                </a>
+            </div>
         </div>
-        <div class="dashboard-avatar" aria-hidden="true">@initial</div>
     </div>
 
-    <div class="dashboard-grid" aria-label="Dashboard metrics">
-        <article class="dashboard-card metric-card">
-            <div class="metric-icon primary">
-                <i class="fas fa-comments"></i>
-            </div>
-            <div>
-                <div class="metric-value">0</div>
-                <div class="metric-label">Conversations</div>
-            </div>
-        </article>
 
-        @if (isLecturer || isAdmin)
-        {
-            <a href="/Documents/Library" class="dashboard-card metric-card" style="text-decoration: none; color: inherit; cursor: pointer; transition: transform 0.2s;">
-                <div class="metric-icon secondary">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div>
-                    <div class="metric-value">0</div>
-                    <div class="metric-label">Documents (Manage)</div>
-                </div>
-            </a>
-        }
-        else
-        {
-            <article class="dashboard-card metric-card">
-                <div class="metric-icon secondary">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <div>
-                    <div class="metric-value">0</div>
-                    <div class="metric-label">Documents</div>
-                </div>
-            </article>
-        }
-
-        <article class="dashboard-card metric-card">
-            <div class="metric-icon neutral">
-                <i class="fas fa-question-circle"></i>
-            </div>
-            <div>
-                <div class="metric-value">0</div>
-                <div class="metric-label">Questions Asked</div>
-            </div>
-        </article>
-    </div>
 
 
 </section>

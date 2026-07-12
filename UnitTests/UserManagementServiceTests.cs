@@ -79,7 +79,7 @@ public class UserManagementServiceTests
     public async Task CreateUser_HappyCase_ReturnsSuccess()
     {
         // Arrange
-        var dto = new CreateUserDto("Bob Jones", "bob@example.com", "P@ssword1", "Student");
+        var dto = new CreateUserDto("Bob Jones", "bob@example.com", "Student");
 
         _userManagerMock
             .Setup(m => m.FindByEmailAsync("bob@example.com"))
@@ -108,7 +108,7 @@ public class UserManagementServiceTests
             .ReturnsAsync(IdentityResult.Success);
 
         _emailServiceMock
-            .Setup(m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", "P@ssword1"))
+            .Setup(m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -122,10 +122,11 @@ public class UserManagementServiceTests
             Assert.That(createdUser, Is.Not.Null);
             Assert.That(createdUser!.EmailConfirmed, Is.True);
             Assert.That(createdUser.IsActive, Is.True);
+            Assert.That(createdUser.MustChangePassword, Is.True);
         });
 
         _emailServiceMock.Verify(
-            m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", "P@ssword1"),
+            m => m.SendAdminCreatedCredentialsAsync("bob@example.com", "Bob Jones", It.IsAny<string>()),
             Times.Once);
         _emailVerificationServiceMock.VerifyNoOtherCalls();
     }
@@ -136,7 +137,7 @@ public class UserManagementServiceTests
     [Test]
     public async Task CreateUser_DuplicateEmail_ReturnsError()
     {
-        var dto = new CreateUserDto("Bob Jones", "dup@example.com", "P@ssword1", "Student");
+        var dto = new CreateUserDto("Bob Jones", "dup@example.com", "Student");
 
         _userManagerMock
             .Setup(m => m.FindByEmailAsync("dup@example.com"))

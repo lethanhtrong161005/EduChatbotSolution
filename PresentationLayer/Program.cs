@@ -332,6 +332,7 @@ if (builder.Configuration.GetValue("HttpsRedirection:Enabled", true))
     app.UseHttpsRedirection();
 }
 
+app.UseStatusCodePagesWithReExecute("/404");
 app.UseStaticFiles();
 
 app.UseMiddleware<CustomExceptionMiddleware>();
@@ -359,3 +360,4 @@ app.MapHub<ResourceHub>("/resource");
 app.MapHub<CommentHub>("/documents/comments");
 
 app.Run();
+

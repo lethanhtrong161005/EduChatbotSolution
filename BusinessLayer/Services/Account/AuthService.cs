@@ -73,6 +73,17 @@ public class AuthService(UserManager<ApplicationUser> userManager) : IAuthServic
                 Errors = ["Please verify your email address first. Check your inbox for a verification code."],
             };
 
+        // 6. Check if user must change their auto-generated password on first login
+        if (user.MustChangePassword)
+            return new LoginResult
+            {
+                Success = true,
+                User = user,
+                Claims = [],
+                Errors = [],
+                MustChangePassword = true,
+            };
+
         // 7. Build claims identity and sign in
         // GetClaimsAsync returns user_claims rows; GetRolesAsync returns role names.
         // We need BOTH so the role-based redirect and [Authorize(Roles=...)] work correctly.

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -63,71 +63,80 @@
         <!-- ==========================================
              MAIN CONTENT
              ========================================== -->
-        <main class="content-wrapper">
-            <div class="content-container">
-
-                @if (ViewData["PageTitle"] != null)
-                {
-                    <div class="page-header">
-                        <h1 class="page-title">
-                            @ViewData["PageTitle"]
-                        </h1>
-
-                        @if (ViewData["PageSubtitle"] != null)
-                        {
-                            <p class="page-subtitle">
-                                @ViewData["PageSubtitle"]
-                            </p>
-                        }
-                    </div>
-                }
-
+        <main class="@(ViewData["NoContainer"] as bool? == true ? "flex-grow-1" : "content-wrapper")">
+            @if (ViewData["NoContainer"] as bool? == true)
+            {
                 @RenderBody()
+            }
+            else
+            {
+                <div class="content-container">
 
-            </div>
+                    @if (ViewData["PageTitle"] != null)
+                    {
+                        <div class="page-header">
+                            <h1 class="page-title">
+                                @ViewData["PageTitle"]
+                            </h1>
+
+                            @if (ViewData["PageSubtitle"] != null)
+                            {
+                                <p class="page-subtitle">
+                                    @ViewData["PageSubtitle"]
+                                </p>
+                            }
+                        </div>
+                    }
+
+                    @RenderBody()
+
+                </div>
+            }
         </main>
 
         <!-- ==========================================
              FOOTER
              ========================================== -->
         <footer class="site-footer">
-            <div class="container">
-
-                <div class="footer-content">
-
-                    <div class="footer-brand">
-                        <div class="footer-brand-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-
-                        <div>
-                            <strong class="brand-name">EduChatAI</strong>
-                            <div class="text-muted small">
-                                Smart Educational Companion
-                            </div>
-                        </div>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-brand-icon">
+                        <i class="fas fa-robot"></i>
                     </div>
-
-                    <div class="footer-links">
-                        <a asp-page="/Home/Privacy">
-                            Privacy
-                        </a>
-
-                        <a href="#">
-                            Terms
-                        </a>
-
-                        <a href="#">
-                            Contact
-                        </a>
+                    <div>
+                        <span class="brand-name">EduChatAI</span>
+                        <div class="text-muted">Smart Educational Companion</div>
                     </div>
-
-                    <div class="text-muted small">
-                        © @DateTime.UtcNow.Year EduChatAI
-                    </div>
-
                 </div>
 
+                <div class="footer-links">
+                    <div class="footer-link-group">
+                        <div class="footer-link-title">Product</div>
+                        <a asp-page="/Home/Index">Features</a>
+                        <a asp-page="/Subscriptions/SelectPlan">Pricing</a>
+                    </div>
+                    <div class="footer-link-group">
+                        <div class="footer-link-title">Support</div>
+                        <a href="#">Help Center</a>
+                        <a href="#">Contact Us</a>
+                    </div>
+                    <div class="footer-link-group">
+                        <div class="footer-link-title">Legal</div>
+                        <a asp-page="/Home/Privacy">Privacy Policy</a>
+                        <a href="#">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="copyright">
+                    &copy; @DateTime.UtcNow.Year EduChatAI. All rights reserved.
+                </div>
+                <div class="footer-socials">
+                    <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="#" aria-label="Discord"><i class="fab fa-discord"></i></a>
+                </div>
             </div>
         </footer>
 
@@ -136,6 +145,16 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (TempData["GlobalError"] != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                if (window.showToast) {
+                    window.showToast('@Html.Raw(TempData["GlobalError"])', 'error');
+                }
+            });
+        </script>
+    }
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
