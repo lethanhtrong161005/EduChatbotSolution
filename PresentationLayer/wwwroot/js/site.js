@@ -18,6 +18,7 @@ const ResourceType = Object.freeze({
     Document: "document",
     DocumentChapter: "document-chapter",
     ChatSession: "chat-session",
+    ImportBatch: "import-batch",
 });
 
 const ResourceAction = Object.freeze({
@@ -26,6 +27,7 @@ const ResourceAction = Object.freeze({
     Deleted: "deleted",
     Disabled: "disabled",
     Enabled: "enabled",
+    ProgressUpdated: "progress-updated",
 });
 
 function getKey(obj, val) {

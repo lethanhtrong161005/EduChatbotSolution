@@ -835,6 +835,12 @@ public static class HostExtensions
                 includeProperties: [nameof(Chunk.Document)]))
                 .ToList();
 
+            if (chunks.Count < 5)
+            {
+                logger.LogWarning("Not enough chunks to seed chat. Skipping chat seed.");
+                goto AI_CONFIG;
+            }
+
             var chunk1 = chunks[0];
             var chunk2 = chunks[1];
             var chunk3 = chunks[2];

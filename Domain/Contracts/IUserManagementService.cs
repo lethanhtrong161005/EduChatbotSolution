@@ -1,6 +1,7 @@
 using Domain.Common;
 using Domain.Entities;
 using System.Linq.Expressions;
+using Domain.Contracts.DTOs;
 
 namespace Domain.Contracts;
 
@@ -81,6 +82,38 @@ public interface IUserManagementService
     /// <param name="updatedAt">The <c>UpdatedAt</c> timestamp from the client for concurrency checking.</param>
     /// <returns>A success/error tuple. Returns a conflict error if <c>UpdatedAt</c> mismatches.</returns>
     Task<(bool Success, ApplicationUser? user, string? Error)> ReactivateUserAsync(Guid userId, DateTimeOffset updatedAt);
+
+    // ── Excel Import ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses and validates an uploaded Excel file in the background (Phase 1).
+    /// </summary>
+    Task<UserImportValidationResult> ParseAndValidateImportBatchAsync(Guid batchId, Stream fileStream);
+
+    /// <summary>
+    /// Creates a new pending user import batch in the database.
+    /// </summary>
+    Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string storageLocator);
+
+    /// <summary>
+    /// Processes a single row of an import batch (Phase 2).
+    /// </summary>
+    Task ProcessImportBatchRowAsync(Guid batchId, Guid rowId);
+
+    /// <summary>
+    /// Gets the import history for display in the UI with pagination and search.
+    /// </summary>
+    Task<PaginatedList<UserImportBatchSummaryDto>> GetImportHistoryAsync(int limit, int offset, string? fileName = null);
+
+    /// <summary>
+    /// Returns detailed summary information about a specific import batch.
+    /// </summary>
+    Task<UserImportBatchDetailDto> GetImportBatchDetailAsync(Guid batchId);
+
+    /// <summary>
+    /// Gets a paginated list of rows for a specific import batch, optionally filtered by email.
+    /// </summary>
+    Task<PaginatedList<UserImportRowDetailDto>> GetImportBatchRowsAsync(Guid batchId, int limit, int offset, string? email = null);
 }
 
 /// <summary>Represents a single user record for display in the admin user management list.</summary>

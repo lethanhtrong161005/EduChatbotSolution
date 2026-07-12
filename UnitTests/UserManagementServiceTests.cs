@@ -4,6 +4,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using DataAccess.UnitOfWork;
 
 namespace UnitTests;
 
@@ -20,6 +21,7 @@ public class UserManagementServiceTests
     private Mock<IEmailService> _emailServiceMock = null!;
     private Mock<IEmailVerificationService> _emailVerificationServiceMock = null!;
     private Mock<IConfiguration> _configMock = null!;
+    private Mock<IUnitOfWork> _unitOfWorkMock = null!;
 
     private UserManagementService _sut = null!;
 
@@ -60,13 +62,15 @@ public class UserManagementServiceTests
 
         _configMock = new Mock<IConfiguration>();
         _configMock.Setup(c => c["Email:SenderEmail"]).Returns("noreply@educhatai.com");
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
 
         _sut = new UserManagementService(
             _userManagerMock.Object,
             _roleManagerMock.Object,
             _emailServiceMock.Object,
             _emailVerificationServiceMock.Object,
-            _configMock.Object);
+            _configMock.Object,
+            _unitOfWorkMock.Object);
     }
 
     // ── CREATE ────────────────────────────────────────────────────

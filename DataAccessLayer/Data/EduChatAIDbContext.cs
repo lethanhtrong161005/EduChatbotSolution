@@ -30,6 +30,10 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     /// <summary>Gets or sets the payment transactions set.</summary>
     public DbSet<Payment> Payments { get; set; }
 
+    // ── User Management ──────────────────────────────────────
+    public DbSet<UserImportBatch> UserImportBatches { get; set; }
+    public DbSet<UserImportRow> UserImportRows { get; set; }
+
     // ── Subjects & Documents ─────────────────────────────────
     /// <summary>Gets or sets the subjects set.</summary>
     public DbSet<Subject> Subjects { get; set; }
@@ -136,6 +140,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<TestQuestion>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Experiment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<UserImportBatch>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<UserImportRow>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
 
         modelBuilder.Entity<ApplicationUserRole>()
             .HasKey(e => new { e.UserId, e.RoleId });
