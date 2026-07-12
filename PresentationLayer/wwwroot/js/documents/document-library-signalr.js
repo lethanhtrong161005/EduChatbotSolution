@@ -76,10 +76,27 @@
     statusHub.on(
         "UpdateStatus",
         update => {
-            $(document).trigger("document:status", update);
+            $(document).trigger("document:status:update", update);
         });
 
+    statusHub.onreconnecting(error => {
+        $(document).trigger("document:status:reconnecting", { error });
+    });
+
+    statusHub.onreconnected(connectionId => {
+        $(document).trigger("document:status:reconnected", { connectionId });
+    });
+
+    statusHub.onclose(error => {
+        $(document).trigger("document:status:disconnected", { error });
+    });
+
     statusHub.start()
+        .then(() => {
+            $(document).trigger("document:status:connected", {
+                connectionId: statusHub.connectionId,
+            });
+        })
         .catch(console.error);
 
     //

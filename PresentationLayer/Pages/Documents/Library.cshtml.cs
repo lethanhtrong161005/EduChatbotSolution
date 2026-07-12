@@ -207,6 +207,8 @@ public class LibraryModel(
 
         return new JsonResult(new
         {
+            SubjectId = subjectId,
+            ChapterId = chapterId,
             Search = search,
             PageSize = pageSize,
             PageIndex = pageIndex,

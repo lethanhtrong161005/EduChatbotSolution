@@ -1282,7 +1282,7 @@ ${escapeHtml(subject.name)}`;
                 <div class="grid w-[72px] shrink-0 grid-cols-2 gap-2">
 
                     ${canRetry
-                                ? `
+                ? `
                     <button type="button"
                             class="js-retry-upload flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 transition hover:border-amber-400 hover:bg-amber-500/20 hover:text-amber-200"
                             data-upload-id="${escapeAttribute(uploadItem.id)}"
@@ -1292,11 +1292,11 @@ ${escapeHtml(subject.name)}`;
                         <i class="fa-solid fa-rotate-right"></i>
 
                     </button>`
-                                : `
+                : `
                     <span aria-hidden="true"></span>`}
 
                     ${canCancel
-                                ? `
+                ? `
                     <button type="button"
                             class="js-cancel-upload flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-300"
                             data-upload-id="${escapeAttribute(uploadItem.id)}"
@@ -1306,8 +1306,8 @@ ${escapeHtml(subject.name)}`;
                         <i class="fa-solid fa-xmark"></i>
 
                     </button>`
-                                : canRemove
-                                    ? `
+                : canRemove
+                    ? `
                     <button type="button"
                             class="js-remove-upload flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:border-slate-500 hover:bg-slate-700 hover:text-white"
                             data-upload-id="${escapeAttribute(uploadItem.id)}"
@@ -1317,7 +1317,7 @@ ${escapeHtml(subject.name)}`;
                         <i class="fa-solid fa-xmark"></i>
 
                     </button>`
-                                    : `
+                    : `
                     <span aria-hidden="true"></span>`}
 
                 </div>
@@ -1391,7 +1391,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 </div>`;
     }
 
-    function renderDocumentRow(document, canDelete) {
+    function renderDocumentRow(doc, canDelete) {
 
         return `
 <div
@@ -1401,7 +1401,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 
         <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-700 text-2xl text-slate-300">
 
-            <i class="fa-solid ${getFileIcon(document.extension)}"></i>
+            <i class="fa-solid ${getFileIcon(doc.extension)}"></i>
 
         </div>
 
@@ -1410,22 +1410,14 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
             <div class="flex items-center gap-3">
 
                 <a
-                    href="/documents/download/${document.id}"
+                    href="/documents/download/${doc.id}"
                     class="truncate text-lg font-semibold text-slate-100 transition hover:text-emerald-400">
 
-                    ${escapeHtml(document.title)}
+                    ${escapeHtml(doc.title)}
 
                 </a>
 
-                <span
-                    id="status-badge-${document.id}"
-                    class="document-status-badge status-${document.status.toLowerCase()}">
-
-                    <i class="fa-solid ${StatusSettings[document.status].iconClass}"></i>
-
-                    ${escapeHtml(document.status)}
-
-                </span>
+                ${renderDocumentStatusBadge(doc)}
 
             </div>
 
@@ -1435,7 +1427,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 
                     <i class="fa-solid fa-user mr-2"></i>
 
-                    ${escapeHtml(document.uploadedBy)}
+                    ${escapeHtml(doc.uploadedBy)}
 
                 </span>
 
@@ -1443,17 +1435,17 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
 
                     <i class="fa-solid fa-calendar mr-2"></i>
 
-                    ${formatDate(document.uploadedAt)}
+                    ${formatDate(doc.uploadedAt)}
 
                 </span>
 
-            ${document.fileSize != null
+            ${doc.fileSize != null
                 ? `
                 <span>
 
                     <i class="fa-solid fa-hard-drive mr-2"></i>
 
-                    ${formatFileSize(document.fileSize)}
+                    ${formatFileSize(doc.fileSize)}
 
                 </span>`
                 : ""}
@@ -1467,7 +1459,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
     <div class="flex shrink-0 items-center gap-2">
 
         <a
-        href="/documents/details/${document.id}"
+        href="/documents/details/${doc.id}"
         class="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-slate-600 p-3 text-slate-300 transition hover:border-emerald-500 hover:text-emerald-400">
 
             <i class="fa-solid fa-eye"></i>
@@ -1475,7 +1467,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
         </a>
 
         <a
-            href="/documents/download/${document.id}"
+            href="/documents/download/${doc.id}"
             class="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-slate-600 p-3 text-slate-300 transition hover:border-emerald-500 hover:text-emerald-400">
 
             <i class="fa-solid fa-download"></i>
@@ -1486,7 +1478,7 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
                 ? `
             <button type="button"
                 class="js-delete-document flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-red-700 p-3 text-red-400 transition hover:bg-red-900/30"
-                data-id="${document.id}">
+                data-document-id="${doc.id}">
 
                 <i class="fa-solid fa-trash"></i>
 
@@ -1496,6 +1488,26 @@ ${documents.map(doc => renderDocumentRow(doc, canDelete)).join("")}
     </div>
 
 </div>`;
+    }
+
+    function renderDocumentStatusBadge(doc) {
+
+        const settings = StatusSettings[doc.status] ?? StatusSettings.Received;
+        const hasProgress = Number.isFinite(doc.statusProgress);
+
+        const text = hasProgress
+            ? settings.text.replace("{{PROGRESS}}", doc.statusProgress.toFixed(2))
+            : settings.text.replace("({{PROGRESS}}%)", "").trim();
+
+        return `
+<span class="js-document-status document-status-badge ${settings.className}"
+      data-document-id="${escapeAttribute(doc.id)}">
+
+    <i class="fa-solid ${settings.iconClass}"></i>
+
+    ${escapeHtml(text)}
+
+</span>`;
     }
 
     function renderDocumentListLoading(pageSize) {
@@ -1747,6 +1759,7 @@ ${i === pageSize - 1 ? "" : `<div class="border-b border-slate-700"></div>`}
         renderUploadRow,
 
         renderDocumentList,
+        renderDocumentStatusBadge,
         renderDocumentListLoading,
         renderDocumentListLoadFailed,
 

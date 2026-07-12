@@ -76,6 +76,8 @@ public sealed class DocumentFileDto
 {
     public Guid Id { get; set; }
 
+    public int SubjectId { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public string Extension { get; set; } = string.Empty;
@@ -85,6 +87,8 @@ public sealed class DocumentFileDto
     public string UploadedBy { get; set; } = string.Empty;
 
     public DateTime UploadedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
 
     public long? FileSize { get; set; }
 

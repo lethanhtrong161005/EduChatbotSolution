@@ -6,6 +6,7 @@
        ENUMS AND CONSTANTS
        ========================================================= */
 
+    const CACHE_LIFETIME = 5 * 60 * 1000;
     const MAX_CONCURRENT_UPLOADS = 3;
     const DEFAULT_PAGE_SIZE = 10;
 
@@ -37,7 +38,6 @@
 
         Subjects: "state:subjects",
         Chapters: "state:chapters",
-        Documents: "state:documents",
 
         SelectedSubjectId: "state:selectedSubjectId",
         SelectedSubject: "state:selectedSubject",
@@ -67,6 +67,12 @@
 
             TotalCount: "state:file:totalCount",
             TotalPages: "state:file:totalPages",
+        }),
+
+        Documents: "state:documents",
+
+        Document: Object.freeze({
+            Status: "state:document:status",
         }),
     });
 
@@ -158,6 +164,8 @@
 
         callerConnectionId: null,
 
+        documentStatusBuffer: null,
+
         concurrencyToken: {
             subjects: null,
             chapters: null,
@@ -216,10 +224,6 @@
                 || this.status === UploadStatus.Active;
         }
 
-        get canAbort() {
-            return this.isOutstanding;
-        }
-
         get canRetry() {
             return this.status === UploadStatus.Failed
                 || this.status === UploadStatus.Aborted;
@@ -245,6 +249,7 @@
     function mutateState_Subjects(val, raiseEvent = true) {
 
         state.subjects = Array.from(val ?? []);
+        state.subjects.retrievedAt = val?.retrievedAt ?? Date.now();
         if (raiseEvent) {
             $(document).trigger(StateEvent.Subjects);
         }
@@ -365,7 +370,9 @@
         // idTransfers: [{ id: string(uuid), transfer: XMLHttpRequest }]
         if (!idTransfers || !(idTransfers.length > 0)) return;
 
-        const transferLookup = new Map(Array.from(idTransfers).map(x => [x.id, x.transfer]));
+        const transferLookup = new Map(Array.from(idTransfers)
+            .filter(x => !!x.transfer)
+            .map(x => [x.id, x.transfer]));
         if (transferLookup.size === 0) return;
 
         const uploadItems = state.upload.list.filter(x => transferLookup.has(x.id) && x.status === UploadStatus.Starting);
@@ -373,7 +380,6 @@
 
         for (const item of uploadItems) {
             const transfer = transferLookup.get(item.id);
-            if (!transfer) continue;
             item.transfer = transfer;
             item.status = UploadStatus.Active;
         }
@@ -392,7 +398,7 @@
         if (!idPercents || !(idPercents.length > 0)) return;
 
         const percentLookup = new Map(Array.from(idPercents)
-            .filter(x => x.percent >= 0 && x.percent <= 100)
+            .filter(x => Number.isFinite(x.percent) && x.percent >= 0 && x.percent <= 100)
             .map(x => [x.id, x.percent]));
         if (percentLookup.size === 0) return;
 
@@ -401,7 +407,6 @@
 
         for (const item of uploadItems) {
             const percent = percentLookup.get(item.id);
-            if (!percent) continue;
             item.progress = percent;
         }
 
@@ -458,7 +463,7 @@
         if (!ids || !(ids.length > 0)) return;
 
         const idSet = new Set(Array.from(ids, String));
-        const uploadItems = state.upload.list.filter(x => idSet.has(x.id) && x.canAbort);
+        const uploadItems = state.upload.list.filter(x => idSet.has(x.id) && x.canCancel);
         if (uploadItems.length === 0) return;
 
         for (const item of uploadItems) {
@@ -555,7 +560,7 @@
 
     function mutateState_File_PageSize(val, raiseEvent = true) {
 
-        state.file.pageSize = +val ? Math.max(val, 1) : DEFAULT_PAGE_SIZE;
+        state.file.pageSize = Number.isFinite(val) ? Math.max(val, 1) : DEFAULT_PAGE_SIZE;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.Query);
         }
@@ -563,7 +568,7 @@
 
     function mutateState_File_PageIndex(val, raiseEvent = true) {
 
-        state.file.pageIndex = +val ? Math.max(val, 1) : 1;
+        state.file.pageIndex = Number.isFinite(val) ? Math.max(val, 1) : 1;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.Query);
         }
@@ -571,7 +576,7 @@
 
     function mutateState_File_TotalCount(val, raiseEvent = true) {
 
-        state.file.totalCount = +val ? Math.max(val, 0) : 0;
+        state.file.totalCount = Number.isFinite(val) ? Math.max(val, 0) : 0;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.TotalCount);
         }
@@ -579,7 +584,7 @@
 
     function mutateState_File_TotalPages(val, raiseEvent = true) {
 
-        state.file.totalPages = +val ? Math.max(val, 0) : 0;
+        state.file.totalPages = Number.isFinite(val) ? Math.max(val, 0) : 0;
         if (raiseEvent) {
             $(document).trigger(StateEvent.File.TotalPages);
         }
@@ -592,12 +597,31 @@
         documents.forSubjectId = val?.forSubjectId ?? null;
         documents.forChapterId = val?.forChapterId ?? null;
         documents.forSearch = val?.forSearch ?? "";
+        documents.forPageSize = val?.forPageSize ?? DEFAULT_PAGE_SIZE;
+        documents.forPageIndex = val?.forPageIndex ?? 1;
 
         state.documents = documents;
 
         if (raiseEvent) {
             $(document).trigger(StateEvent.Documents);
         }
+    }
+
+    function mutateState_Document_Status(update, raiseEvent = true) {
+
+        const statusUpdate = normalizeDocumentStatusUpdate(update);
+        if (!statusUpdate) return;
+
+        const doc = state.documents.find(x => x.id === statusUpdate.id);
+        if (!doc || statusUpdate.statusUpdatedAt <= doc.statusUpdatedAt) return;
+
+        applyStatusSnapshot(doc, statusUpdate);
+
+        if (raiseEvent) {
+            $(document).trigger(StateEvent.Document.Status, { id: doc.id });
+        }
+
+        return doc;
     }
 
     /* =========================================================
@@ -710,7 +734,13 @@
         documentList: $("#documentList"),
         pagination: $("#documentPagination"),
 
-        // TODO: By marker classes -- Document status badge
+        documentStatusBadge: {
+            sel: ".js-document-status",
+            data: "data-document-id",
+            elem: function (id) {
+                return ui.documentList.find(`${this.sel}[${this.data}="${id}"]`);
+            },
+        },
 
         deleteDocBtn: {
             sel: ".js-delete-document",
@@ -957,7 +987,9 @@
         $(document).on("resource:reconnected", onResourceHubReconnected);
         $(document).on("resource:disconnected", onResourceHubDisconnected);
 
-        $(document).on("document:status", onDocumentStatusUpdate);
+        $(document).on("document:status:update", onDocumentStatusUpdate);
+        $(document).on("document:status:connected", onDocumentStatusHubAvailable);
+        $(document).on("document:status:reconnected", onDocumentStatusHubAvailable);
     }
 
     function bindStateEvents() {
@@ -1008,10 +1040,12 @@
         $(document).on(StateEvent.Upload.ShowQueue, updateUi_UploadQueue_Visibility);
         $(document).on(StateEvent.Upload.QueueMinimized, updateUi_UploadQueue_ItemSection);
 
-        $(document).on(StateEvent.File.Query, updateState_PerformDocumentSearch);
+        $(document).on(StateEvent.File.Query, updateState_PerformDocumentQuery);
 
         $(document).on(StateEvent.Documents, updateUi_DocumentList);
         $(document).on(StateEvent.Documents, updateUi_Pagination);
+
+        $(document).on(StateEvent.Document.Status, updateUi_DocumentStatus);
 
         $(document).on(StateEvent.File.TotalCount, updateUi_DocumentList);
 
@@ -1161,7 +1195,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        loadSubjects();
+        reloadSubjects();
     }
 
     function onRetrySubjectDetails(e) {
@@ -1169,7 +1203,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        loadSubjectDetails();
+        reloadSubjectDetails();
     }
 
     function onRetryChapters(e) {
@@ -1177,7 +1211,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        loadChapters();
+        reloadChapters();
     }
 
     function onRetryChapterDetails(e) {
@@ -1185,7 +1219,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        loadChapterDetails();
+        reloadChapterDetails();
     }
 
     function onRetryDocuments(e) {
@@ -1193,7 +1227,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        loadDocuments();
+        reloadDocuments();
     }
 
     /* =========================================================
@@ -1206,22 +1240,22 @@
 
             case ResourceType.Subject:
 
-                await loadSubjects(false);
+                await reloadSubjects(false);
 
                 if (update.resourceId === state.selectedSubjectId)
-                    await loadSubjectDetails(false);
+                    await reloadSubjectDetails(false);
 
                 break;
 
             case ResourceType.Chapter:
 
-                await loadChapters(false);
+                await reloadChapters(false);
 
                 if (update.resourceId === state.selectedChapterId)
-                    await loadChapterDetails(false);
+                    await reloadChapterDetails(false);
 
                 if (update.properties["subjectId"] === state.selectedSubjectId) {
-                    await loadSubjectDetails(false);
+                    await reloadSubjectDetails(false);
                 }
 
                 break;
@@ -1229,13 +1263,13 @@
             case ResourceType.Document:
             case ResourceType.User:
 
-                await loadDocuments(false);
+                await reloadDocuments(false);
                 break;
 
             case ResourceType.Membership:
 
                 if (update.properties["userId"] === Razor.userId) {
-                    await loadSubjects(false);
+                    await reloadSubjects(false);
                 }
 
                 break;
@@ -1254,24 +1288,16 @@
 
     function onDocumentStatusUpdate(_, update) {
 
-        // FIXME: Mutate document state instead
-        const $badge = $(`#status-badge-${update.id}`);
-        if ($badge.length === 0) return;
+        const statusUpdate = normalizeDocumentStatusUpdate(update);
+        if (!statusUpdate) return;
 
-        const settings = StatusSettings[StatusNames[update.status]];
-        if (!settings) return;
+        bufferStatusSnapshotFromUpdate(statusUpdate);
+        mutateState_Document_Status(statusUpdate);
+    }
 
-        const text =
-            update.progress
-                ? settings.text.replace("{{PROGRESS}}", update.progress.toFixed(2))
-                : settings.text.replace("({{PROGRESS}}%)", "").trim();
+    function onDocumentStatusHubAvailable() {
 
-        $badge.html(`
-            <i class="fas ${settings.iconClass}"></i>
-            ${text}
-        `);
-
-        $badge.removeClass().addClass(`document-status-badge ${settings.className}`);
+        reloadDocuments(false);
     }
 
     /* =========================================================
@@ -1293,10 +1319,7 @@
 
     function updateState_ResolveSelectedSubject() {
 
-        if (state.selectedSubject?.id === state.selectedSubjectId)
-            mutateState_SelectedSubject(state.selectedSubject);
-        else
-            loadSubjectDetails();
+        loadSubjectDetails();
     }
 
     function updateState_ResetAndResolveChapters() {
@@ -1305,10 +1328,7 @@
         mutateState_SelectedChapter(null, false);
         mutateState_Upload_SelectedChapterIds([], false);
 
-        if (state.chapters.forSubjectId === state.selectedSubjectId)
-            mutateState_Chapters(state.chapters);
-        else
-            loadChapters();
+        loadChapters();
     }
 
     function updateState_RefindSelectedChapter() {
@@ -1336,10 +1356,7 @@
 
     function updateState_ResolveSelectedChapter() {
 
-        if (state.selectedChapter?.id === state.selectedChapterId)
-            mutateState_SelectedChapter(state.selectedChapter);
-        else
-            loadChapterDetails();
+        loadChapterDetails();
     }
 
     function updateState_ResetAndResolveDocuments() {
@@ -1347,14 +1364,10 @@
         mutateState_File_Search("", false);
         mutateState_File_PageIndex(1, false);
 
-        if (state.documents.forSubjectId === state.selectedSubjectId
-            && state.documents.forChapterId === state.selectedChapterId)
-            mutateState_Documents(state.documents);
-        else
-            loadDocuments();
+        loadDocuments();
     }
 
-    function updateState_PerformDocumentSearch() {
+    function updateState_PerformDocumentQuery() {
 
         loadDocuments();
     }
@@ -2046,6 +2059,20 @@
         );
     }
 
+    function updateUi_DocumentStatus(_, { id } = {}) {
+
+        if (!id) return;
+
+        const doc = state.documents.find(x => x.id === id);
+        if (!doc) return;
+
+        const badge = ui.documentStatusBadge.elem(id);
+        if (badge.length === 0) return;
+
+        badge.replaceWith(
+            DocumentLibraryTemplates.renderDocumentStatusBadge(doc));
+    }
+
     function updateUi_Pagination() {
 
         ui.pagination.html(
@@ -2269,9 +2296,16 @@
         return core.concurrencyToken[resourceName] === conTkn;
     }
 
-    async function loadSubjects(raiseEvent = true) {
+    async function loadSubjects({ useCache = true, raiseEvent = true } = {}) {
 
         const conTkn = core.concurrencyToken.subjects = crypto.randomUUID();
+
+        if (useCache
+            && Date.now() - state.subjects.retrievedAt <= CACHE_LIFETIME) {
+
+            mutateState_Subjects(state.subjects);
+            return;
+        }
 
         try {
             raiseLoadEvent(raiseEvent, LoadEvent.SubjectsStart);
@@ -2280,9 +2314,7 @@
 
                 url: "/documents/library"
                     + "?handler=Subjects",
-
                 method: "GET",
-
                 headers: {
                     CallerConnectionId: core.callerConnectionId,
                 },
@@ -2293,7 +2325,10 @@
                 return;
             }
 
-            mutateState_Subjects(subjectSummaryDtos.map(normalizeSubject));
+            const subjects = subjectSummaryDtos.map(normalizeSubject);
+            subjects.retrievedAt = Date.now();
+
+            mutateState_Subjects(subjects);
 
             raiseLoadEvent(raiseEvent, LoadEvent.SubjectsSucceed);
         }
@@ -2307,16 +2342,24 @@
         }
     }
 
-    async function loadSubjectDetails(raiseEvent = true) {
+    async function loadSubjectDetails({ useCache = true, raiseEvent = true } = {}) {
+
+        const conTkn = core.concurrencyToken.subjectDetails = crypto.randomUUID();
 
         const subjectId = state.selectedSubjectId;
 
         if (!subjectId) {
+
             mutateState_SelectedSubject(null);
             return;
         }
 
-        const conTkn = core.concurrencyToken.subjectDetails = crypto.randomUUID();
+        if (useCache
+            && state.selectedSubject?.id === subjectId) {
+
+            mutateState_SelectedSubject(state.selectedSubject);
+            return;
+        }
 
         try {
             raiseLoadEvent(raiseEvent, LoadEvent.SubjectDetailsStart);
@@ -2326,9 +2369,7 @@
                 url: "/documents/library"
                     + "?handler=Subject"
                     + `&id=${subjectId}`,
-
                 method: "GET",
-
                 headers: {
                     CallerConnectionId: core.callerConnectionId,
                 },
@@ -2353,7 +2394,9 @@
         }
     }
 
-    async function loadChapters(raiseEvent = true) {
+    async function loadChapters({ useCache = true, raiseEvent = true } = {}) {
+
+        const conTkn = core.concurrencyToken.chapters = crypto.randomUUID();
 
         const subjectId = state.selectedSubjectId;
 
@@ -2366,7 +2409,12 @@
             return;
         }
 
-        const conTkn = core.concurrencyToken.chapters = crypto.randomUUID();
+        if (useCache
+            && state.chapters.forSubjectId === subjectId) {
+
+            mutateState_Chapters(state.chapters);
+            return;
+        }
 
         try {
             raiseLoadEvent(raiseEvent, LoadEvent.ChaptersStart);
@@ -2376,9 +2424,7 @@
                 url: "/documents/library"
                     + "?handler=Chapters"
                     + `&subjectId=${subjectId}`,
-
                 method: "GET",
-
                 headers: {
                     CallerConnectionId: core.callerConnectionId,
                 },
@@ -2406,17 +2452,23 @@
         }
     }
 
-    async function loadChapterDetails(raiseEvent = true) {
+    async function loadChapterDetails({ useCache = true, raiseEvent = true } = {}) {
+
+        const conTkn = core.concurrencyToken.chapterDetails = crypto.randomUUID();
 
         const chapterId = state.selectedChapterId;
 
         if (!chapterId) {
-
             mutateState_SelectedChapter(null);
             return;
         }
 
-        const conTkn = core.concurrencyToken.chapterDetails = crypto.randomUUID();
+        if (useCache
+            && state.selectedChapter?.id === chapterId) {
+
+            mutateState_SelectedChapter(state.selectedChapter);
+            return;
+        }
 
         try {
             raiseLoadEvent(raiseEvent, LoadEvent.ChapterDetailsStart);
@@ -2425,9 +2477,7 @@
 
                 url: "/documents/library"
                     + `?handler=Chapter&id=${chapterId}`,
-
                 method: "GET",
-
                 headers: {
                     CallerConnectionId: core.callerConnectionId,
                 },
@@ -2452,7 +2502,12 @@
         }
     }
 
-    async function loadDocuments(raiseEvent = true) {
+    async function loadDocuments({ useCache = true, raiseEvent = true } = {}) {
+
+        // Starting a new generation invalidates the previous generation's buffer.
+        core.documentStatusBuffer = null;
+
+        const conTkn = core.concurrencyToken.documents = crypto.randomUUID();
 
         const subjectId = state.selectedSubjectId;
 
@@ -2463,17 +2518,11 @@
             documents.forSubjectId = null;
             documents.forChapterId = null;
             documents.forSearch = "";
+            documents.forPageSize = DEFAULT_PAGE_SIZE;
+            documents.forPageIndex = 1;
 
             mutateState_Documents(documents);
             return;
-        }
-
-        if (state.file.pageSize <= 0) {
-            mutateState_File_PageSize(DEFAULT_PAGE_SIZE, false);
-        }
-
-        if (state.file.pageIndex <= 0) {
-            mutateState_File_PageIndex(1, false);
         }
 
         const chapterId = state.selectedChapterId;
@@ -2481,7 +2530,23 @@
         const pageSize = state.file.pageSize;
         const pageIndex = state.file.pageIndex;
 
-        const conTkn = core.concurrencyToken.documents = crypto.randomUUID();
+        if (useCache
+            && state.documents.forSubjectId === subjectId
+            && state.documents.forChapterId === chapterId
+            && state.documents.forSearch === search
+            && state.documents.forPageSize === pageSize
+            && state.documents.forPageIndex === pageIndex) {
+
+            mutateState_Documents(state.documents);
+            return;
+        }
+
+        const statusBuffer = {
+            token: conTkn,
+            updatesByDocumentId: new Map(),
+        };
+
+        core.documentStatusBuffer = statusBuffer;
 
         try {
             const qs = new URLSearchParams();
@@ -2490,45 +2555,47 @@
             qs.set("pageIndex", pageIndex);
             qs.set("pageSize", pageSize);
 
-            if (chapterId) {
+            if (chapterId)
                 qs.set("chapterId", chapterId);
-            }
 
-            if (search) {
+            if (search)
                 qs.set("search", search);
-            }
 
             raiseLoadEvent(raiseEvent, LoadEvent.DocumentsStart);
 
-            const pagedDocumentsResult =
-                await $.ajax({
+            const pagedResult = await $.ajax({
 
-                    url: "/documents/library"
-                        + `?handler=Documents&${qs}`,
-
-                    method: "GET",
-
-                    headers: {
-                        CallerConnectionId: core.callerConnectionId,
-                    },
-                });
+                url: "/documents/library"
+                    + `?handler=Documents&${qs}`,
+                method: "GET",
+                headers: {
+                    CallerConnectionId: core.callerConnectionId,
+                },
+            });
 
             if (!isCurrentLoad("documents", conTkn)) {
                 raiseLoadEvent(raiseEvent, LoadEvent.DocumentsAbort, { keepState: true, silent: true });
                 return;
             }
 
-            mutateState_File_Search(pagedDocumentsResult.search, false);
-            mutateState_File_PageSize(pagedDocumentsResult.pageSize, false);
-            mutateState_File_PageIndex(pagedDocumentsResult.pageIndex, false);
-            mutateState_File_TotalCount(pagedDocumentsResult.totalCount, false);
-            mutateState_File_TotalPages(pagedDocumentsResult.totalPages, false);
+            mutateState_File_Search(pagedResult.search, false);
+            mutateState_File_PageSize(pagedResult.pageSize, false);
+            mutateState_File_PageIndex(pagedResult.pageIndex, false);
+            mutateState_File_TotalCount(pagedResult.totalCount, false);
+            mutateState_File_TotalPages(pagedResult.totalPages, false);
 
-            const documents = pagedDocumentsResult.items.map(normalizeDocument);
+            const documents = reconcileDocumentStatuses(
+                pagedResult.items.map(normalizeDocument),
+                statusBuffer);
 
-            documents.forSubjectId = subjectId;
-            documents.forChapterId = chapterId;
-            documents.forSearch = pagedDocumentsResult.search ?? "";
+            // Server-returned filter parameters are authoritative
+            // SubjectId is mandatory, so we fall back to our cached value
+            // Other parameters are optional
+            documents.forSubjectId = normalizeId(pagedResult.subjectId) ?? subjectId;
+            documents.forChapterId = normalizeId(pagedResult.chapterId) ?? null;
+            documents.forSearch = pagedResult.search ?? "";
+            documents.forPageSize = pagedResult.pageSize ?? DEFAULT_PAGE_SIZE;
+            documents.forPageIndex = pagedResult.pageIndex ?? 1;
 
             mutateState_Documents(documents);
 
@@ -2542,6 +2609,30 @@
                 raiseLoadEvent(raiseEvent, LoadEvent.DocumentsFail);
             }
         }
+        finally {
+            if (core.documentStatusBuffer?.token === conTkn)
+                core.documentStatusBuffer = null;
+        }
+    }
+
+    function reloadSubjects(raiseEvent = true) {
+        return loadSubjects({ useCache: false, raiseEvent });
+    }
+
+    function reloadSubjectDetails(raiseEvent = true) {
+        return loadSubjectDetails({ useCache: false, raiseEvent });
+    }
+
+    function reloadChapters(raiseEvent = true) {
+        return loadChapters({ useCache: false, raiseEvent });
+    }
+
+    function reloadChapterDetails(raiseEvent = true) {
+        return loadChapterDetails({ useCache: false, raiseEvent });
+    }
+
+    function reloadDocuments(raiseEvent = true) {
+        return loadDocuments({ useCache: false, raiseEvent });
     }
 
     /* =========================================================
@@ -2550,24 +2641,159 @@
 
     function normalizeSubject(subject) {
         if (!subject) return null;
-        subject.id += "";
-        subject.chapters?.forEach(x => x.id += "");
-        subject.documents?.forEach(x => x.id += "");
+        subject.id = normalizeId(subject.id);
+        subject.chapters?.forEach(x => x.id = normalizeId(x.id));
+        subject.documents?.forEach(x => x.id = normalizeId(x.id));
         return subject;
     }
 
     function normalizeChapter(chapter) {
         if (!chapter) return null;
-        chapter.id += "";
-        chapter.documents?.forEach(x => x.id += "");
+        chapter.id = normalizeId(chapter.id);
+        chapter.documents?.forEach(x => x.id = normalizeId(x.id));
         return chapter;
     }
 
-    function normalizeDocument(document) {
-        if (!document) return null;
-        document.id += "";
-        document.chapters?.forEach(x => x.id += "");
-        return document;
+    function normalizeDocument(doc) {
+
+        if (!doc) return null;
+
+        doc.id = normalizeId(doc.id);
+        doc.subjectId = normalizeId(doc.subjectId);
+        doc.chapters.forEach(x => x.id = normalizeId(x.id));
+
+        doc.statusProgress = Number.isFinite(doc.statusProgress)
+            ? doc.statusProgress
+            : null;
+
+        const statusUpdatedAt = Date.parse(
+            doc.updatedAt ?? doc.uploadedAt);
+
+        doc.statusUpdatedAt = Number.isFinite(statusUpdatedAt)
+            ? statusUpdatedAt
+            : 0;
+
+        return doc;
+    }
+
+    function normalizeDocumentStatusUpdate(update) {
+
+        if (!update || update.id == null) return null;
+
+        const status = StatusSettings[update.status]
+            ? update.status
+            : StatusNames[update.status];
+
+        const statusUpdatedAt = Number.isFinite(update.statusUpdatedAt)
+            ? update.statusUpdatedAt
+            : Date.parse(update.updatedAt);
+
+        if (!status || !Number.isFinite(statusUpdatedAt))
+            return null;
+
+        const rawProgress = update.statusProgress ?? update.progress;
+        const statusProgress = Number.isFinite(rawProgress)
+            && rawProgress >= 0
+            && rawProgress <= 100
+            ? rawProgress
+            : null;
+
+        return {
+            id: String(update.id),
+            status,
+            statusProgress,
+            statusUpdatedAt,
+        };
+    }
+
+    /* =========================================================
+       DOCUMENT STATUS CONSISTENCY
+       ========================================================= */
+
+    function getStatusSnapshotFromDocument(doc) {
+
+        if (!doc) return null;
+
+        return normalizeDocumentStatusUpdate({
+            id: doc.id,
+            status: doc.status,
+            statusProgress: doc.statusProgress,
+            statusUpdatedAt: doc.statusUpdatedAt,
+        });
+    }
+
+    function bufferStatusSnapshotFromUpdate(update) {
+
+        const buffer = core.documentStatusBuffer;
+        if (!buffer) return;
+
+        const current = buffer.updatesByDocumentId.get(update.id);
+
+        if (current
+            && update.statusUpdatedAt <= current.statusUpdatedAt)
+            return;
+
+        buffer.updatesByDocumentId.set(update.id, update);
+    }
+
+    function applyStatusSnapshot(doc, snapshot) {
+
+        doc.status = snapshot.status;
+        doc.statusProgress = snapshot.statusProgress;
+        doc.statusUpdatedAt = snapshot.statusUpdatedAt;
+
+        return doc;
+    }
+
+    /*
+     * Merge three possible status snapshots before the HTTP result replaces state:
+     *
+     * 1. doc:
+     *    The status persisted in the current HTTP response.
+     *
+     * 2. currentDoc:
+     *    A newer status already committed to client state while the HTTP
+     *    request was in flight.
+     *
+     * 3. bufferedUpdate:
+     *    A SignalR update received during the same HTTP load generation,
+     *    including updates for documents not present in the previous page.
+     *
+     * Each transport may temporarily contain the freshest observation, so the
+     * snapshot with the greatest statusUpdatedAt wins. Candidate order is
+     * intentional: on equal timestamps, current state beats HTTP and buffered
+     * realtime data beats both, preserving transient progress information.
+     */
+    function reconcileDocumentStatus(doc, currentDoc, bufferedUpdate) {
+
+        const candidates = [
+            getStatusSnapshotFromDocument(doc),
+            getStatusSnapshotFromDocument(currentDoc),
+            bufferedUpdate,
+        ].filter(Boolean);
+
+        let freshest = candidates[0];
+
+        for (let i = 1; i < candidates.length; i++) {
+            if (candidates[i].statusUpdatedAt >= freshest.statusUpdatedAt)
+                freshest = candidates[i];
+        }
+
+        return applyStatusSnapshot(doc, freshest);
+    }
+
+    function reconcileDocumentStatuses(documents, buffer) {
+
+        const currentById = new Map(state.documents.map(x => [x.id, x]));
+
+        for (const doc of documents) {
+            reconcileDocumentStatus(
+                doc,
+                currentById.get(doc.id),
+                buffer.updatesByDocumentId.get(doc.id));
+        }
+
+        return documents;
     }
 
     /* ======================================================
@@ -2597,7 +2823,7 @@
              * and also discovers documents that survived 
              * a late client-side cancellation.
              */
-            loadDocuments(false);
+            reloadDocuments(false);
             return;
         }
 
@@ -2642,7 +2868,7 @@
                     mutateState_Upload_List_Succeed([uploadItem.id]);
 
                     if (doc) {
-                        reconcileUploadedDocument(doc, uploadItem);
+                        reconcileUploadedDocument(doc);
                     }
 
                     $(document).trigger(OperationEvent.UploadSucceed, { fileName: uploadItem.file?.name });
@@ -2681,46 +2907,51 @@
         xhr.send(form);
     }
 
-    function documentMatchesCurrentQuery(document, uploadItem) {
+    function documentMatchesCurrentQuery(doc) {
 
-        if (!document || !uploadItem)
-            return false;
+        if (!doc) return false;
 
-        if (uploadItem.subjectId !== state.selectedSubjectId) {
+        if (doc.subjectId !== state.selectedSubjectId)
             return false;
-        }
 
         if (state.selectedChapterId
-            && !document.chapters
+            && !doc.chapters
                 .some(chapter => chapter.id === state.selectedChapterId))
             return false;
 
         const search = state.file.search.trim().toLocaleLowerCase();
 
         if (search
-            && !document.title.toLocaleLowerCase().includes(search)) {
+            && !doc.title.toLocaleLowerCase().includes(search)) {
             return false;
         }
 
         return true;
     }
 
-    function reconcileUploadedDocument(document, uploadItem) {
+    function stateDocumentListMatchesCurrentQuery() {
 
-        if (!documentMatchesCurrentQuery(document, uploadItem)) return;
+        if (state.documents.forSubjectId !== state.selectedSubjectId) return false;
+        if (state.documents.forChapterId !== state.selectedChapterId) return false;
+        if (state.documents.forSearch !== state.file.search) return false;
+        if (state.documents.forPageSize !== state.file.pageSize) return false;
+        if (state.documents.forPageIndex !== state.file.pageIndex) return false;
+        return true;
+    }
+
+    function reconcileUploadedDocument(doc) {
+
         if (state.file.pageIndex !== 1) return;
+        if (!documentMatchesCurrentQuery(doc)) return;
+        if (!stateDocumentListMatchesCurrentQuery()) return;
 
-        if (state.documents.forSubjectId !== state.selectedSubjectId) return;
-        if (state.documents.forChapterId !== state.selectedChapterId) return;
-        if ((state.documents.forSearch ?? "") !== (state.file.search ?? "")) return;
-
-        const alreadyVisible = state.documents.some(item => item.id === document.id);
+        const alreadyVisible = state.documents.some(item => item.id === doc.id);
         if (alreadyVisible) return;
 
         const totalCount = state.file.totalCount + 1;
         const totalPages = Math.ceil(totalCount / state.file.pageSize);
 
-        const documents = [document, ...state.documents]
+        const documents = [doc, ...state.documents]
             .sort((first, second) => {
                 const firstDate = Date.parse(first.uploadedAt) || 0;
                 const secondDate = Date.parse(second.uploadedAt) || 0;
@@ -2731,6 +2962,8 @@
         documents.forSubjectId = state.selectedSubjectId;
         documents.forChapterId = state.selectedChapterId;
         documents.forSearch = state.file.search ?? "";
+        documents.forPageSize = state.file.pageSize ?? DEFAULT_PAGE_SIZE;
+        documents.forPageIndex = state.file.pageIndex ?? 1;
 
         mutateState_File_TotalCount(totalCount, false);
         mutateState_File_TotalPages(totalPages, false);
@@ -2803,7 +3036,7 @@
 
     async function deleteDocument() {
 
-        const id = $(this).data("id");
+        const id = $(this).data("document-id");
         if (!id) return;
 
         const doc = state.documents.find(item => item.id === id);
@@ -2830,7 +3063,7 @@
                 mutateState_File_PageIndex(state.file.pageIndex - 1, false);
             }
 
-            await loadDocuments(false);
+            await reloadDocuments(false);
 
             $(document).trigger(OperationEvent.DeleteSucceed, { title: documentTitle });
         }
@@ -2855,6 +3088,11 @@
             "txt",
             "html",
         ].includes(ext);
+    }
+
+    function normalizeId(id) {
+
+        return id != null ? id + "" : null;
     }
 
 })();
