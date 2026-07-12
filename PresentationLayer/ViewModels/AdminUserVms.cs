@@ -33,6 +33,7 @@ public class AdminUserListVm
 
 /// <summary>
 /// Input model for creating a new user via the admin modal.
+/// Password is auto-generated server-side and emailed to the user.
 /// </summary>
 public class AdminCreateUserVm
 {
@@ -45,11 +46,6 @@ public class AdminCreateUserVm
     [Required(ErrorMessage = "Email is required.")]
     [EmailAddress(ErrorMessage = "Invalid email address.")]
     public string Email { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the initial password set by the admin.</summary>
-    [Required(ErrorMessage = "Password is required.")]
-    [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
-    public string Password { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the role name to assign.</summary>
     [Required(ErrorMessage = "Role is required.")]

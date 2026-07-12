@@ -78,7 +78,7 @@ public class UserManageModel(
             return BadRequest(new { success = false, error = "Invalid form data." });
 
         var (success, user, error) = await _userManagementService.CreateUserAsync(
-            new CreateUserDto(vm.FullName, vm.Email, vm.Password, vm.Role));
+            new CreateUserDto(vm.FullName, vm.Email, vm.Role));
 
         if (!success)
             return StatusCode(500, new { success, error });

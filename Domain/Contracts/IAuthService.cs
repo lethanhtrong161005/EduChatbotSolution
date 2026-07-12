@@ -89,4 +89,11 @@ public readonly struct LoginResult
 
     /// <summary>Gets error messages when authentication failed.</summary>
     public IList<string> Errors { get; init; }
+
+    /// <summary>
+    /// Gets whether the user must change their password before accessing the application.
+    /// When <c>true</c>, the caller should redirect to the force-change-password page
+    /// instead of signing in.
+    /// </summary>
+    public bool MustChangePassword { get; init; }
 }

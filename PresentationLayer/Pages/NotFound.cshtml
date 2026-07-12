@@ -1,0 +1,20 @@
+@page "/404"
+@model Presentation.Pages.NotFoundModel
+@{
+    ViewData["Title"] = "Page Not Found";
+}
+
+<div style="min-height: 70vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
+    <div>
+        <div style="font-size: 8rem; font-weight: 900; color: var(--color-primary-light); line-height: 1; text-shadow: 0 10px 30px rgba(46, 204, 113, 0.2);">
+            404
+        </div>
+        <h1 style="font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 1rem; margin-top: 1rem;">Oops! Page Not Found</h1>
+        <p style="font-size: 1.125rem; color: #6b7280; max-width: 500px; margin: 0 auto 2.5rem;">
+            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+        </p>
+        <a href="/" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 2rem; background: var(--gradient-primary); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 1.125rem; box-shadow: 0 10px 20px -5px rgba(46, 204, 113, 0.3); transition: transform 0.3s ease;">
+            <i class="fas fa-home"></i> Back to Home
+        </a>
+    </div>
+</div>

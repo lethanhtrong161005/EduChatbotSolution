@@ -19,7 +19,7 @@ public class ErrorModel : PageModel
     /// <summary>
     /// Loads error details from the current HTTP context.
     /// </summary>
-    public void OnGet()
+    public IActionResult OnGet()
     {
         var problemDetails = HttpContext.Items[ErrorHandlingConstants.ProblemDetailsHttpContextItemName] as ProblemDetails;
 
@@ -29,5 +29,26 @@ public class ErrorModel : PageModel
             Title = problemDetails?.Title,
             Detail = problemDetails?.Detail,
         };
+
+        var status = problemDetails?.Status ?? 500;
+
+        if (status == StatusCodes.Status404NotFound)
+        {
+            return RedirectToPage("/NotFound");
+        }
+        else if (status == StatusCodes.Status401Unauthorized || status == StatusCodes.Status403Forbidden)
+        {
+            TempData["GlobalError"] = problemDetails?.Title ?? "Access Denied. You do not have permission to view this page.";
+            return RedirectToPage("/Home/Index");
+        }
+        else if (status != 500)
+        {
+            // For other handled errors (like 400 Bad Request, 422 Unprocessable Entity), we might want to just show a toast
+            TempData["GlobalError"] = problemDetails?.Title ?? "An error occurred.";
+            return RedirectToPage("/Home/Index");
+        }
+
+        // For actual 500 Internal Server errors, we still show the error page (or you can redirect)
+        return Page();
     }
 }

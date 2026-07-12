@@ -163,8 +163,6 @@ public class UserManagementService(
             return (false, null, "Email is required.");
         if (string.IsNullOrWhiteSpace(dto.FullName))
             return (false, null, "Full name is required.");
-        if (string.IsNullOrWhiteSpace(dto.Password))
-            return (false, null, "Password is required.");
         if (string.IsNullOrWhiteSpace(dto.Role))
             return (false, null, "Role is required.");
 
@@ -180,7 +178,11 @@ public class UserManagementService(
         if (!await _roleManager.RoleExistsAsync(dto.Role))
             return (false, null, $"Role '{dto.Role}' does not exist.");
 
-        // 3. Create active user in database immediately; admin-created accounts are trusted.
+        // 3. Auto-generate a cryptographically secure password (12 chars)
+        var generatedPassword = GenerateSecurePassword(12);
+
+        // 4. Create active user in database; admin-created accounts are trusted but
+        //    must change the auto-generated password on first login.
         var user = new ApplicationUser
         {
             UserName = dto.Email,
@@ -190,19 +192,20 @@ public class UserManagementService(
             FullName = dto.FullName,
             EmailConfirmed = true,
             IsActive = true,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            MustChangePassword = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(generatedPassword),
         };
 
         var createResult = await _userManager.CreateAsync(user);
         if (!createResult.Succeeded)
             return (false, null, createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create user.");
 
-        // 4. Assign role
+        // 5. Assign role
         var roleResult = await _userManager.AddToRoleAsync(user, dto.Role);
         if (!roleResult.Succeeded)
             return (false, null, roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign role.");
 
-        // 5. Add identity claims
+        // 6. Add identity claims
         await _userManager.AddClaimsAsync(user,
         [
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -211,10 +214,10 @@ public class UserManagementService(
             new Claim(ClaimTypes.Role, dto.Role),
         ]);
 
-        // 6. Send credentials email. Roll back the active account if delivery fails.
+        // 7. Send credentials email. Roll back the active account if delivery fails.
         try
         {
-            await _emailService.SendAdminCreatedCredentialsAsync(dto.Email, dto.FullName, dto.Password);
+            await _emailService.SendAdminCreatedCredentialsAsync(dto.Email, dto.FullName, generatedPassword);
         }
         catch (Exception ex)
         {
@@ -223,6 +226,57 @@ public class UserManagementService(
         }
 
         return (true, user, null);
+    }
+
+    /// <summary>
+    /// Generates a cryptographically secure random password containing uppercase letters,
+    /// lowercase letters, digits, and special characters.
+    /// </summary>
+    /// <param name="length">The desired password length (minimum 8).</param>
+    /// <returns>A random password string.</returns>
+    private static string GenerateSecurePassword(int length)
+    {
+        const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string lower = "abcdefghijklmnopqrstuvwxyz";
+        const string digits = "0123456789";
+        const string special = "!@#$%&*?";
+        const string allChars = upper + lower + digits + special;
+
+        var password = new char[length];
+        var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+
+        // Guarantee at least one character from each category
+        password[0] = upper[GetRandomIndex(rng, upper.Length)];
+        password[1] = lower[GetRandomIndex(rng, lower.Length)];
+        password[2] = digits[GetRandomIndex(rng, digits.Length)];
+        password[3] = special[GetRandomIndex(rng, special.Length)];
+
+        // Fill remaining positions with random characters from all categories
+        for (var i = 4; i < length; i++)
+        {
+            password[i] = allChars[GetRandomIndex(rng, allChars.Length)];
+        }
+
+        // Shuffle to avoid predictable positions for category-guaranteed chars
+        Shuffle(rng, password);
+
+        return new string(password);
+    }
+
+    private static int GetRandomIndex(System.Security.Cryptography.RandomNumberGenerator rng, int maxExclusive)
+    {
+        var bytes = new byte[4];
+        rng.GetBytes(bytes);
+        return (int)(BitConverter.ToUInt32(bytes, 0) % (uint)maxExclusive);
+    }
+
+    private static void Shuffle(System.Security.Cryptography.RandomNumberGenerator rng, char[] array)
+    {
+        for (var i = array.Length - 1; i > 0; i--)
+        {
+            var j = GetRandomIndex(rng, i + 1);
+            (array[i], array[j]) = (array[j], array[i]);
+        }
     }
 
     // ── UPDATE ────────────────────────────────────────────────────
