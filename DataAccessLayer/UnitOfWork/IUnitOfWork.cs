@@ -20,7 +20,12 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="ApplicationUserRole"/> entities.</summary>
     GenericRepository<ApplicationUserRole> UserRoles { get; }
 
+    GenericRepository<UserImportBatch> UserImportBatches { get; }
+
+    GenericRepository<UserImportRow> UserImportRows { get; }
+
     // ── Subscription & Payment ───────────────────────────────
+
     /// <summary>Gets the repository for <see cref="Plan"/> entities.</summary>
     GenericRepository<Plan> Plans { get; }
 

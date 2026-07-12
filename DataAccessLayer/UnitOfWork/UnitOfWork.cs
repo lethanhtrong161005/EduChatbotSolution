@@ -15,6 +15,8 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<ApplicationUser>? _users;
     GenericRepository<ApplicationRole>? _roles;
     GenericRepository<ApplicationUserRole>? _userRoles;
+    GenericRepository<UserImportBatch>? _userImportBatches;
+    GenericRepository<UserImportRow>? _userImportRows;
     GenericRepository<Plan>? _plans;
     GenericRepository<PlanOption>? _planOptions;
     GenericRepository<Order>? _orders;
@@ -49,6 +51,10 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<ApplicationRole> Roles => _roles ??= new GenericRepository<ApplicationRole>(_context);
     /// <inheritdoc/>
     public GenericRepository<ApplicationUserRole> UserRoles => _userRoles ??= new GenericRepository<ApplicationUserRole>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<UserImportBatch> UserImportBatches => _userImportBatches ??= new GenericRepository<UserImportBatch>(_context);
+    /// <inheritdoc/>
+    public GenericRepository<UserImportRow> UserImportRows => _userImportRows ??= new GenericRepository<UserImportRow>(_context);
     /// <inheritdoc/>
     public GenericRepository<Plan> Plans => _plans ??= new GenericRepository<Plan>(_context);
     /// <inheritdoc/>

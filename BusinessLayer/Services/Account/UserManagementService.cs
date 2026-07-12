@@ -1,10 +1,14 @@
+using DataAccess.UnitOfWork;
 using Domain.Common;
 using Domain.Contracts;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Linq.Expressions;
 using System.Security.Claims;
 
@@ -20,13 +24,15 @@ public class UserManagementService(
     RoleManager<ApplicationRole> roleManager,
     IEmailService emailService,
     IEmailVerificationService emailVerificationService,
-    IConfiguration configuration) : IUserManagementService
+    IConfiguration configuration,
+    IUnitOfWork unitOfWork) : IUserManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly IEmailService _emailService = emailService;
     private readonly IEmailVerificationService _emailVerificationService = emailVerificationService;
     private readonly string _contactEmail = configuration["Email:SenderEmail"] ?? "support@educhatai.com";
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     // ── READ ─────────────────────────────────────────────────────
 
@@ -478,5 +484,302 @@ public class UserManagementService(
             return (false, null, result.Errors.FirstOrDefault()?.Description ?? "Failed to reactivate account.");
 
         return (true, user, null);
+    }
+
+    // ── EXCEL IMPORT ────────────────────────────────────────────────
+    
+    public async Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string storageLocator)
+    {
+        var batch = new UserImportBatch
+        {
+            FileName = fileName,
+            StorageLocator = storageLocator,
+            ImportedById = importedBy,
+            TotalRows = 0,
+            ProcessedRows = 0,
+            Status = ImportBatchStatus.Pending
+        };
+
+        await _unitOfWork.UserImportBatches.InsertAsync(batch);
+        await _unitOfWork.SaveAsync();
+        return batch;
+    }
+
+    public async Task<UserImportValidationResult> ParseAndValidateImportBatchAsync(Guid batchId, Stream fileStream)
+    {
+        var batch = (await _unitOfWork.UserImportBatches.GetAsync(
+            filter: b => b.Id == batchId,
+            includeProperties: ["Rows"])).FirstOrDefault();
+
+        if (batch == null)
+            throw new EntityNotFoundException("Import batch not found.");
+
+        var errors = new List<string>();
+        var validRows = new List<UserImportRowDto>();
+
+        try
+        {
+            using var document = SpreadsheetDocument.Open(fileStream, false);
+            var workbookPart = document.WorkbookPart;
+            if (workbookPart == null)
+            {
+                errors.Add("Invalid Excel file format.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            if (workbookPart.Workbook == null)
+            {
+                errors.Add("Invalid Excel file format: missing workbook.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            var sheet = workbookPart.Workbook.Descendants<Sheet>().FirstOrDefault();
+            if (sheet == null || sheet.Id == null)
+            {
+                errors.Add("No sheet found in the Excel file.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+            if (worksheetPart.Worksheet == null)
+            {
+                errors.Add("Invalid Excel file format: missing worksheet.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+            
+            var sheetData = worksheetPart.Worksheet.Elements<SheetData>().FirstOrDefault();
+            if (sheetData == null)
+            {
+                errors.Add("Invalid Excel file format: missing sheet data.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            var rows = sheetData.Elements<Row>().ToList();
+            if (rows.Count <= 1)
+            {
+                errors.Add("The Excel file is empty or only contains a header.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            if (rows.Count > 501) // Header + 500 rows max
+            {
+                errors.Add("The Excel file exceeds the maximum allowed 500 rows.");
+                return new UserImportValidationResult(false, errors, validRows);
+            }
+
+            var sharedStringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault()?.SharedStringTable;
+
+            string GetCellValue(Cell cell)
+            {
+                if (cell.CellValue == null) return string.Empty;
+                string value = cell.CellValue.InnerXml;
+                if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
+                {
+                    return sharedStringTable?.ElementAt(int.Parse(value))?.InnerText ?? string.Empty;
+                }
+                return value;
+            }
+
+            var emailSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 1; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var cells = row.Elements<Cell>().ToList();
+                
+                string fullName = cells.Count > 0 ? GetCellValue(cells[0]).Trim() : string.Empty;
+                string email = cells.Count > 1 ? GetCellValue(cells[1]).Trim() : string.Empty;
+                string role = cells.Count > 2 ? GetCellValue(cells[2]).Trim() : string.Empty;
+
+                bool isRowValid = true;
+
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    errors.Add($"Row {i + 1}: Full Name is required.");
+                    isRowValid = false;
+                }
+
+                if (string.IsNullOrWhiteSpace(email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
+                {
+                    errors.Add($"Row {i + 1}: Valid Email is required.");
+                    isRowValid = false;
+                }
+                else if (!emailSet.Add(email))
+                {
+                    errors.Add($"Row {i + 1}: Duplicate email '{email}' within the file.");
+                    isRowValid = false;
+                }
+
+                if (string.IsNullOrWhiteSpace(role) || !await _roleManager.RoleExistsAsync(role))
+                {
+                    errors.Add($"Row {i + 1}: Invalid or missing role '{role}'. Expected roles: Admin, Student, Lecturer.");
+                    isRowValid = false;
+                }
+                
+                if (isRowValid)
+                {
+                    validRows.Add(new UserImportRowDto(i + 1, fullName, email, role));
+                }
+            }
+
+            if (validRows.Any())
+            {
+                foreach (var row in validRows)
+                {
+                    var entityRow = new UserImportRow
+                    {
+                        BatchId = batch.Id,
+                        RowNumber = row.RowNumber,
+                        FullName = row.FullName,
+                        Email = row.Email,
+                        Role = row.Role,
+                        Status = ImportRowStatus.Pending
+                    };
+                    batch.Rows.Add(entityRow);
+                }
+                batch.TotalRows = validRows.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Failed to process Excel file: {ex.Message}");
+        }
+
+        await _unitOfWork.SaveAsync();
+        return new UserImportValidationResult(errors.Count == 0, errors, validRows);
+    }
+
+    public async Task ProcessImportBatchRowAsync(Guid batchId, Guid rowId)
+    {
+        var row = await _unitOfWork.UserImportRows.FindByIdAsync(rowId);
+        if (row == null || row.BatchId != batchId || row.Status != ImportRowStatus.Pending)
+        {
+            return;
+        }
+
+        try
+        {
+            var dto = new CreateUserDto(row.FullName, row.Email, row.Role);
+            var result = await CreateUserAsync(dto);
+
+            if (result.Success)
+            {
+                row.Status = ImportRowStatus.Success;
+                row.CreatedUserId = result.user?.Id;
+            }
+            else
+            {
+                row.Status = ImportRowStatus.Failed;
+                row.ErrorMessage = result.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            row.Status = ImportRowStatus.Failed;
+            row.ErrorMessage = ex.Message;
+        }
+
+        row.ProcessedAt = DateTimeOffset.UtcNow;
+        _unitOfWork.UserImportRows.Update(row);
+        await _unitOfWork.SaveAsync();
+    }
+
+    public async Task<PaginatedList<UserImportBatchSummaryDto>> GetImportHistoryAsync(int limit, int offset, string? fileName = null)
+    {
+        var pageSize = limit > 0 ? limit : 10;
+        var pageIndex = (offset / pageSize) + 1;
+
+        System.Linq.Expressions.Expression<Func<UserImportBatch, bool>>? filter = null;
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            filter = b => b.FileName.Contains(fileName);
+        }
+
+        var batches = await _unitOfWork.UserImportBatches.GetAsync(
+            filter: filter,
+            orderBy: q => q.OrderByDescending(b => b.CreatedAt),
+            paginationSettings: (pageSize, pageIndex)
+        );
+        
+        var totalCount = await _unitOfWork.UserImportBatches.CountAsync(filter);
+        
+        var summaryDtos = batches.Select(b => new UserImportBatchSummaryDto(
+            b.Id,
+            b.FileName,
+            b.TotalRows,
+            b.ProcessedRows,
+            b.SuccessRows,
+            b.FailedRows,
+            b.Status,
+            b.ImportedBy != null ? b.ImportedBy.FullName : "Unknown",
+            b.CreatedAt,
+            b.CompletedAt
+        )).ToList();
+            
+        return new PaginatedList<UserImportBatchSummaryDto>(summaryDtos, totalCount, pageSize, pageIndex);
+    }
+
+    public async Task<UserImportBatchDetailDto> GetImportBatchDetailAsync(Guid batchId)
+    {
+        var batches = await _unitOfWork.UserImportBatches.GetAsync(
+            filter: b => b.Id == batchId
+        );
+        var batch = batches.FirstOrDefault();
+
+        if (batch == null)
+        {
+            throw new EntityNotFoundException("Import batch not found.");
+        }
+
+        var summary = new UserImportBatchSummaryDto(
+            batch.Id,
+            batch.FileName,
+            batch.TotalRows,
+            batch.ProcessedRows,
+            batch.SuccessRows,
+            batch.FailedRows,
+            batch.Status,
+            batch.ImportedBy != null ? batch.ImportedBy.FullName : "Unknown",
+            batch.CreatedAt,
+            batch.CompletedAt
+        );
+
+        return new UserImportBatchDetailDto(summary, []);
+    }
+
+    public async Task<PaginatedList<UserImportRowDetailDto>> GetImportBatchRowsAsync(Guid batchId, int limit, int offset, string? email = null)
+    {
+        var pageSize = limit > 0 ? limit : 10;
+        var pageIndex = (offset / pageSize) + 1;
+
+        System.Linq.Expressions.Expression<Func<UserImportRow, bool>> filter;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            filter = r => r.BatchId == batchId && r.Email.Contains(email);
+        }
+        else
+        {
+            filter = r => r.BatchId == batchId;
+        }
+
+        var rows = await _unitOfWork.UserImportRows.GetAsync(
+            filter: filter,
+            orderBy: q => q.OrderBy(r => r.RowNumber),
+            paginationSettings: (pageSize, pageIndex)
+        );
+
+        var totalCount = await _unitOfWork.UserImportRows.CountAsync(filter);
+
+        var dtos = rows.Select(r => new UserImportRowDetailDto(
+            r.RowNumber,
+            r.FullName,
+            r.Email,
+            r.Role,
+            r.Status,
+            r.ErrorMessage,
+            r.ProcessedAt
+        )).ToList();
+
+        return new PaginatedList<UserImportRowDetailDto>(dtos, totalCount, pageSize, pageIndex);
     }
 }

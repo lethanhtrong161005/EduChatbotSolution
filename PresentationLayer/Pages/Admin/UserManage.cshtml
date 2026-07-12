@@ -175,24 +175,6 @@
     </div>
   </div>
 
-  <!-- ═══════════════ IMPORT EXCEL MODAL ═══════════════ -->
-  <div class="modal-overlay" id="importModal">
-    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="importTitle">
-      <div class="modal-header">
-        <h2 class="modal-title" id="importTitle"><i class="fas fa-file-excel"></i> Import Users</h2>
-        <button class="modal-close" onclick="closeModal('importModal')">×</button>
-      </div>
-      <div class="modal-body">
-        <p class="confirm-text">Import users from Excel is still in development.</p>
-        <p class="confirm-subtext">This feature has not been implemented yet.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-modal-primary" onclick="closeModal('importModal')">
-          <i class="fas fa-check"></i> OK
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- ═══════════════ CREATE MODAL ═══════════════ -->
   <div class="modal-overlay" id="createModal">
@@ -342,6 +324,221 @@
           <i class="fas fa-play-circle"></i> Reactivate
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ IMPORT EXCEL MODAL ═══════════════ -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal-card modal-lg" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 class="modal-title"><i class="fas fa-file-excel"></i> Import Users</h2>
+        <button class="modal-close" onclick="closeModal('importModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="import-instructions">
+          <p>Upload an Excel file (.xlsx) containing user data.</p>
+          <p>Required columns: <strong>Full Name</strong>, <strong>Email</strong>, <strong>Role</strong>.</p>
+          <a href="?handler=DownloadTemplate" class="btn-download-template" download>
+            <i class="fas fa-download"></i> Download Template
+          </a>
+          <button class="btn-view-history" onclick="openImportHistoryModal()">
+            <i class="fas fa-history"></i> View Import History
+          </button>
+        </div>
+        <form id="importForm" onsubmit="submitImport(event)">
+          <div class="form-group">
+            <label for="importFile">Select Excel File:</label>
+            <input type="file" id="importFile" name="file" accept=".xlsx" required class="form-control" />
+          </div>
+          <div id="importProgress" class="progress-container" style="display: none;">
+            <div class="progress-info">
+              <span id="importStatusText">Uploading...</span>
+              <span id="importPercentage">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar" id="importProgressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-stats" id="importStats" style="display: none;">
+              <span class="text-success"><i class="fas fa-check"></i> <span id="importSuccessCount">0</span> success</span>
+              <span class="text-danger"><i class="fas fa-times"></i> <span id="importFailedCount">0</span> failed</span>
+              <span class="text-muted">Total: <span id="importTotalCount">0</span></span>
+            </div>
+            <div id="importErrorLog" class="import-error-log" style="display: none;"></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeModal('importModal')" id="btnImportCancel">Close</button>
+        <button type="submit" form="importForm" class="btn-modal-primary" id="btnImportSubmit">
+          <i class="fas fa-upload"></i> Upload & Import
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ IMPORT HISTORY MODAL ═══════════════ -->
+  <div class="modal-overlay" id="importHistoryModal">
+    <div class="im-modal" role="dialog" aria-modal="true" aria-labelledby="ihTitle">
+
+      <!-- Header -->
+      <div class="im-header">
+        <div class="im-header-icon">
+          <i class="fas fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <h2 class="im-title" id="ihTitle">Import History</h2>
+          <p class="im-subtitle">Track and review all file import jobs</p>
+        </div>
+        <button class="im-close" onclick="closeModal('importHistoryModal')" aria-label="Close">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Search toolbar -->
+      <div class="im-toolbar">
+        <div class="im-search-wrap">
+          <i class="fas fa-magnifying-glass im-search-icon"></i>
+          <input type="text" id="historyFilterFileName"
+                 class="im-search-input"
+                 placeholder="Search by file name…"
+                 onkeyup="onHistorySearchInput()" />
+          <button id="btnClearHistorySearch" class="im-clear-btn" onclick="clearHistorySearch()" style="display:none" aria-label="Clear">
+            <i class="fas fa-circle-xmark"></i>
+          </button>
+        </div>
+        <button class="im-btn-primary" onclick="searchImportHistory()">
+          <i class="fas fa-magnifying-glass"></i>
+          <span>Search</span>
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="im-table-wrap">
+        <table class="im-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>File Name</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Records</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="importHistoryTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Pagination -->
+      <div class="im-footer">
+        <div class="im-pagination">
+          <button id="btnHistoryPrev" class="im-pg-btn" onclick="prevHistoryPage()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span id="historyPgInfo" class="im-pg-info">Page 1 / 1</span>
+          <button id="btnHistoryNext" class="im-pg-btn" onclick="nextHistoryPage()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <button class="im-btn-ghost" onclick="closeModal('importHistoryModal')">Close</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ IMPORT DETAIL MODAL ═══════════════ -->
+  <div class="modal-overlay" id="importDetailModal">
+    <div class="im-modal im-modal-lg" role="dialog" aria-modal="true" aria-labelledby="idTitle">
+
+      <!-- Header -->
+      <div class="im-header im-header-detail">
+        <button class="im-back-btn" onclick="openImportHistoryModal()" aria-label="Back to history">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="flex-grow-1 overflow-hidden">
+          <h2 class="im-title im-title-light" id="idTitle">Batch Details</h2>
+          <p class="im-filename" id="detailFileName">—</p>
+        </div>
+        <button class="im-close im-close-light" onclick="closeModal('importDetailModal')" aria-label="Close">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Stats row -->
+      <div class="im-stats-bar">
+        <div class="im-stat im-stat-status">
+          <span class="im-stat-label">Status</span>
+          <span id="detailStatusBadge"></span>
+        </div>
+        <div class="im-stat">
+          <span class="im-stat-label">Total</span>
+          <span class="im-stat-value" id="detailTotal">—</span>
+        </div>
+        <div class="im-stat im-stat-success">
+          <span class="im-stat-label">
+            <i class="fas fa-circle-check"></i> Success
+          </span>
+          <span class="im-stat-value im-success" id="detailSuccess">—</span>
+        </div>
+        <div class="im-stat im-stat-danger">
+          <span class="im-stat-label">
+            <i class="fas fa-circle-xmark"></i> Failed
+          </span>
+          <span class="im-stat-value im-danger" id="detailFailed">—</span>
+        </div>
+      </div>
+
+      <!-- Search toolbar -->
+      <div class="im-toolbar im-toolbar-light">
+        <div class="im-search-wrap">
+          <i class="fas fa-envelope im-search-icon"></i>
+          <input type="text" id="detailFilterEmail"
+                 class="im-search-input"
+                 placeholder="Filter by email address…"
+                 onkeyup="onDetailSearchInput()" />
+          <button id="btnClearDetailSearch" class="im-clear-btn" onclick="clearDetailSearch()" style="display:none" aria-label="Clear">
+            <i class="fas fa-circle-xmark"></i>
+          </button>
+        </div>
+        <button class="im-btn-primary" onclick="searchBatchRows()">
+          <i class="fas fa-magnifying-glass"></i>
+          <span>Search</span>
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="im-table-wrap">
+        <table class="im-table">
+          <thead>
+            <tr>
+              <th style="width:70px">#</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th style="width:110px">Role</th>
+              <th style="width:120px">Status</th>
+              <th>Error Message</th>
+            </tr>
+          </thead>
+          <tbody id="importDetailTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Pagination -->
+      <div class="im-footer">
+        <div class="im-pagination">
+          <button id="btnDetailPrev" class="im-pg-btn" onclick="prevDetailPage()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span id="detailPgInfo" class="im-pg-info">Page 1 / 1</span>
+          <button id="btnDetailNext" class="im-pg-btn" onclick="nextDetailPage()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <button class="im-btn-ghost" onclick="closeModal('importDetailModal')">Close</button>
+      </div>
+
     </div>
   </div>
 

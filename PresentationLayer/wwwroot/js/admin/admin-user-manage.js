@@ -183,6 +183,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ── RETRIEVE ────────────────────────────────────────────────────
 
+let loadUsersTimeout = null;
+function debouncedLoadUsers() {
+  if (loadUsersTimeout) clearTimeout(loadUsersTimeout);
+  loadUsersTimeout = setTimeout(() => {
+    loadUsers();
+  }, 1000);
+}
+
 async function loadUsers() {
 
   const params = new URLSearchParams({
@@ -621,6 +629,448 @@ async function submitReactivate() {
   }
 }
 
+// ── IMPORT EXCEL ──────────────────────────────────────────────
+
+let activeImports = new Map(); // batchId -> state
+
+async function submitImport(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('importFile');
+  if (!fileInput.files.length) return;
+
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const btnSubmit = document.getElementById('btnImportSubmit');
+  const btnCancel = document.getElementById('btnImportCancel');
+
+  btnSubmit.disabled = true;
+  btnCancel.disabled = true;
+  btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+  document.getElementById('importProgress').style.display = 'block';
+  document.getElementById('importStats').style.display = 'none';
+  document.getElementById('importErrorLog').style.display = 'none';
+  document.getElementById('importProgressBar').style.width = '0%';
+  document.getElementById('importPercentage').textContent = '0%';
+  document.getElementById('importStatusText').textContent = 'Uploading file...';
+
+  try {
+    const res = await fetch('/admin/user-manage?handler=ImportUsers', {
+      method: 'POST',
+      headers: {
+        'RequestVerificationToken': getAntiForgery()
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      activeImports.set(data.batchId, { status: 'Pending' });
+      document.getElementById('importStatusText').textContent = 'Initializing...';
+    } else {
+      document.getElementById('importStatusText').textContent = 'Failed';
+      document.getElementById('importErrorLog').style.display = 'block';
+      let errorHtml = `<strong>${escapeHtml(data.message)}</strong>`;
+      if (data.errors && data.errors.length) {
+        errorHtml += '<ul>' + data.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>';
+      }
+      document.getElementById('importErrorLog').innerHTML = errorHtml;
+      resetImportForm();
+    }
+  } catch (err) {
+    document.getElementById('importStatusText').textContent = 'Network error';
+    resetImportForm();
+  }
+}
+
+function handleImportProgress(update) {
+  const batchId = update.resourceId;
+  const props = update.properties;
+
+  if (!activeImports.has(batchId)) {
+    activeImports.set(batchId, { status: 'Unknown' });
+  }
+
+  const progressBar = document.getElementById('importProgressBar');
+  const percentageTxt = document.getElementById('importPercentage');
+  const statusTxt = document.getElementById('importStatusText');
+  const statsDiv = document.getElementById('importStats');
+
+  // If this update is for the batch currently displayed in the modal (the latest one)
+  // we update the UI. If it's a background batch, we just track it.
+  // For simplicity, let's assume the UI is tracking the most recent batch we submitted.
+  const latestBatchId = Array.from(activeImports.keys()).pop();
+  const isCurrentUI = (batchId === latestBatchId);
+
+  if (props.status) {
+    activeImports.get(batchId).status = props.status;
+  }
+
+  if (isCurrentUI) {
+    if (props.status === 'Parsing') {
+      statusTxt.textContent = 'Parsing file...';
+      progressBar.style.width = '100%';
+      progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+      percentageTxt.textContent = '';
+    }
+    else if (props.status === 'Validated') {
+      statusTxt.textContent = 'Validated file, preparing import...';
+      progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+      progressBar.style.width = '0%';
+    }
+    else if (props.status === 'Failed' && update.action === "progress-updated") {
+      statusTxt.textContent = 'Failed';
+      progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+      const log = document.getElementById('importErrorLog');
+      log.style.display = 'block';
+      log.innerHTML = `<strong>Error:</strong> ${escapeHtml(props.error || 'Unknown error')}`;
+      resetImportForm();
+    }
+  }
+
+  if (update.action === "progress-updated" && props.processedRows !== undefined) {
+    if (isCurrentUI) {
+      statsDiv.style.display = 'flex';
+      document.getElementById('importSuccessCount').textContent = props.successRows;
+      document.getElementById('importFailedCount').textContent = props.failedRows;
+      document.getElementById('importTotalCount').textContent = props.totalRows;
+
+      progressBar.style.width = props.percentage + '%';
+      percentageTxt.textContent = props.percentage + '%';
+      statusTxt.textContent = `Processing row ${props.processedRows}/${props.totalRows} - ${escapeHtml(props.lastRowEmail || '')}`;
+
+      if (props.lastRowStatus === 'Failed' && props.lastRowError) {
+        const log = document.getElementById('importErrorLog');
+        log.style.display = 'block';
+        const ul = log.querySelector('ul') || (log.innerHTML = '<ul></ul>', log.querySelector('ul'));
+        ul.insertAdjacentHTML('afterbegin', `<li>${escapeHtml(props.lastRowEmail)}: ${escapeHtml(props.lastRowError)}</li>`);
+      }
+    }
+
+    // Refresh user list in the background as new users are imported
+    if (props.lastRowStatus === 'Success') {
+      debouncedLoadUsers();
+    }
+  } else if (update.action === "updated" && (props.status === "Completed" || props.status === "PartiallyCompleted" || props.status === "Failed")) {
+    if (isCurrentUI) {
+      progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+      progressBar.style.width = '100%';
+      percentageTxt.textContent = '100%';
+      statusTxt.textContent = props.status === 'Completed' ? 'Import Completed!' : (props.status === 'Failed' ? 'Import Failed!' : 'Completed with some errors');
+      showToast(props.status === 'Completed' ? 'success' : 'warning', `User import finished: ${props.status}`);
+      resetImportForm();
+    }
+    loadUsers();
+  }
+}
+
+function resetImportForm() {
+  const btnSubmit = document.getElementById('btnImportSubmit');
+  const btnCancel = document.getElementById('btnImportCancel');
+
+  btnSubmit.disabled = false;
+  btnCancel.disabled = false;
+  btnSubmit.innerHTML = '<i class="fas fa-upload"></i> Upload & Import';
+}
+
+// ── IMPORT HISTORY & DETAILS ──────────────────────────────────
+
+let historyState = {
+  fileName: '',
+  limit: 10,
+  offset: 0,
+  totalCount: 0
+};
+
+async function openImportHistoryModal() {
+  closeModal('importModal');
+
+  // Reset state
+  historyState = { fileName: '', limit: 10, offset: 0, totalCount: 0 };
+  document.getElementById('historyFilterFileName').value = '';
+  document.getElementById('btnClearHistorySearch').style.display = 'none';
+
+  openModal('importHistoryModal');
+  await loadImportHistory();
+}
+
+function goBackToHistoryModal() {
+  closeModal('importDetailModal');
+  openModal('importHistoryModal');
+}
+
+function onHistorySearchInput() {
+  const val = document.getElementById('historyFilterFileName').value;
+  document.getElementById('btnClearHistorySearch').style.display = val ? 'inline-flex' : 'none';
+}
+
+async function searchImportHistory() {
+  historyState.fileName = document.getElementById('historyFilterFileName').value;
+  historyState.offset = 0;
+  await loadImportHistory();
+}
+
+function clearHistorySearch() {
+  document.getElementById('historyFilterFileName').value = '';
+  document.getElementById('btnClearHistorySearch').style.display = 'none';
+  searchImportHistory();
+}
+
+async function prevHistoryPage() {
+  if (historyState.offset === 0) return;
+  historyState.offset -= historyState.limit;
+  await loadImportHistory();
+}
+
+async function nextHistoryPage() {
+  historyState.offset += historyState.limit;
+  await loadImportHistory();
+}
+
+async function loadImportHistory() {
+  const tbody = document.getElementById('importHistoryTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+  try {
+    const params = new URLSearchParams({
+      limit: historyState.limit,
+      offset: historyState.offset,
+      fileName: historyState.fileName
+    });
+    const res = await fetch(`/admin/user-manage?handler=ImportHistory&${params}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    historyState.totalCount = data.totalCount;
+
+    // Update Pagination UI
+    const page = Math.floor(historyState.offset / historyState.limit) + 1;
+    const totalPages = historyState.totalCount > 0 ? Math.ceil(historyState.totalCount / historyState.limit) : 1;
+    document.getElementById('historyPgInfo').textContent = `Page ${page} / ${totalPages}`;
+    document.getElementById('btnHistoryPrev').disabled = (historyState.offset === 0);
+    document.getElementById('btnHistoryNext').disabled = (historyState.offset + historyState.limit >= historyState.totalCount);
+
+    // Fallback for empty/undefined data.items (in case of JSON casing issues)
+    const items = data.items || data.Items || [];
+
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">No import history found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = items.map(b => {
+      const pct = b.totalRows ? Math.round((b.processedRows / b.totalRows) * 100) : 0;
+      let badgeClass = 'im-badge-muted';
+      let icon = 'fa-circle';
+      if (b.status === 4) { badgeClass = 'im-badge-success'; icon = 'fa-circle-check'; }
+      else if (b.status === 5) { badgeClass = 'im-badge-warning'; icon = 'fa-triangle-exclamation'; }
+      else if (b.status === 6) { badgeClass = 'im-badge-danger'; icon = 'fa-circle-xmark'; }
+      else { badgeClass = 'im-badge-info'; icon = 'fa-spinner fa-spin'; }
+
+      const statusMap = { 0: 'Pending', 1: 'Parsing', 2: 'Validated', 3: 'Processing', 4: 'Completed', 5: 'Partial', 6: 'Failed' };
+      const statusText = statusMap[b.status] || 'Unknown';
+      const dateStr = new Date(b.createdAt).toLocaleString('vi-VN', { hour12: false });
+
+      return `
+        <tr>
+          <td>
+            <div style="font-size:.8rem;font-weight:600;color:#1e293b;">${dateStr}</div>
+          </td>
+          <td>
+            <div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;" title="${escapeHtml(b.fileName)}">${escapeHtml(b.fileName)}</div>
+          </td>
+          <td><span class="im-badge ${badgeClass}"><i class="fas ${icon}"></i> ${statusText}</span></td>
+          <td>
+            <div class="im-progress">
+              <div class="im-progress-track"><div class="im-progress-fill" style="width:${pct}%"></div></div>
+              <span class="im-progress-text">${pct}%</span>
+            </div>
+          </td>
+          <td>
+            <div class="im-records">
+              <span class="im-chip-ok"><i class="fas fa-check"></i> ${b.successRows}</span>
+              <span class="im-chip-sep">/</span>
+              <span class="im-chip-err"><i class="fas fa-times"></i> ${b.failedRows}</span>
+            </div>
+          </td>
+          <td>
+            <button class="im-btn-detail" onclick="openImportDetailModal('${b.id}', '${escapeHtml(b.fileName)}')">
+              <i class="fas fa-table-list"></i> Details
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load history.</td></tr>';
+  }
+}
+
+let detailState = {
+  batchId: '',
+  fileName: '',
+  email: '',
+  limit: 10,
+  offset: 0,
+  totalCount: 0
+};
+
+async function openImportDetailModal(batchId, fileName) {
+  closeModal('importHistoryModal');
+
+  detailState = { batchId, fileName, email: '', limit: 10, offset: 0, totalCount: 0 };
+  document.getElementById('detailFilterEmail').value = '';
+  document.getElementById('btnClearDetailSearch').style.display = 'none';
+  document.getElementById('detailFileName').textContent = fileName;
+
+  const tbody = document.getElementById('importDetailTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading details...</td></tr>';
+  openModal('importDetailModal');
+
+  try {
+    const res = await fetch(`/admin/user-manage?handler=ImportBatchDetail&batchId=${batchId}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    let statusClass = 'im-badge-muted';
+    let icon = 'fa-circle';
+    if (data.summary.status === 4) { statusClass = 'im-badge-success'; icon = 'fa-circle-check'; }
+    else if (data.summary.status === 5) { statusClass = 'im-badge-warning'; icon = 'fa-triangle-exclamation'; }
+    else if (data.summary.status === 6) { statusClass = 'im-badge-danger'; icon = 'fa-circle-xmark'; }
+    else { statusClass = 'im-badge-info'; icon = 'fa-spinner fa-spin'; }
+
+    const statusMap = { 0: 'Pending', 1: 'Parsing', 2: 'Validated', 3: 'Processing', 4: 'Completed', 5: 'Partial', 6: 'Failed' };
+    const statusText = statusMap[data.summary.status] || 'Unknown';
+    document.getElementById('detailStatusBadge').innerHTML = `<span class="im-badge ${statusClass}"><i class="fas ${icon}"></i> ${statusText}</span>`;
+
+    // Store batch-level counts in state for reference
+    detailState.totalRows = data.summary.totalRows ?? 0;
+    detailState.successRows = data.summary.successRows ?? 0;
+    detailState.failedRows = data.summary.failedRows ?? 0;
+
+    _renderDetailStats(detailState.totalRows, detailState.successRows, detailState.failedRows);
+
+    await loadImportBatchRows();
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load batch summary.</td></tr>';
+  }
+}
+
+function onDetailSearchInput() {
+  const val = document.getElementById('detailFilterEmail').value;
+  document.getElementById('btnClearDetailSearch').style.display = val ? 'inline-flex' : 'none';
+}
+
+async function searchBatchRows() {
+  detailState.email = document.getElementById('detailFilterEmail').value;
+  detailState.offset = 0;
+  await loadImportBatchRows();
+}
+
+function clearDetailSearch() {
+  document.getElementById('detailFilterEmail').value = '';
+  document.getElementById('btnClearDetailSearch').style.display = 'none';
+  searchBatchRows();
+}
+
+async function prevDetailPage() {
+  if (detailState.offset === 0) return;
+  detailState.offset -= detailState.limit;
+  await loadImportBatchRows();
+}
+
+async function nextDetailPage() {
+  detailState.offset += detailState.limit;
+  await loadImportBatchRows();
+}
+
+/**
+ * Renders the three stat counters in the Batch Details header.
+ * @param {number} total
+ * @param {number} success
+ * @param {number} failed
+ */
+function _renderDetailStats(total, success, failed) {
+  document.getElementById('detailTotal').textContent = total.toLocaleString();
+  document.getElementById('detailSuccess').textContent = success.toLocaleString();
+  document.getElementById('detailFailed').textContent = failed.toLocaleString();
+}
+
+async function loadImportBatchRows() {
+  const tbody = document.getElementById('importDetailTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading rows...</td></tr>';
+
+  try {
+    const params = new URLSearchParams({
+      batchId: detailState.batchId,
+      limit: detailState.limit,
+      offset: detailState.offset,
+      email: detailState.email
+    });
+
+    const res = await fetch(`/admin/user-manage?handler=ImportBatchRows&${params}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    detailState.totalCount = data.totalCount;
+
+    // If we're filtering by email, compute success/failed from the full filtered set
+    // (totalCount is always the full filtered count from the server).
+    // When no filter is active, use the batch-level counts stored earlier.
+    if (detailState.email) {
+      // Count from current page items for approximate display
+      const pageItems = data.items || [];
+      const pgSuccess = pageItems.filter(r => r.status === 1).length;
+      const pgFailed = pageItems.filter(r => r.status === 2).length;
+      // Show filtered totals (use server totalCount as total)
+      _renderDetailStats(data.totalCount, pgSuccess, pgFailed);
+    } else {
+      _renderDetailStats(detailState.totalRows, detailState.successRows, detailState.failedRows);
+    }
+
+    const page = Math.floor(detailState.offset / detailState.limit) + 1;
+    const totalPages = detailState.totalCount > 0 ? Math.ceil(detailState.totalCount / detailState.limit) : 1;
+    document.getElementById('detailPgInfo').textContent = `Page ${page} / ${totalPages}`;
+    document.getElementById('btnDetailPrev').disabled = (detailState.offset === 0);
+    document.getElementById('btnDetailNext').disabled = (detailState.offset + detailState.limit >= detailState.totalCount);
+
+    const items = data.items || data.Items || [];
+
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">No rows found matching search criteria.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = items.map(r => {
+      let rStatHtml = '';
+      if (r.status === 0) rStatHtml = '<span class="im-badge im-badge-muted">Pending</span>';
+      else if (r.status === 1) rStatHtml = '<span class="im-badge im-badge-success"><i class="fas fa-check"></i> Success</span>';
+      else if (r.status === 2) rStatHtml = '<span class="im-badge im-badge-danger"><i class="fas fa-times"></i> Failed</span>';
+      else if (r.status === 3) rStatHtml = '<span class="im-badge im-badge-skipped"><i class="fas fa-ban"></i> Skipped</span>';
+
+      const errHtml = r.errorMessage
+        ? `<span style="color:#dc2626;font-size:.8rem;" title="${escapeHtml(r.errorMessage)}">${escapeHtml(r.errorMessage.length > 60 ? r.errorMessage.slice(0, 60) + '…' : r.errorMessage)}</span>`
+        : '<span style="color:#94a3b8;">—</span>';
+
+      return `
+              <tr>
+                <td style="font-weight:700;color:#6366f1;">${r.rowNumber}</td>
+                <td style="font-weight:500;">${escapeHtml(r.fullName)}</td>
+                <td style="color:#4f46e5;">${escapeHtml(r.email)}</td>
+                <td><span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:600;">${escapeHtml(r.role)}</span></td>
+                <td>${rStatHtml}</td>
+                <td>${errHtml}</td>
+              </tr>
+            `;
+    }).join('');
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load details.</td></tr>';
+  }
+}
+
 // ── SIGNALR EVENT HANDLERS ───────────────────────────────
 
 const resConn =
@@ -637,6 +1087,10 @@ resConn.on(
         showToast('info', `${resUpd.resourceName ? "User [" + resUpd.resourceName + "] has" : "Users have"} been updated.`);
         await loadUsers();
         break;
+      case ResourceType.ImportBatch:
+      case "import-batch":
+        handleImportProgress(resUpd);
+        break;
     }
   }
 );
@@ -644,6 +1098,7 @@ resConn.on(
 resConn
   .start()
   .then(() => resConn.invoke(HubMethod.JoinResourceType, ResourceType.User))
+  .then(() => resConn.invoke(HubMethod.JoinResourceType, ResourceType.ImportBatch))
   .then(() => window.connId = resConn.connectionId)
   .then(() =>
     $("<input>")

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Domain.Contracts.DTOs;
 
@@ -43,6 +43,9 @@ public enum ResourceType
     ChatSession,
 
     // ChatMessages are managed by AiChatHub
+
+    [JsonStringEnumMemberName("import-batch")]
+    ImportBatch,
 }
 
 public enum ResourceAction
@@ -61,4 +64,7 @@ public enum ResourceAction
 
     [JsonStringEnumMemberName("enabled")]
     Enabled,
+
+    [JsonStringEnumMemberName("progress-updated")]
+    ProgressUpdated,
 }
