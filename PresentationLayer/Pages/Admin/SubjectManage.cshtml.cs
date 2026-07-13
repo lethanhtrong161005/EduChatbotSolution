@@ -5,6 +5,7 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
 using Presentation.ViewModels;
 
 namespace Presentation.Pages.Admin;
@@ -59,9 +60,21 @@ public class SubjectManageModel(
             var subjects = await _subjectService.GetPagedSubjectsAsync(code, name, limit, offset);
             return new JsonResult(subjects);
         }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -71,7 +84,7 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnPostCreateSubjectAsync([FromBody] AdminCreateSubjectVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid input data." });
+            return BadRequest(new { Success = false, Error = "Invalid input data." });
 
         try
         {
@@ -87,15 +100,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true, subject });
+            return new JsonResult(new { Success = true, subject });
         }
-        catch (Exception ex) when (ex is EntityValidationException or EntityConflictException)
+        catch (EntityNotFoundException ex)
         {
-            return new JsonResult(new { success = false, error = ex.Message });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"System error: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -105,9 +126,9 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnPutUpdateSubjectAsync([FromQuery] int id, [FromBody] AdminUpdateSubjectVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid input data." });
+            return BadRequest(new { Success = false, Error = "Invalid input data." });
         if (id != vm.Id)
-            return BadRequest(new { success = false, error = "Subject ID mismatch." });
+            return BadRequest(new { Success = false, Error = "Subject ID mismatch." });
 
         try
         {
@@ -123,15 +144,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true, subject });
+            return new JsonResult(new { Success = true, subject });
         }
-        catch (Domain.Exceptions.EntityValidationException ex)
+        catch (EntityNotFoundException ex)
         {
-            return new JsonResult(new { success = false, error = ex.Message });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"System error: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -156,11 +185,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true });
+            return new JsonResult(new { Success = true });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"Error deleting subject: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -174,9 +215,21 @@ public class SubjectManageModel(
             var chapters = await _subjectService.GetChaptersBySubjectIdAsync(subjectId);
             return new JsonResult(chapters.Select(c => new { c.Id, c.Name, c.ChapterNumber }));
         }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -186,7 +239,7 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnPostCreateChapterAsync([FromBody] AdminCreateChapterVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid input data." });
+            return BadRequest(new { Success = false, Error = "Invalid input data." });
 
         try
         {
@@ -207,15 +260,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true, chapter });
+            return new JsonResult(new { Success = true, chapter });
         }
-        catch (Domain.Exceptions.EntityValidationException ex)
+        catch (EntityNotFoundException ex)
         {
-            return new JsonResult(new { success = false, error = ex.Message });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"System error: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -225,9 +286,9 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnPutUpdateChapterAsync([FromQuery] int id, [FromBody] AdminUpdateChapterVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid input data." });
+            return BadRequest(new { Success = false, Error = "Invalid input data." });
         if (id != vm.Id)
-            return BadRequest(new { success = false, error = "Chapter ID mismatch." });
+            return BadRequest(new { Success = false, Error = "Chapter ID mismatch." });
 
         try
         {
@@ -248,15 +309,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true, chapter });
+            return new JsonResult(new { Success = true, chapter });
         }
-        catch (Domain.Exceptions.EntityValidationException ex)
+        catch (EntityNotFoundException ex)
         {
-            return new JsonResult(new { success = false, error = ex.Message });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"System error: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -287,11 +356,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true });
+            return new JsonResult(new { Success = true });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"Error deleting chapter: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -312,9 +393,21 @@ public class SubjectManageModel(
             ));
             return new JsonResult(list);
         }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -324,7 +417,7 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnGetGetEligibleUsersAsync([FromQuery] int subjectId, [FromQuery] string role, [FromQuery] string? search)
     {
         if (!Enum.TryParse<MembershipRole>(role, true, out var membershipRole))
-            return BadRequest(new { success = false, error = "Invalid assignment role." });
+            return BadRequest(new { Success = false, Error = "Invalid assignment role." });
 
         try
         {
@@ -336,9 +429,21 @@ public class SubjectManageModel(
             ));
             return new JsonResult(list);
         }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -348,9 +453,9 @@ public class SubjectManageModel(
     public async Task<IActionResult> OnPostAssignMemberAsync([FromQuery] int subjectId, [FromBody] AdminAssignMemberVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid input data." });
+            return BadRequest(new { Success = false, Error = "Invalid input data." });
         if (!Enum.TryParse<MembershipRole>(vm.Role, true, out var membershipRole))
-            return BadRequest(new { success = false, error = "Invalid assignment role." });
+            return BadRequest(new { Success = false, Error = "Invalid assignment role." });
 
         try
         {
@@ -371,15 +476,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true });
+            return new JsonResult(new { Success = true });
         }
-        catch (Domain.Exceptions.EntityValidationException ex)
+        catch (EntityNotFoundException ex)
         {
-            return new JsonResult(new { success = false, error = ex.Message });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"System error: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 
@@ -407,11 +520,23 @@ public class SubjectManageModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            return new JsonResult(new { success = true });
+            return new JsonResult(new { Success = true });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { success = false, error = $"Error removing member: {ex.Message}" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}: {ex.Message}" });
         }
     }
 }

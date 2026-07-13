@@ -38,7 +38,7 @@ public class ProcessingPaymentModel(
     {
         if (string.IsNullOrEmpty(transactionId))
         {
-            throw new EntityValidationException("Missing or invalid payment transaction code.", nameof(Domain.Entities.Payment.ExternalTransactionCode));
+            throw new BadRequestException("Missing or invalid payment transaction code.", transactionId);
         }
 
         var payment = await GetAndValidatePaymentAsync(transactionId, cxlTkn);
@@ -92,7 +92,7 @@ public class ProcessingPaymentModel(
     {
         if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out var paymentId))
         {
-            throw new EntityValidationException("Missing or invalid payment transaction code.", nameof(Domain.Entities.Payment.ExternalTransactionCode));
+            throw new BadRequestException("Missing or invalid payment transaction code.", id);
         }
 
         var payment = await GetAndValidatePaymentAsync(paymentId.ToString(), cxlTkn);

@@ -110,8 +110,11 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             cancellationToken)
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
-        if (source.ChatRole != ChatRole.Assistant || source.Status != MessageStatus.Completed || source.InReplyToMessageId is null)
+        if (source.ChatRole != ChatRole.Assistant || source.Status != MessageStatus.Completed)
             throw new EntityConflictException("Only a completed assistant message can be regenerated.", nameof(ChatMessage.Status));
+
+        if (source.InReplyToMessageId is null)
+            throw new InvalidOperationException("The assistant message is missing user reply target.");
 
         _ = await LockMessageAsync(source.InReplyToMessageId.Value, sessionId, cancellationToken)
             ?? throw new InvalidOperationException("The assistant message has no valid user reply target.");
@@ -169,8 +172,11 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             cancellationToken)
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
-        if (target.ChatRole != ChatRole.Assistant || target.InReplyToMessageId is null)
+        if (target.ChatRole != ChatRole.Assistant)
             throw new EntityConflictException("Only an assistant variant can be selected.", nameof(ChatMessage.ChatRole));
+
+        if (target.InReplyToMessageId is null)
+            throw new InvalidOperationException("The assistant message is missing user reply target.");
 
         _ = await LockMessageAsync(target.InReplyToMessageId.Value, sessionId, cancellationToken)
             ?? throw new InvalidOperationException("The assistant message has no valid user reply target.");

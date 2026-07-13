@@ -135,19 +135,19 @@ public class SubjectServiceTests
     }
 
     [Test]
-    public void CreateSubjectAsync_EmptyCode_ThrowsBadRequestException()
+    public void CreateSubjectAsync_EmptyCode_ThrowsEntityValidationException()
     {
         Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateSubjectAsync("", "Test Subject", null));
     }
 
     [Test]
-    public void CreateSubjectAsync_EmptyName_ThrowsBadRequestException()
+    public void CreateSubjectAsync_EmptyName_ThrowsEntityValidationException()
     {
         Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateSubjectAsync("CS101", "", null));
     }
 
     [Test]
-    public void CreateSubjectAsync_DuplicateCode_ThrowsBadRequestException()
+    public void CreateSubjectAsync_DuplicateCode_ThrowsEntityConflictException()
     {
         // Arrange
         var duplicateSubject = new Subject { Code = "CS101", Name = "Existing" };
@@ -254,7 +254,7 @@ public class SubjectServiceTests
     }
 
     [Test]
-    public void CreateChapterAsync_EmptyName_ThrowsBadRequestException()
+    public void CreateChapterAsync_EmptyName_ThrowsEntityValidationException()
     {
         Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateChapterAsync(_random.Next(), "", 1));
     }
@@ -295,7 +295,7 @@ public class SubjectServiceTests
     }
 
     [Test]
-    public void AssignMember_StudentToLecturerRole_ThrowsBadRequestException()
+    public void AssignMember_StudentToLecturerRole_ThrowsEntityConflictException()
     {
         // Arrange
         var subjectId = _random.Next();
@@ -348,7 +348,7 @@ public class SubjectServiceTests
     }
 
     [Test]
-    public void AssignMember_ChiefDuplicate_ThrowsBadRequestException()
+    public void AssignMember_ChiefDuplicate_ThrowsEntityConflictException()
     {
         // Arrange
         var subjectId = _random.Next();
@@ -381,7 +381,7 @@ public class SubjectServiceTests
     }
 
     [Test]
-    public void AssignMember_InactiveUser_ThrowsBadRequestException()
+    public void AssignMember_InactiveUser_ThrowsEntityConflictException()
     {
         // Arrange
         var subjectId = _random.Next();

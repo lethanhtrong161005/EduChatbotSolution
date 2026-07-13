@@ -126,7 +126,7 @@ public class ChatPersistenceService(
         TitleGenerationMetrics metrics,
         CancellationToken cxlTkn = default)
     {
-        if (title == string.Empty)
+        if (string.IsNullOrWhiteSpace(title))
             throw new EntityValidationException("Title must not be empty", nameof(ChatSession.Title));
 
         var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cxlTkn)
