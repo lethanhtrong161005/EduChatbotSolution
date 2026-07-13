@@ -35,3 +35,10 @@ public class Subject : CategoryLikeEntity
 
     public virtual ICollection<TestQuestion> TestQuestions { get; } = [];
 }
+
+public enum SubjectIndexAvailability
+{
+    Ready = 0,
+    Reindexing = 1,
+    Failed = 2,
+}

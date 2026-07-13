@@ -148,9 +148,9 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<Experiment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ExperimentConfigurationSnapshot>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestResponseContext>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<UserImportBatch>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<UserImportRow>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<TestResponseContext>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
 
         modelBuilder.Entity<ApplicationUserRole>()
             .HasKey(e => new { e.UserId, e.RoleId });
