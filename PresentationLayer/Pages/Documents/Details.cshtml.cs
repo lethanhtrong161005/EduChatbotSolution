@@ -7,6 +7,7 @@ using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
 using Presentation.DTOs;
 using Presentation.Extensions;
 using Presentation.ViewModels;
@@ -130,21 +131,44 @@ public class DetailsModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     public async Task<IActionResult> OnGetChunksAsync(Guid id, [FromQuery] int pageIndex, CancellationToken cxlTkn)
     {
-        var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
-            id,
-            PageSize,
-            pageIndex,
-            cxlTkn);
-
-        var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
-        var pageDto = new ChunkPreviewPageDto
+        try
         {
-            Chunks = chunkDtos,
-            PageIndex = chunks.PageIndex,
-            TotalPages = chunks.TotalPages,
-        };
+            var chunks = (PaginatedList<Chunk>)(PaginatedEnumerable<Chunk>)await _documentService.GetChunksAsync(
+                id,
+                PageSize,
+                pageIndex,
+                cxlTkn);
 
-        return new JsonResult(pageDto);
+            var chunkDtos = _mapper.Map<List<ChunkPreviewDto>>(chunks);
+            var pageDto = new ChunkPreviewPageDto
+            {
+                Chunks = chunkDtos,
+                PageIndex = chunks.PageIndex,
+                TotalPages = chunks.TotalPages,
+            };
+
+            return new JsonResult(pageDto);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>

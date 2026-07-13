@@ -1,4 +1,4 @@
-﻿"use strict"
+"use strict"
 
 const ChatTemplates = (function () {
 
@@ -30,16 +30,16 @@ const ChatTemplates = (function () {
     function renderSidebarSessionList(sessions) {
 
         return sessions.map(x => `
-            <button class="chat-session-item w-full text-left px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition"
-                data-session-id="${x.id}">
-
-                <div class="truncate">
-
-                    ${x.title}
-
+            <div class="chat-session-item group relative flex items-center justify-between w-full rounded-xl hover:bg-sidebar-hover transition cursor-pointer"
+                 data-session-id="${x.id}">
+                <div class="truncate flex-1 pl-4 pr-1 py-3 text-left">
+                    ${escapeHtml(x.title)}
                 </div>
-
-            </button>
+                <button class="btn-delete-session hidden group-hover:flex items-center justify-center h-8 w-8 rounded-lg text-muted hover:text-error hover:bg-surface-hover transition mr-2 cursor-pointer border-0 bg-transparent outline-none"
+                        data-session-id="${x.id}">
+                    <i class="fa-regular fa-trash-can text-sm"></i>
+                </button>
+            </div>
         `);
     }
 
@@ -219,10 +219,13 @@ const ChatTemplates = (function () {
 
     function renderAssistantMessage(message) {
 
+        message.responseCount = message._variants ? message._variants.length : 1;
+        message.responseIndex = message._activeVariant ?? 0;
+
         return `
     <article
         class="assistant-message mb-8"
-        data-message-id="${message.id}"
+        data-message-id="${message.id ?? ""}"
         data-client-id="${message._clientId}">
 
         <div class="assistant-message-content max-w-none wrap-normal md:wrap-anywhere prose prose-sm md:prose-base prose-assistant">
@@ -231,7 +234,7 @@ const ChatTemplates = (function () {
 
         </div>
 
-        ${message.status === ChatEnums.MessageStatus.Completed
+        ${(message.status === ChatEnums.MessageStatus.Completed || message.status === ChatEnums.MessageStatus.Failed)
                 ? renderAssistantMessageUtilityBar(message)
                 : ""}
 
@@ -303,8 +306,22 @@ const ChatTemplates = (function () {
 
     function renderAssistantMessageUtilityBar(message) {
 
+        if (message.status === ChatEnums.MessageStatus.Failed) {
+            return `
+                <div class="mt-3 flex items-center gap-1 text-muted text-sm">
+                    <button class="message-retry-btn flex items-center gap-1 rounded-md px-2 py-1 cursor-pointer hover:bg-surface-hover text-error border-0 bg-transparent outline-none"
+                            data-client-id="${message._clientId}">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span class="font-semibold">Retry</span>
+                    </button>
+                </div>
+            `;
+        }
+
         const responseCount = message.responseCount ?? 1;
         const responseIndex = message.responseIndex ?? 0;
+        const activeVariant = message._variants ? message._variants[responseIndex] : null;
+        const isSelected = activeVariant ? activeVariant.isSelected : true;
 
         return `
             <div
@@ -318,7 +335,7 @@ const ChatTemplates = (function () {
 
                         <button
                             class="response-prev-btn
-                                   cursor-pointer hover:text-foreground"
+                                   cursor-pointer hover:text-foreground border-0 bg-transparent outline-none"
                             data-client-id="${message._clientId}">
 
                             <i class="fa-solid fa-chevron-left"></i>
@@ -334,7 +351,7 @@ const ChatTemplates = (function () {
 
                         <button
                             class="response-next-btn
-                                   cursor-pointer hover:text-foreground"
+                                   cursor-pointer hover:text-foreground border-0 bg-transparent outline-none"
                             data-client-id="${message._clientId}">
 
                             <i class="fa-solid fa-chevron-right"></i>
@@ -349,7 +366,7 @@ const ChatTemplates = (function () {
             <button
                 class="message-copy-btn
                        rounded-md px-2 py-1
-                       cursor-pointer hover:bg-surface-hover"
+                       cursor-pointer hover:bg-surface-hover border-0 bg-transparent outline-none"
                 data-client-id="${message._clientId}">
 
                 <i class="fa-regular fa-copy"></i>
@@ -360,7 +377,7 @@ const ChatTemplates = (function () {
             <button
                 class="message-sources-btn
                        rounded-md px-2 py-1
-                       cursor-pointer hover:bg-surface-hover"
+                       cursor-pointer hover:bg-surface-hover border-0 bg-transparent outline-none"
                 data-client-id="${message._clientId}">
 
                 <i class="fa-solid fa-book"></i>
@@ -371,13 +388,29 @@ const ChatTemplates = (function () {
             <button
                 class="message-regenerate-btn
                        rounded-md px-2 py-1
-                       cursor-pointer hover:bg-surface-hover"
+                       cursor-pointer hover:bg-surface-hover border-0 bg-transparent outline-none"
                 data-client-id="${message._clientId}">
 
                 <i class="fa-solid fa-rotate-right"></i>
                 <span class="ml-1">Regenerate</span>
 
             </button>
+
+            ${(activeVariant && !isSelected)
+                ? `
+                    <button
+                        class="message-select-btn
+                               rounded-md px-2 py-1 text-brand font-semibold
+                               cursor-pointer hover:bg-surface-hover border-0 bg-transparent outline-none ml-2"
+                        data-client-id="${message._clientId}">
+                        
+                        <i class="fa-solid fa-check"></i>
+                        <span class="ml-1">Select Response</span>
+        
+                    </button>
+                `
+                : ""
+            }
 
         </div>
             `;

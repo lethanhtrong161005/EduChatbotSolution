@@ -1,0 +1,490 @@
+/**
+ * admin-reports.css
+ * EduChatAI Admin — Reports Dashboard styles
+ * Uses design-system tokens from colors.css.
+ */
+
+/* ── Light-mode token pin ────────────────────────────────────────
+ * colors.css flips --color-surface / --color-text-* / --color-border-*
+ * to dark values under @media (prefers-color-scheme: dark). The admin
+ * shell stays light, so on a dark-OS machine cards rendered dark on a
+ * light page (dark text on dark card = unreadable). Re-declaring the
+ * tokens on the page scope (.rp-page out-specifies :root; custom props
+ * inherit) locks this dashboard to light mode like the other admin pages. */
+.rp-page {
+    --color-surface: #ffffff;
+    --color-surface-alt: #f9fafb;
+    --color-surface-hover: #f3f4f6;
+    --color-card-bg: #ffffff;
+    --color-text-primary: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border-light: #e5e7eb;
+    --color-border-neutral: #d1d5db;
+}
+
+/* ── Page layout ─────────────────────────────────────────────── */
+
+.rp-page {
+    padding: var(--spacing-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+}
+
+.rp-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.rp-section-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin: 0;
+}
+
+.rp-section-subtitle {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-text-secondary);
+}
+
+/* ── Controls bar ────────────────────────────────────────────── */
+
+.rp-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    flex-wrap: wrap;
+    padding: var(--spacing-4) var(--spacing-5);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+}
+
+.rp-controls-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+}
+
+.rp-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rp-select-wrap {
+    position: relative;
+}
+
+.rp-select {
+    appearance: none;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-neutral);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-2) var(--spacing-8) var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    min-width: 11rem;
+}
+
+.rp-select:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+.rp-select-icon {
+    position: absolute;
+    right: var(--spacing-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    pointer-events: none;
+}
+
+.rp-select-wrap--sm .rp-select {
+    min-width: auto;
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-1) var(--spacing-6) var(--spacing-1) var(--spacing-2);
+}
+
+.rp-controls-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-left: auto;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.rp-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--color-secondary);
+    animation: rpPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rpPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* ── KPI Cards ───────────────────────────────────────────────── */
+
+.rp-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: var(--spacing-4);
+}
+
+.rp-kpi-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+    padding: var(--spacing-5);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.rp-kpi-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.rp-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.rp-kpi-icon--blue   { background: rgba(52, 152, 219, 0.12); color: #3498db; }
+.rp-kpi-icon--teal   { background: rgba(26, 188, 156, 0.12); color: #1abc9c; }
+.rp-kpi-icon--green  { background: rgba(46, 204, 113, 0.12); color: #2ecc71; }
+.rp-kpi-icon--purple { background: rgba(155, 89, 182, 0.12); color: #9b59b6; }
+.rp-kpi-icon--orange { background: rgba(243, 156, 18, 0.12); color: #f39c12; }
+.rp-kpi-icon--red    { background: rgba(231, 76,  60, 0.12); color: #e74c3c; }
+
+.rp-kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+    min-width: 0;
+}
+
+.rp-kpi-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    line-height: 1;
+}
+
+.rp-kpi-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Token detail banner ─────────────────────────────────────── */
+
+.rp-token-detail {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: rgba(155, 89, 182, 0.08);
+    border: 1px solid rgba(155, 89, 182, 0.2);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: #9b59b6;
+}
+
+.rp-token-detail i {
+    flex-shrink: 0;
+}
+
+/* ── Chart cards ─────────────────────────────────────────────── */
+
+.rp-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--spacing-4);
+}
+
+.rp-chart-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+    padding: var(--spacing-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.rp-chart-card--wide {
+    flex: 1;
+}
+
+.rp-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+}
+
+.rp-chart-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.rp-chart-wrap {
+    position: relative;
+    height: 220px;
+}
+
+.rp-chart-wrap--bar {
+    height: 260px;
+}
+
+.rp-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Donut chart ─────────────────────────────────────────────── */
+
+.rp-chart-card--donut {
+    align-items: stretch;
+    min-width: 260px;
+}
+
+.rp-donut-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-4);
+    flex: 1;
+}
+
+.rp-donut-wrap canvas {
+    max-width: 200px;
+    max-height: 200px;
+}
+
+.rp-donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    width: 100%;
+}
+
+.rp-donut-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.rp-donut-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.rp-donut-legend-count {
+    margin-left: auto;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ── Title icons ─────────────────────────────────────────────── */
+
+.rp-title-icon {
+    font-size: 1rem;
+}
+
+.rp-title-icon--blue   { color: #3498db; }
+.rp-title-icon--orange { color: #f39c12; }
+.rp-title-icon--red    { color: #e74c3c; }
+
+/* ── Subject comparison layout ───────────────────────────────── */
+
+.rp-subject-comparison {
+    display: flex;
+    gap: var(--spacing-4);
+    flex-wrap: wrap;
+}
+
+/* ── Bottom grid ─────────────────────────────────────────────── */
+
+.rp-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: var(--spacing-4);
+    align-items: start;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+
+.rp-table-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+    overflow: hidden;
+}
+
+.rp-table-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    padding: var(--spacing-4) var(--spacing-5);
+    border-bottom: 1px solid var(--color-border-light);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.rp-table-wrap {
+    overflow-x: auto;
+}
+
+.rp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.rp-table th {
+    padding: var(--spacing-3) var(--spacing-4);
+    text-align: left;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border-light);
+    white-space: nowrap;
+}
+
+.rp-th-num {
+    text-align: right;
+}
+
+.rp-table td {
+    padding: var(--spacing-3) var(--spacing-4);
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.rp-table tr:last-child td {
+    border-bottom: none;
+}
+
+.rp-table tbody tr:hover td {
+    background: var(--color-surface-hover);
+}
+
+.rp-td-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.rp-table-loading td {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--spacing-6);
+}
+
+.rp-table-empty td {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: var(--spacing-6);
+}
+
+/* Coverage badge */
+.rp-coverage {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+.rp-coverage--full    { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+.rp-coverage--partial { background: rgba(243, 156, 18, 0.12); color: #e67e22; }
+.rp-coverage--none    { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; }
+.rp-coverage--unknown { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; font-style: italic; }
+
+/* Health rate badges */
+.rp-rate--high   { color: #e74c3c; font-weight: var(--font-weight-semibold); }
+.rp-rate--medium { color: #f39c12; }
+.rp-rate--low    { color: #27ae60; }
+
+/* ── Error state ─────────────────────────────────────────────── */
+
+.rp-error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    background: rgba(231, 76, 60, 0.08);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: var(--radius-md);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .rp-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rp-chart-card--donut {
+        min-width: unset;
+    }
+}
+
+@media (max-width: 600px) {
+    .rp-page {
+        padding: var(--spacing-4);
+    }
+
+    .rp-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rp-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .rp-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,4 +1,4 @@
-﻿"use strict"
+"use strict"
 
 const ChatSignalR = (function () {
 
@@ -49,6 +49,20 @@ const ChatSignalR = (function () {
                 $(document).trigger(
                     "chat:failed",
                     [assistantMessageId, assistantMessageClientId, error]);
+            });
+
+        connection.on("AssistantVariantCreated",
+            (userMessageId, assistantMessageId, assistantMessageClientId, variantNavigation) => {
+                $(document).trigger(
+                    "chat:variantCreated",
+                    [userMessageId, assistantMessageId, assistantMessageClientId, variantNavigation]);
+            });
+
+        connection.on("AssistantVariantSelected",
+            (userMessageId, assistantMessageId, variantNavigation) => {
+                $(document).trigger(
+                    "chat:variantSelected",
+                    [userMessageId, assistantMessageId, variantNavigation]);
             });
 
         await connection.start();

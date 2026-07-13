@@ -1,0 +1,257 @@
+{
+  "datasetKey": "db201-vi-50-v1",
+  "language": "vi",
+  "subjectCode": "DB201",
+  "questions": [
+    {
+      "externalId": "DB201-VI-001",
+      "question": "Hệ quản trị cơ sở dữ liệu (DBMS) là gì?",
+      "groundTruth": "Hệ quản trị cơ sở dữ liệu (DBMS) là một phần mềm cho phép người dùng định nghĩa, tạo, bảo trì và kiểm soát quyền truy cập vào cơ sở dữ liệu. Nó đóng vai trò trung gian giữa người dùng và cơ sở dữ liệu."
+    },
+    {
+      "externalId": "DB201-VI-002",
+      "question": "Mô hình thực thể liên kết (ERD) dùng để làm gì?",
+      "groundTruth": "Mô hình thực thể liên kết (ERD) là một công cụ trực quan hóa cấu trúc của cơ sở dữ liệu bằng cách biểu diễn các thực thể, thuộc tính của thực thể và mối quan hệ giữa các thực thể đó."
+    },
+    {
+      "externalId": "DB201-VI-003",
+      "question": "Khóa chính (Primary Key) trong bảng cơ sở dữ liệu là gì?",
+      "groundTruth": "Khóa chính là một cột hoặc tập hợp các cột xác định duy nhất mỗi hàng trong bảng. Khóa chính không được phép chứa giá trị NULL và giá trị của nó phải là duy nhất."
+    },
+    {
+      "externalId": "DB201-VI-004",
+      "question": "Khóa ngoại (Foreign Key) là gì và vai trò của nó?",
+      "groundTruth": "Khóa ngoại là một cột hoặc tập hợp các cột trong một bảng tham chiếu đến khóa chính của bảng khác. Vai trò của nó là thiết lập và đảm bảo mối liên kết cũng như tính toàn vẹn tham chiếu giữa dữ liệu của hai bảng."
+    },
+    {
+      "externalId": "DB201-VI-005",
+      "question": "Ràng buộc toàn vẹn (Integrity Constraint) trong cơ sở dữ liệu là gì?",
+      "groundTruth": "Ràng buộc toàn vẹn là các quy tắc được định nghĩa trên các bảng cơ sở dữ liệu để ngăn ngừa việc nhập dữ liệu không hợp lệ, đảm bảo tính chính xác, nhất quán và tin cậy của dữ liệu."
+    },
+    {
+      "externalId": "DB201-VI-006",
+      "question": "Đại số quan hệ (Relational Algebra) là gì?",
+      "groundTruth": "Đại số quan hệ là một ngôn ngữ truy vấn hình thức dựa trên toán học, sử dụng các toán tử để biến đổi một hoặc nhiều quan hệ (bảng) đầu vào thành một quan hệ đầu ra."
+    },
+    {
+      "externalId": "DB201-VI-007",
+      "question": "Phép chọn (Selection) trong đại số quan hệ hoạt động như thế nào?",
+      "groundTruth": "Phép chọn (ký hiệu là sigma) lọc và giữ lại các hàng (tuple) từ một quan hệ thỏa mãn một điều kiện lọc cụ thể."
+    },
+    {
+      "externalId": "DB201-VI-008",
+      "question": "Phép chiếu (Projection) trong đại số quan hệ hoạt động như thế nào?",
+      "groundTruth": "Phép chiếu (ký hiệu là pi) chọn ra các cột (thuộc tính) cụ thể từ một quan hệ và loại bỏ các cột còn lại, đồng thời loại bỏ các hàng trùng lặp nếu có."
+    },
+    {
+      "externalId": "DB201-VI-009",
+      "question": "Phép kết (Join) trong đại số quan hệ là gì?",
+      "groundTruth": "Phép kết là một toán tử kết hợp các hàng từ hai quan hệ dựa trên một điều kiện so sánh thuộc tính chung giữa chúng."
+    },
+    {
+      "externalId": "DB201-VI-010",
+      "question": "SQL là gì?",
+      "groundTruth": "SQL (Structured Query Language) là ngôn ngữ truy vấn cấu trúc tiêu chuẩn được sử dụng rộng rãi để tương tác, quản lý, truy xuất và thao tác dữ liệu trong các hệ quản trị cơ sở dữ liệu quan hệ."
+    },
+    {
+      "externalId": "DB201-VI-011",
+      "question": "Sự khác biệt giữa WHERE và HAVING trong SQL là gì?",
+      "groundTruth": "WHERE được sử dụng để lọc các hàng trước khi dữ liệu được nhóm lại (GROUP BY). HAVING được dùng để lọc các nhóm hàng sau khi phép toán nhóm GROUP BY và các hàm tổng hợp đã được thực hiện."
+    },
+    {
+      "externalId": "DB201-VI-012",
+      "question": "Phép kết ngoài (Outer Join) là gì?",
+      "groundTruth": "Phép kết ngoài là phép kết trả về tất cả các hàng khớp với điều kiện kết hợp cùng với các hàng không khớp từ một hoặc cả hai bảng (điền giá trị NULL cho các cột thiếu tương ứng)."
+    },
+    {
+      "externalId": "DB201-VI-013",
+      "question": "Nêu các loại JOIN cơ bản trong SQL?",
+      "groundTruth": "Các loại JOIN cơ bản bao gồm: INNER JOIN (chỉ trả về các hàng có sự khớp nhau ở cả hai bảng), LEFT JOIN (trả về tất cả các hàng ở bảng bên trái và hàng khớp ở bảng bên phải), RIGHT JOIN (ngược lại với LEFT JOIN), và FULL JOIN (trả về tất cả hàng khi có sự khớp ở một trong hai bảng)."
+    },
+    {
+      "externalId": "DB201-VI-014",
+      "question": "Chỉ mục (Index) là gì và tại sao nó giúp tăng tốc độ truy vấn?",
+      "groundTruth": "Chỉ mục là một cấu trúc dữ liệu lưu trữ các con trỏ trỏ đến vị trí thực tế của dữ liệu trong bảng. Nó tăng tốc độ truy vấn bằng cách giảm số lượng bản ghi cần quét vật lý trên ổ đĩa khi thực hiện tìm kiếm."
+    },
+    {
+      "externalId": "DB201-VI-015",
+      "question": "Chỉ mục B-Tree (B-Tree Index) hoạt động như thế nào?",
+      "groundTruth": "Chỉ mục B-Tree tổ chức dữ liệu dưới dạng cây cân đối, nơi các nút lá chứa con trỏ dữ liệu và tất cả các nút lá nằm ở cùng một độ sâu. Việc tìm kiếm bản ghi được thực hiện bằng cách duyệt cây từ gốc đến lá theo thứ tự khóa, đạt độ phức tạp thời gian O(log N)."
+    },
+    {
+      "externalId": "DB201-VI-016",
+      "question": "Chỉ mục Hash (Hash Index) là gì?",
+      "groundTruth": "Chỉ mục Hash sử dụng một hàm băm (hash function) để ánh xạ trực tiếp giá trị của cột tìm kiếm thành một địa chỉ bộ nhớ chứa bản ghi. Nó cực kỳ nhanh (O(1)) cho các phép so sánh bằng (=), nhưng không hỗ trợ tìm kiếm theo khoảng (<, >, BETWEEN)."
+    },
+    {
+      "externalId": "DB201-VI-017",
+      "question": "Sự khác biệt giữa Clustered Index và Non-clustered Index là gì?",
+      "groundTruth": "Clustered Index sắp xếp vật lý các hàng dữ liệu của bảng theo thứ tự chỉ mục (mỗi bảng chỉ có tối đa một Clustered Index). Non-clustered Index duy trì một cấu trúc chỉ mục riêng biệt và lưu các con trỏ trỏ tới vị trí dữ liệu vật lý (một bảng có thể có nhiều Non-clustered Index)."
+    },
+    {
+      "externalId": "DB201-VI-018",
+      "question": "Chuẩn hóa cơ sở dữ liệu (Database Normalization) là gì?",
+      "groundTruth": "Chuẩn hóa là quá trình phân tích và phân rã các bảng dữ liệu nhằm giảm thiểu sự dư thừa dữ liệu, tránh các dị thường khi thêm, sửa, xóa bản ghi, và đảm bảo các mối quan hệ logic hợp lý."
+    },
+    {
+      "externalId": "DB201-VI-019",
+      "question": "Dạng chuẩn 1 (1NF) yêu cầu điều gì?",
+      "groundTruth": "Dạng chuẩn 1 (1NF) yêu cầu mọi giao điểm của hàng và cột trong bảng đều phải chứa các giá trị nguyên tố (đơn trị), không được chứa các mảng, tập hợp giá trị hoặc thuộc tính đa trị."
+    },
+    {
+      "externalId": "DB201-VI-020",
+      "question": "Dạng chuẩn 2 (2NF) yêu cầu điều gì?",
+      "groundTruth": "Dạng chuẩn 2 (2NF) yêu cầu bảng đã đạt dạng chuẩn 1NF và mọi thuộc tính không khóa phải phụ thuộc hàm đầy đủ vào khóa chính, nghĩa là không được phụ thuộc vào một phần của khóa chính (phần khóa bộ)."
+    },
+    {
+      "externalId": "DB201-VI-021",
+      "question": "Dạng chuẩn 3 (3NF) yêu cầu điều gì?",
+      "groundTruth": "Dạng chuẩn 3 (3NF) yêu cầu bảng đã đạt dạng chuẩn 2NF và không có thuộc tính không khóa nào phụ thuộc bắc cầu vào khóa chính qua một thuộc tính không khóa khác."
+    },
+    {
+      "externalId": "DB201-VI-022",
+      "question": "Dạng chuẩn Boyce-Codd (BCNF) là gì?",
+      "groundTruth": "BCNF là một dạng chuẩn mạnh hơn 3NF. Một bảng đạt BCNF nếu nó ở dạng chuẩn 1NF và đối với mọi phụ thuộc hàm không tầm thường X -> Y, X phải là một khóa siêu khóa (superkey) của bảng."
+    },
+    {
+      "externalId": "DB201-VI-023",
+      "question": "Tại sao đôi khi người ta lại thực hiện khử chuẩn (Denormalization)?",
+      "groundTruth": "Khử chuẩn là việc cố tình đưa dữ liệu dư thừa vào cơ sở dữ liệu đã chuẩn hóa nhằm mục đích giảm số lượng phép JOIN phức tạp khi truy vấn, qua đó tăng hiệu năng đọc dữ liệu của hệ thống."
+    },
+    {
+      "externalId": "DB201-VI-024",
+      "question": "Giao dịch (Transaction) trong cơ sở dữ liệu là gì?",
+      "groundTruth": "Giao dịch là một đơn vị công việc logic bao gồm một chuỗi các thao tác đọc ghi cơ sở dữ liệu được thực thi như một thực thể duy nhất: hoặc tất cả các thao tác đều thành công (commit) hoặc không thao tác nào được áp dụng (rollback)."
+    },
+    {
+      "externalId": "DB201-VI-025",
+      "question": "Nêu ý nghĩa các thuộc tính ACID của giao dịch?",
+      "groundTruth": "ACID đại diện cho: Atomicity (Tính nguyên tử - tất cả hoặc không có gì), Consistency (Tính nhất quán - đảm bảo tính đúng đắn trước và sau giao dịch), Isolation (Tính cô lập - các giao dịch song song không can thiệp nhau), và Durability (Tính bền vững - dữ liệu đã commit được lưu trữ vĩnh viễn)."
+    },
+    {
+      "externalId": "DB201-VI-026",
+      "question": "Thuộc tính Atomicity (Tính nguyên tử) đảm bảo điều gì?",
+      "groundTruth": "Thuộc tính Atomicity đảm bảo rằng nếu bất kỳ thao tác nào trong giao dịch thất bại, toàn bộ giao dịch sẽ bị hủy bỏ và cơ sở dữ liệu được đưa về trạng thái ban đầu giống như giao dịch chưa từng được thực hiện."
+    },
+    {
+      "externalId": "DB201-VI-027",
+      "question": "Thuộc tính Consistency (Tính nhất quán) đảm bảo điều gì?",
+      "groundTruth": "Tính nhất quán đảm bảo giao dịch chỉ chuyển cơ sở dữ liệu từ một trạng thái hợp lệ này sang một trạng thái hợp lệ khác, không vi phạm bất kỳ ràng buộc toàn vẹn nào đã định nghĩa."
+    },
+    {
+      "externalId": "DB201-VI-028",
+      "question": "Thuộc tính Isolation (Tính cô lập) nghĩa là gì?",
+      "groundTruth": "Tính cô lập đảm bảo rằng kết quả thực thi đồng thời các giao dịch độc lập phải giống như khi chúng được thực hiện tuần tự, ngăn chặn các giao dịch nhìn thấy trạng thái trung gian chưa hoàn thành của nhau."
+    },
+    {
+      "externalId": "DB201-VI-029",
+      "question": "Thuộc tính Durability (Tính bền vững) đảm bảo điều gì?",
+      "groundTruth": "Tính bền vững đảm bảo rằng một khi giao dịch đã hoàn tất thành công và được xác nhận (commit), các thay đổi của nó sẽ được ghi lại trên đĩa cứng và không bị mất ngay cả khi hệ thống gặp sự cố mất điện hoặc sập nguồn."
+    },
+    {
+      "externalId": "DB201-VI-030",
+      "question": "Hiện tượng đọc dữ liệu rác (Dirty Read) là gì?",
+      "groundTruth": "Dirty Read xảy ra khi giao dịch A đọc một bản ghi dữ liệu đã bị sửa đổi bởi giao dịch B nhưng giao dịch B chưa thực hiện commit. Nếu giao dịch B sau đó rollback, dữ liệu giao dịch A đọc được sẽ trở nên không hợp lệ."
+    },
+    {
+      "externalId": "DB201-VI-031",
+      "question": "Nêu 4 mức cô lập giao dịch (Transaction Isolation Levels) tiêu chuẩn?",
+      "groundTruth": "Bao gồm: Read Uncommitted (cho phép Dirty Read), Read Committed (ngăn Dirty Read), Repeatable Read (ngăn Dirty Read và Non-repeatable Read), và Serializable (mức cô lập cao nhất, ngăn tất cả dị thường bao gồm cả Phantom Read)."
+    },
+    {
+      "externalId": "DB201-VI-032",
+      "question": "Sự khác biệt giữa Shared Lock và Exclusive Lock là gì?",
+      "groundTruth": "Shared Lock (Khóa S) được áp dụng khi đọc dữ liệu, cho phép nhiều giao dịch khác cùng giữ khóa S để đọc đồng thời. Exclusive Lock (Khóa X) được áp dụng khi ghi dữ liệu, ngăn chặn tất cả các giao dịch khác đọc hoặc ghi trên bản ghi đó cho tới khi khóa được giải phóng."
+    },
+    {
+      "externalId": "DB201-VI-033",
+      "question": "Hiện tượng Deadlock là gì?",
+      "groundTruth": "Deadlock xảy ra khi hai hoặc nhiều giao dịch đồng thời rơi vào trạng thái chờ đợi lẫn nhau để giải phóng các khóa tài nguyên mà chúng cần, dẫn đến việc không giao dịch nào có thể tiếp tục tiến trình thực thi."
+    },
+    {
+      "externalId": "DB201-VI-034",
+      "question": "Bộ tối ưu hóa truy vấn (Query Optimizer) làm nhiệm vụ gì?",
+      "groundTruth": "Query Optimizer phân tích câu lệnh SQL đầu vào, sử dụng số liệu thống kê của cơ sở dữ liệu để ước lượng chi phí của các chiến lược thực thi khác nhau, từ đó chọn ra kế hoạch thực thi hiệu quả nhất (Query Execution Plan)."
+    },
+    {
+      "externalId": "DB201-VI-035",
+      "question": "Kế hoạch thực thi truy vấn (Query Execution Plan) là gì?",
+      "groundTruth": "Kế hoạch thực thi truy vấn là chuỗi các thao tác tuần tự mà hệ quản trị cơ sở dữ liệu sẽ thực hiện để lấy hoặc ghi dữ liệu theo yêu cầu của câu lệnh SQL, ví dụ như quét bảng tuần tự hay quét qua chỉ mục."
+    },
+    {
+      "externalId": "DB201-VI-036",
+      "question": "Cơ sở dữ liệu phân tán (Distributed Database) là gì?",
+      "groundTruth": "CSDL phân tán là một hệ thống cơ sở dữ liệu trong đó dữ liệu được lưu trữ vật lý trên nhiều máy tính (nút) khác nhau được kết nối với nhau qua mạng internet, nhưng hệ thống vẫn hiển thị với người dùng như một cơ sở dữ liệu tập trung duy nhất."
+    },
+    {
+      "externalId": "DB201-VI-037",
+      "question": "Phân chia dữ liệu (Sharding) là gì?",
+      "groundTruth": "Sharding là phương pháp phân vùng dữ liệu theo chiều ngang, chia các bảng lớn thành các phần dữ liệu nhỏ hơn và lưu trữ chúng trên các máy chủ (nút) khác nhau để tăng khả năng chịu tải và mở rộng hệ thống."
+    },
+    {
+      "externalId": "DB201-VI-038",
+      "question": "Nhân bản dữ liệu (Replication) là gì?",
+      "groundTruth": "Replication là quá trình sao chép và duy trì các bản sao dữ liệu giống nhau trên nhiều máy chủ khác nhau nhằm tăng tính sẵn sàng của hệ thống, cải thiện hiệu năng đọc và đảm bảo an toàn dữ liệu khi một nút gặp sự cố."
+    },
+    {
+      "externalId": "DB201-VI-039",
+      "question": "Định lý CAP (CAP Theorem) phát biểu điều gì?",
+      "groundTruth": "Định lý CAP phát biểu rằng một hệ thống phân tán chỉ có thể đảm bảo tối đa hai trong ba yếu tố sau đồng thời: Consistency (Tính nhất quán dữ liệu), Availability (Tính sẵn sàng dịch vụ), và Partition Tolerance (Tính chịu lỗi đường truyền mạng)."
+    },
+    {
+      "externalId": "DB201-VI-040",
+      "question": "Cơ sở dữ liệu NoSQL là gì?",
+      "groundTruth": "NoSQL (Not Only SQL) là thuật ngữ chỉ các hệ quản trị cơ sở dữ liệu phi quan hệ, được thiết kế để lưu trữ dữ liệu không có lược đồ cố định, dễ dàng mở rộng theo chiều ngang và tối ưu cho dữ liệu phi cấu trúc hoặc bán cấu trúc."
+    },
+    {
+      "externalId": "DB201-VI-041",
+      "question": "Sự khác biệt chính giữa cơ sở dữ liệu SQL và NoSQL là gì?",
+      "groundTruth": "SQL lưu trữ dữ liệu dạng bảng quan hệ có lược đồ nghiêm ngặt, mở rộng theo chiều dọc (tăng tài nguyên phần cứng máy chủ). NoSQL lưu dữ liệu linh hoạt (JSON, Key-Value, Graph...), không cần lược đồ cố định và mở rộng theo chiều ngang dễ dàng."
+    },
+    {
+      "externalId": "DB201-VI-042",
+      "question": "Cơ sở dữ liệu hướng tài liệu (Document Database) là gì?",
+      "groundTruth": "CSDL hướng tài liệu lưu trữ dữ liệu dưới dạng các tài liệu tự mô tả như JSON hoặc XML. Mỗi tài liệu chứa các cặp khóa-giá trị, cho phép các cấu trúc dữ liệu lồng nhau phức tạp (ví dụ điển hình là MongoDB)."
+    },
+    {
+      "externalId": "DB201-VI-043",
+      "question": "Cơ sở dữ liệu Khóa - Giá trị (Key-Value Database) là gì?",
+      "groundTruth": "CSDL Khóa - Giá trị lưu trữ dữ liệu dưới dạng tập hợp các cặp khóa và giá trị liên kết. Việc truy xuất dữ liệu cực kỳ nhanh thông qua việc tìm kiếm chính xác bằng khóa (ví dụ điển hình là Redis)."
+    },
+    {
+      "externalId": "DB201-VI-044",
+      "question": "Cơ sở dữ liệu hướng cột (Column-Family Database) là gì?",
+      "groundTruth": "CSDL hướng cột lưu trữ các cột dữ liệu cùng nhau trên đĩa thay vì lưu trữ theo hàng. Cấu trúc này tối ưu hiệu năng cho các truy vấn phân tích dữ liệu lớn trên các cột cụ thể (ví dụ điển hình là Cassandra)."
+    },
+    {
+      "externalId": "DB201-VI-045",
+      "question": "Cơ sở dữ liệu đồ thị (Graph Database) là gì?",
+      "groundTruth": "CSDL đồ thị biểu diễn dữ liệu bằng các nút (nút đại diện thực thể) và các cạnh (cạnh đại diện mối quan hệ giữa các thực thể), tối ưu cho các bài toán truy vấn mối quan hệ phức tạp như mạng xã hội."
+    },
+    {
+      "externalId": "DB201-VI-046",
+      "question": "Cơ sở dữ liệu vector (Vector Database) là gì?",
+      "groundTruth": "CSDL vector là cơ sở dữ liệu chuyên dụng để lưu trữ, quản lý và tìm kiếm các vector embedding đa chiều, thường được sinh ra từ các mô hình học máy và trí tuệ nhân tạo."
+    },
+    {
+      "externalId": "DB201-VI-047",
+      "question": "Vector embedding là gì?",
+      "groundTruth": "Vector embedding là một biểu diễn số học dưới dạng mảng các số thực đa chiều đại diện cho ý nghĩa ngữ nghĩa của một đối tượng dữ liệu (như từ ngữ, câu văn, hình ảnh, âm thanh) trong không gian vector."
+    },
+    {
+      "externalId": "DB201-VI-048",
+      "question": "Tìm kiếm độ tương đồng (Similarity Search) hoạt động như thế nào?",
+      "groundTruth": "Similarity Search tính toán khoảng cách toán học (như khoảng cách Cosine hoặc L2) giữa vector câu hỏi truy vấn và các vector lưu trữ trong cơ sở dữ liệu để tìm ra các bản ghi có sự tương đồng cao nhất về mặt ý nghĩa ngữ nghĩa."
+    },
+    {
+      "externalId": "DB201-VI-049",
+      "question": "Tìm kiếm lân cận gần đúng (ANN) là gì?",
+      "groundTruth": "ANN (Approximate Nearest Neighbor) là một nhóm thuật toán tìm kiếm vector lân cận gần đúng giúp cân bằng giữa độ chính xác và tốc độ, giúp trả về kết quả tìm kiếm vector cực nhanh trên tập dữ liệu hàng triệu bản ghi."
+    },
+    {
+      "externalId": "DB201-VI-050",
+      "question": "Chỉ mục HNSW (Hierarchical Navigable Small World) trong CSDL vector hoạt động như thế nào?",
+      "groundTruth": "HNSW tổ chức các vector dữ liệu thành các cấu trúc đồ thị nhiều tầng lớp liên kết chéo. Tầng cao chứa đồ thị thưa để tìm kiếm định hướng nhanh, tầng thấp chứa đồ thị dày để tìm kiếm chi tiết lân cận, giúp tối ưu hóa thời gian tìm kiếm vector tương đồng."
+    }
+  ]
+}

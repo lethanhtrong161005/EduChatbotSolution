@@ -97,7 +97,7 @@ public class ChatPersistenceService(
             filter: e => e.ChatSessionId == sessionId && (e.ChatRole != ChatRole.Assistant || e.IsSelectedVariant),
             orderBy: q => q.OrderBy(e => e.MessageIndex),
             paginationSettings: limit.HasValue ? (limit.Value, 1) : (0, 0),
-            asNoTracking: true,
+            //asNoTracking: true,
             cancellationToken: cxlTkn);
     }
 
@@ -237,7 +237,7 @@ public class ChatPersistenceService(
         if ((status == MessageStatus.Generating && oldStatus != MessageStatus.Pending)
             || (status == MessageStatus.Pending && oldStatus == MessageStatus.Generating))
         {
-            throw new InvalidOperationException($"Cannot transition from {oldStatus} to {status}.");
+            throw new EntityConflictException($"Cannot transition from {oldStatus} to {status}.");
         }
 
         message.Status = status;

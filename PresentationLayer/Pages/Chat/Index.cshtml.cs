@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.WebUtilities;
 using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
@@ -91,6 +92,26 @@ public class IndexModel(
         {
             return Unauthorized();
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -110,6 +131,26 @@ public class IndexModel(
         {
             return Unauthorized();
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -119,13 +160,36 @@ public class IndexModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     public async Task<IActionResult> OnGetSessionAsync([FromQuery] Guid id, CancellationToken cxlTkn)
     {
-        var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(id, cancellationToken: cxlTkn);
+        try
+        {
+            var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(id, cancellationToken: cxlTkn);
 
-        if (session == null || session.UserId != User.GetUserId())
-            return NotFound();
+            if (session == null || session.UserId != User.GetUserId())
+                return NotFound();
 
-        var dto = _mapper.Map<ChatSessionDto>(session);
-        return new JsonResult(dto);
+            var dto = _mapper.Map<ChatSessionDto>(session);
+            return new JsonResult(dto);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -179,16 +243,36 @@ public class IndexModel(
 
             var res = _mapper.Map<CreateChatSessionResponse>(session);
             return new JsonResult(res);
+
+            static string GetMessageSnippet(string content)
+            {
+                content = content[..Math.Min(40, content.Length)];
+                return content[..content.LastIndexOf(' ')];
+            }
         }
         catch (UserClaimException)
         {
             return Unauthorized();
         }
-
-        static string GetMessageSnippet(string content)
+        catch (BadRequestException ex)
         {
-            content = content[..Math.Min(40, content.Length)];
-            return content[..content.LastIndexOf(' ')];
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
         }
     }
 
@@ -244,6 +328,339 @@ public class IndexModel(
         catch (UserClaimException)
         {
             return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a chat session.
+    /// </summary>
+    /// <param name="sessionId">Session identifier.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnDeleteSessionAsync(
+        [FromQuery] Guid sessionId,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(sessionId, cxlTkn);
+
+            if (session == null || session.UserId != userId)
+                return NotFound();
+
+            await _chatPersistenceService.DeleteSessionAsync(sessionId, cxlTkn);
+
+            var update = new ResourceUpdate
+            {
+                ResourceType = ResourceType.ChatSession,
+                Action = ResourceAction.Deleted,
+                ResourceId = sessionId.ToString(),
+                ResourceName = session.Title,
+                Properties =
+                {
+                    { nameof(ChatSession.UserId), session.UserId.ToString() },
+                    { nameof(ChatSession.SubjectId), session.SubjectId?.ToString() ?? string.Empty },
+                },
+            };
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
+
+            return new JsonResult(new DeleteChatSessionResponse { SessionId = sessionId });
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
+    }
+
+    /// <summary>
+    /// Retries a failed assistant message.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="req">The retry request body.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnPostRetryAsync(
+        [FromQuery] Guid sessionId,
+        [FromBody] RetryAssistantMessageRequest req,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(sessionId, cxlTkn);
+
+            if (session == null || session.UserId != userId)
+                return NotFound();
+
+            var resolvedMessage = await _chatPersistenceService.ResetFailedAssistantMessageAsync(sessionId, req.MessageId, cxlTkn);
+
+            BackgroundJob.Enqueue<ChatGenerationJob>(
+                e => e.GenerateAnswerAsync(session.Id, resolvedMessage.Id, req.AssistantMessageClientId));
+
+            var response = new StartAssistantGenerationResponse
+            {
+                AssistantMessageId = resolvedMessage.Id,
+                AssistantMessageClientId = req.AssistantMessageClientId,
+                Status = resolvedMessage.Status,
+                VariantNavigation = _mapper.Map<ChatVariantNavigationDto>(resolvedMessage.VariantNavigation)
+            };
+
+            return new AcceptedResult($"/chat?handler=Variant&sessionId=${sessionId}&messageId={resolvedMessage.Id}", response);
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
+    }
+
+    /// <summary>
+    /// Regenerates an assistant message by creating a new variant.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="req">The regeneration request body.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnPostRegenerateAsync(
+        [FromQuery] Guid sessionId,
+        [FromBody] RegenerateAssistantMessageRequest req,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(sessionId, cxlTkn);
+
+            if (session == null || session.UserId != userId)
+                return NotFound();
+
+            var newVariant = await _chatPersistenceService.CreateAssistantVariantAsync(sessionId, req.MessageId, cxlTkn);
+
+            var variantNavigationDto = _mapper.Map<ChatVariantNavigationDto>(newVariant.VariantNavigation);
+            var userMessageId = newVariant.InReplyToMessageId
+                 ?? throw new InvalidOperationException("Assistant variant is missing user reply target.");
+
+            await _chatHub.Clients
+                .GroupExcept(HubGroups.Chat(session.Id), ChatConnectionId)
+                .AssistantVariantCreated(userMessageId, newVariant.Id, req.AssistantMessageClientId, variantNavigationDto);
+
+            BackgroundJob.Enqueue<ChatGenerationJob>(
+                e => e.GenerateAnswerAsync(session.Id, newVariant.Id, req.AssistantMessageClientId));
+
+            var response = new StartAssistantGenerationResponse
+            {
+                AssistantMessageId = newVariant.Id,
+                AssistantMessageClientId = req.AssistantMessageClientId,
+                Status = newVariant.Status,
+                VariantNavigation = variantNavigationDto
+            };
+
+            return new AcceptedResult($"/chat?handler=Variant&sessionId=${sessionId}&messageId={newVariant.Id}", response);
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
+    }
+
+    /// <summary>
+    /// Returns a specific assistant message variant.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="messageId">The message identifier of the variant.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnGetVariantAsync(
+        [FromQuery] Guid sessionId,
+        [FromQuery] Guid messageId,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(sessionId, cxlTkn);
+
+            if (session == null || session.UserId != userId)
+                return NotFound();
+
+            var variant = await _chatPersistenceService.GetAssistantVariantAsync(sessionId, messageId, cxlTkn);
+            if (variant == null)
+                return NotFound();
+
+            var dto = _mapper.Map<ChatMessageDto>(variant);
+            return new JsonResult(dto);
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
+    }
+
+    /// <summary>
+    /// Selects a specific assistant message variant.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="req">The select variant request body.</param>
+    /// <param name="cxlTkn">A token used to cancel the request.</param>
+    public async Task<IActionResult> OnPutSelectedVariantAsync(
+        [FromQuery] Guid sessionId,
+        [FromBody] SelectAssistantVariantRequest req,
+        CancellationToken cxlTkn)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var session = await _chatPersistenceService.GetSessionInfoByIdAsync(sessionId, cxlTkn);
+
+            if (session == null || session.UserId != userId)
+                return NotFound();
+
+            var resolvedMessage = await _chatPersistenceService.SelectAssistantVariantAsync(sessionId, req.MessageId, cxlTkn);
+
+            var variantNavigationDto = _mapper.Map<ChatVariantNavigationDto>(resolvedMessage.VariantNavigation);
+            var userMessageId = resolvedMessage.InReplyToMessageId ?? Guid.Empty;
+
+            await _chatHub.Clients
+                .GroupExcept(HubGroups.Chat(session.Id), ChatConnectionId)
+                .AssistantVariantSelected(userMessageId, resolvedMessage.Id, variantNavigationDto);
+
+            var update = new ResourceUpdate
+            {
+                ResourceType = ResourceType.ChatSession,
+                Action = ResourceAction.Updated,
+                ResourceId = sessionId.ToString(),
+                ResourceName = session.Title,
+                Properties =
+                {
+                    { nameof(ChatSession.UserId), session.UserId.ToString() },
+                    { nameof(ChatSession.SubjectId), session.SubjectId?.ToString() ?? string.Empty },
+                },
+            };
+
+            await _notifier.PushUpdateAsync(update, CallerConnectionId);
+
+            return new OkResult();
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
         }
     }
 }

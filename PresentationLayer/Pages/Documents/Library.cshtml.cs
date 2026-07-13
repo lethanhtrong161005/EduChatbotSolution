@@ -8,10 +8,12 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.WebUtilities;
 using NuGet.Packaging;
 using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
+using System.Linq.Expressions;
 
 namespace Presentation.Pages.Documents;
 
@@ -78,6 +80,26 @@ public class LibraryModel(
         {
             return Unauthorized();
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -117,6 +139,26 @@ public class LibraryModel(
         {
             return Unauthorized();
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -126,16 +168,39 @@ public class LibraryModel(
         [FromQuery] int subjectId,
         CancellationToken cxlTkn)
     {
-        if (subjectId <= 0)
-            return BadRequest();
+        try
+        {
+            if (subjectId <= 0)
+                return BadRequest();
 
-        var chapters = await _chapterService.GetBySubjectAsync(
-            subjectId,
-            [nameof(Chapter.DocumentChapters)],
-            cxlTkn);
+            var chapters = await _chapterService.GetBySubjectAsync(
+                subjectId,
+                [nameof(Chapter.DocumentChapters)],
+                cxlTkn);
 
-        return new JsonResult(_mapper.Map<List<ChapterSummaryDto>>(
-            chapters.OrderBy(x => x.ChapterNumber)));
+            return new JsonResult(_mapper.Map<List<ChapterSummaryDto>>(
+                chapters.OrderBy(x => x.ChapterNumber)));
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -145,19 +210,42 @@ public class LibraryModel(
         [FromQuery] int id,
         CancellationToken cxlTkn)
     {
-        if (id <= 0)
-            return BadRequest();
+        try
+        {
+            if (id <= 0)
+                return BadRequest();
 
-        // TODO: Move count to DB query
-        var chapter = await _chapterService.GetByIdAsync(
-            id,
-            [nameof(Chapter.Subject), nameof(Chapter.DocumentChapters)],
-            cxlTkn);
+            // TODO: Move count to DB query
+            var chapter = await _chapterService.GetByIdAsync(
+                id,
+                [nameof(Chapter.Subject), nameof(Chapter.DocumentChapters)],
+                cxlTkn);
 
-        if (chapter == null)
-            return NotFound();
+            if (chapter == null)
+                return NotFound();
 
-        return new JsonResult(_mapper.Map<ChapterDetailsDto>(chapter));
+            return new JsonResult(_mapper.Map<ChapterDetailsDto>(chapter));
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -172,50 +260,73 @@ public class LibraryModel(
         [FromQuery] string? search = null,
         CancellationToken cxlTkn = default)
     {
-        if (subjectId <= 0)
-            return BadRequest();
-
-        // TODO: Move pagination to DB query
-        if (!pageSize.HasValue || pageSize <= 0)
-            pageSize = DefaultPageSize;
-
-        pageIndex = Math.Max(1, pageIndex ?? 1);
-
-        var docs = (await _documentService.GetBySubjectAsync(
-            subjectId,
-            [nameof(Document.DocumentChapters), nameof(Document.Uploader)],
-            cxlTkn))
-            .ToList();
-
-        if (chapterId.HasValue)
+        try
         {
-            docs = [.. docs.Where(e => e.DocumentChapters.Select(e => e.ChapterId).Contains(chapterId.Value))];
+            if (subjectId <= 0)
+                return BadRequest();
+
+            // TODO: Move pagination to DB query
+            if (!pageSize.HasValue || pageSize <= 0)
+                pageSize = DefaultPageSize;
+
+            pageIndex = Math.Max(1, pageIndex ?? 1);
+
+            var docs = (await _documentService.GetBySubjectAsync(
+                subjectId,
+                [nameof(Document.DocumentChapters), nameof(Document.Uploader)],
+                cxlTkn))
+                .ToList();
+
+            if (chapterId.HasValue)
+            {
+                docs = [.. docs.Where(e => e.DocumentChapters.Select(e => e.ChapterId).Contains(chapterId.Value))];
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                docs = [.. docs.Where(x => x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))];
+            }
+
+            var totalCount = docs.Count;
+
+            var items = docs
+                .OrderByDescending(x => x.UploadedAt)
+                .Skip((pageIndex.Value - 1) * pageSize.Value)
+                .Take(pageSize.Value)
+                .ToList();
+
+            return new JsonResult(new
+            {
+                SubjectId = subjectId,
+                ChapterId = chapterId,
+                Search = search,
+                PageSize = pageSize,
+                PageIndex = pageIndex,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize.Value),
+                Items = _mapper.Map<List<DocumentFileDto>>(items),
+            });
         }
-
-        if (!string.IsNullOrWhiteSpace(search))
+        catch (BadRequestException ex)
         {
-            docs = [.. docs.Where(x => x.Title.Contains(search, StringComparison.OrdinalIgnoreCase))];
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
-
-        var totalCount = docs.Count;
-
-        var items = docs
-            .OrderByDescending(x => x.UploadedAt)
-            .Skip((pageIndex.Value - 1) * pageSize.Value)
-            .Take(pageSize.Value)
-            .ToList();
-
-        return new JsonResult(new
+        catch (EntityNotFoundException ex)
         {
-            SubjectId = subjectId,
-            ChapterId = chapterId,
-            Search = search,
-            PageSize = pageSize,
-            PageIndex = pageIndex,
-            TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize.Value),
-            Items = _mapper.Map<List<DocumentFileDto>>(items),
-        });
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -317,6 +428,26 @@ public class LibraryModel(
         {
             return Unauthorized();
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
+        }
     }
 
     /// <summary>
@@ -370,6 +501,26 @@ public class LibraryModel(
         catch (UserClaimException)
         {
             return Unauthorized();
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
+        catch (EntityNotFoundException ex)
+        {
+            return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
+        }
+        catch (EntityValidationException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}", ex.Property });
+        }
+        catch (EntityConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status409Conflict)}: {ex.Message}", ex.Property });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status500InternalServerError)}" });
         }
     }
 }

@@ -60,6 +60,10 @@ public class SubjectManageModel(
             var subjects = await _subjectService.GetPagedSubjectsAsync(code, name, limit, offset);
             return new JsonResult(subjects);
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -101,6 +105,10 @@ public class SubjectManageModel(
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { Success = true, subject });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {
@@ -146,6 +154,10 @@ public class SubjectManageModel(
 
             return new JsonResult(new { Success = true, subject });
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -187,6 +199,10 @@ public class SubjectManageModel(
 
             return new JsonResult(new { Success = true });
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -214,6 +230,10 @@ public class SubjectManageModel(
         {
             var chapters = await _subjectService.GetChaptersBySubjectIdAsync(subjectId);
             return new JsonResult(chapters.Select(c => new { c.Id, c.Name, c.ChapterNumber }));
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {
@@ -261,6 +281,10 @@ public class SubjectManageModel(
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { Success = true, chapter });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {
@@ -311,6 +335,10 @@ public class SubjectManageModel(
 
             return new JsonResult(new { Success = true, chapter });
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -358,6 +386,10 @@ public class SubjectManageModel(
 
             return new JsonResult(new { Success = true });
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -392,6 +424,10 @@ public class SubjectManageModel(
                 m.AssignedAt
             ));
             return new JsonResult(list);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {
@@ -428,6 +464,10 @@ public class SubjectManageModel(
                 u.Email ?? string.Empty
             ));
             return new JsonResult(list);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {
@@ -478,6 +518,10 @@ public class SubjectManageModel(
 
             return new JsonResult(new { Success = true });
         }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
+        }
         catch (EntityNotFoundException ex)
         {
             return NotFound(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status404NotFound)}: {ex.Message}" });
@@ -521,6 +565,10 @@ public class SubjectManageModel(
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
             return new JsonResult(new { Success = true });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { Error = $"{ReasonPhrases.GetReasonPhrase(StatusCodes.Status400BadRequest)}: {ex.Message}" });
         }
         catch (EntityNotFoundException ex)
         {

@@ -1,0 +1,306 @@
+/* ============================================================
+   ADMIN EXPERIMENT CREATE CSS
+   EduChatAI – AI Experiment Creation Page Styles
+   ============================================================ */
+
+.experiment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.padding-card {
+    padding: 20px 24px;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.col-6 {
+    flex: 0 0 calc(50% - 8px);
+}
+
+.col-4 {
+    flex: 0 0 calc(33.333% - 10.66px);
+}
+
+.mb-3 {
+    margin-bottom: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.form-control {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    color: #1f2937;
+    background-color: #fff;
+    transition: all 0.15s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ── Preflight Status Box ────────────────────────────────────── */
+.preflight-status-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.preflight-status-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.preflight-status-details {
+    flex: 1;
+}
+
+.preflight-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.preflight-desc {
+    font-size: 12px;
+    margin: 4px 0 0 0;
+    line-height: 1.4;
+}
+
+/* Preflight states */
+.preflight-pending {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #4b5563;
+}
+.preflight-pending .preflight-status-icon {
+    background: #e5e7eb;
+    color: #4b5563;
+}
+
+.preflight-checking {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+.preflight-checking .preflight-status-icon {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.preflight-compatible {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.preflight-compatible .preflight-status-icon {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.preflight-warning {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+}
+.preflight-warning .preflight-status-icon {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.preflight-blocked {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+.preflight-blocked .preflight-status-icon {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* ── Dataset & Question Selector ──────────────────────────────── */
+.header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dataset-shortcuts {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-shortcut {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-shortcut:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.btn-shortcut-clear {
+    background: #fff;
+    color: #ef4444;
+    border-color: #fca5a5;
+}
+
+.btn-shortcut-clear:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+}
+
+.question-list-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.selected-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.question-scroll-list {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #fafafa;
+}
+
+.question-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.1s ease;
+    gap: 10px;
+}
+
+.question-item:last-child {
+    border-bottom: none;
+}
+
+.question-item:hover {
+    background: #f3f4f6;
+}
+
+.question-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.question-details {
+    flex: 1;
+}
+
+.question-id-badge {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 11px;
+    color: #4b5563;
+    background: #e5e7eb;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.question-text {
+    font-size: 13px;
+    color: #1f2937;
+    line-height: 1.4;
+}
+
+/* ── Launch Actions ───────────────────────────────────────────── */
+.launch-actions-wrapper {
+    margin-top: 10px;
+}
+
+.btn-launch-experiment {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-launch-experiment:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-launch-experiment:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive grid layout */
+@media(max-width: 1024px) {
+    .experiment-grid {
+        grid-template-columns: 1fr;
+    }
+}

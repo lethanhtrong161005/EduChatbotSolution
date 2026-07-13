@@ -1,4 +1,4 @@
-﻿"use strict"
+"use strict"
 
 window.Chat = (function () {
 
@@ -321,6 +321,17 @@ window.Chat = (function () {
                 await loadSession(_concurrencyToken = crypto.randomUUID(), sessionId);
             });
 
+        $(document).on(
+            "click",
+            ".btn-delete-session",
+            async function (e) {
+                e.stopPropagation();
+                const sessionId = $(this).data("session-id");
+                if (confirm("Are you sure you want to delete this chat session?")) {
+                    await deleteSession(sessionId);
+                }
+            });
+
         window.addEventListener(
             "popstate",
             async function () {
@@ -608,6 +619,26 @@ window.Chat = (function () {
 
                 switchVariant(msgClientId, 1);
             });
+
+        /* Retry */
+
+        $(document).on(
+            "click",
+            ".message-retry-btn",
+            function () {
+                const msgClientId = $(this).data("client-id");
+                retryMessage(msgClientId);
+            });
+
+        /* Select Response */
+
+        $(document).on(
+            "click",
+            ".message-select-btn",
+            function () {
+                const msgClientId = $(this).data("client-id");
+                selectVariant(msgClientId);
+            });
     }
 
     function bindSignalREvents() {
@@ -654,6 +685,20 @@ window.Chat = (function () {
 
                 onGenerationFailed(assistantMessageId, assistantMessageClientId, error);
             });
+
+        $(document).on(
+            "chat:variantCreated",
+            function (_, userMessageId, assistantMessageId, assistantMessageClientId, variantNavigation) {
+
+                onAssistantVariantCreated(userMessageId, assistantMessageId, assistantMessageClientId, variantNavigation);
+            });
+
+        $(document).on(
+            "chat:variantSelected",
+            function (_, userMessageId, assistantMessageId, variantNavigation) {
+
+                onAssistantVariantSelected(userMessageId, assistantMessageId, variantNavigation);
+            });
     }
 
     /* ==========================================================
@@ -670,6 +715,7 @@ window.Chat = (function () {
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
             });
 
@@ -714,6 +760,7 @@ window.Chat = (function () {
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
             });
 
@@ -737,7 +784,8 @@ window.Chat = (function () {
     async function loadSession(
         conTkn,
         sessionId = null,
-        pushHistory = true) {
+        pushHistory = true,
+        preserveInput = false) {
 
         if (!sessionId)
             await loadLandingSession(pushHistory);
@@ -750,8 +798,22 @@ window.Chat = (function () {
         updateState_ScopeSubjectHeaders();
         updateUi_ActiveSessionHighlight();
 
-        clearInput();
-        setInputEnabled(true);
+        if (!preserveInput) {
+            clearInput();
+        }
+        const isGenerating = _activeSession?.messages?.some(m =>
+            m.chatRole === ChatEnums.ChatRole.Assistant && (
+                m.status === ChatEnums.MessageStatus.Pending ||
+                m.status === ChatEnums.MessageStatus.Generating ||
+                m.status === ChatEnums.MessageStatus.Streaming
+            )
+        ) ?? false;
+
+        if (isGenerating) {
+            setInputEnabled(false);
+        } else {
+            setInputEnabled(true);
+        }
 
         closeSourcesPanel();
     }
@@ -783,6 +845,7 @@ window.Chat = (function () {
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
             });
 
@@ -822,46 +885,100 @@ window.Chat = (function () {
 
     function normalizeMessage(message) {
 
+        /* FIXME:
+         * regenerateMessage() optimistically appends a temporary variant, replaces the wrapper’s client ID, and waits for the HTTP result. 
+         * 
+         * Server sends AssistantVariantCreated to every other connection.
+         * Any duplicate browser tab viewing the session immediately changes its local wrapper’s _clientId to the originating tab’s client ID.
+         * 
+         * _clientId is not truly client-local anymore—it is a generation correlation ID. Rename to clarify.
+         */
         message._clientId ??= crypto.randomUUID();
 
+        if (message.variantNavigation?.variants?.length > 0) {
+            message._variants = message.variantNavigation.variants.map(v => {
+                const isCurrent = v.messageId === message.id;
+                return {
+                    id: v.messageId,
+                    variantIndex: v.variantIndex,
+                    isSelected: v.isSelected,
+                    status: v.status,
+                    content: isCurrent ? (message.content ?? "") : "",
+                    citations: isCurrent ? (message.citations ?? []) : [],
+                    generationErrors: isCurrent ? (message.generationErrors ?? null) : null,
+                    sentAt: isCurrent ? (message.sentAt ?? null) : null,
+                    _loaded: isCurrent
+                };
+            });
+            message._activeVariant = message.variantNavigation.variants.findIndex(v => v.messageId === message.id);
+            if (message._activeVariant === -1) {
+                message._activeVariant = 0;
+            }
+        } else {
+            message._variants = [
+                {
+                    id: message.id,
+                    variantIndex: message.variantIndex ?? 1,
+                    isSelected: message.isSelectedVariant ?? true,
+                    status: message.status,
+                    content: message.content ?? "",
+                    citations: message.citations ?? [],
+                    generationErrors: message.generationErrors ?? null,
+                    sentAt: message.sentAt ?? null,
+                    _loaded: true
+                }
+            ];
+            message._activeVariant = 0;
+        }
+
+        const variantProps = [
+            "id",
+            "content",
+            "citations",
+            "status",
+            "generationErrors",
+            "sentAt"
+        ];
+
+        variantProps.forEach(prop => {
+            delete message[prop];
+            Object.defineProperty(message, prop, {
+                get() {
+                    return this._variants[this._activeVariant]?.[prop];
+                },
+                set(val) {
+                    if (this._variants[this._activeVariant]) {
+                        this._variants[this._activeVariant][prop] = val;
+                    }
+                },
+                configurable: true,
+                enumerable: true
+            });
+        });
+
         message.getContent = function () {
-            return this._variants[this._activeVariant].content;
+            return this.content ?? "";
         };
 
         message.setContent = function (val) {
-            this._variants[this._activeVariant].content = val;
+            this.content = val;
         };
 
         message.getCitations = function () {
-            return this._variants[this._activeVariant].citations;
+            return this.citations ?? [];
         };
 
         message.setCitations = function (val) {
-            this._variants[this._activeVariant].citations = val;
+            this.citations = val;
         };
 
-        /* TODO */
-
-        message._variants = [
-            {
-                content:
-                    message.content ?? "",
-
-                citations:
-                    message.citations ?? []
+        message._variants.forEach(v => {
+            if (v._loaded && v.citations) {
+                v.citations = v.citations.map(normalizeCitation);
             }
-        ];
-
-        message._activeVariant = 0;
-
-        message.citations =
-            (message.citations ?? [])
-                .map(normalizeCitation);
-
-        /* --- */
+        });
 
         if (message.chatRole === ChatEnums.ChatRole.Assistant) {
-
             message.setContent(
                 processCitations(message.getContent()));
         }
@@ -1050,8 +1167,8 @@ window.Chat = (function () {
             if (assistantMessage._clientId === genChatRes.assistantMessageClientId) {
 
                 assistantMessage.id = genChatRes.assistantMessageId;
-                assistantMessage.sentAt = genChatRes.assistantSentAt;
-                assistantMessage.status = genChatRes.assistantStatus
+                assistantMessage.sentAt = genChatRes.assistantMessageSentAt;
+                assistantMessage.status = genChatRes.assistantMessageStatus
                     ?? ChatEnums.MessageStatus.Pending;
 
                 $(`[data-client-id='${assistantMessage._clientId}']`)
@@ -1077,6 +1194,7 @@ window.Chat = (function () {
                 headers: {
                     RequestVerificationToken: getAntiForgery(),
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
                 data: {
                     subjectId,
@@ -1146,8 +1264,16 @@ window.Chat = (function () {
                     await loadSubjectList(_concurrencyToken = crypto.randomUUID());
                 break;
             case ResourceType.ChatSession:
-                if (resUpd.properties["userId"] === Razor.userId)
+                if (resUpd.properties["userId"] === Razor.userId) {
                     await loadSessionList(_concurrencyToken = crypto.randomUUID());
+                    if (_activeSession?.id === resUpd.resourceId) {
+                        if (resUpd.action === ResourceAction.Deleted) {
+                            await loadSession(_concurrencyToken = crypto.randomUUID(), null);
+                        } else if (resUpd.action === ResourceAction.Updated) {
+                            await loadSession(_concurrencyToken = _concurrencyToken, _activeSession.id, false, true);
+                        }
+                    }
+                }
                 break;
         }
     }
@@ -1161,10 +1287,11 @@ window.Chat = (function () {
 
         const dto =
             await $.ajax({
-                url: `/chat?handler=Session&id=${_activeSession.id}`,
+                url: `/chat?handler=GetSession&id=${_activeSession.id}`,
                 method: "GET",
                 headers: {
                     CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
                 },
             });
 
@@ -1185,20 +1312,10 @@ window.Chat = (function () {
         if (!message)
             return;
 
-        if (message.status !== ChatEnums.MessageStatus.Pending) {
-            // TODO: Figure out what this means
-            //
-            // > Did another client of the same session
-            //   initiate retry/regeneration?
-            //
-            // > Race condition?
-            //   Content token arrived before start signal?
-            //
-            return;
-        }
-
         message.status = ChatEnums.MessageStatus.Generating;
+        message.generationErrors = null;
         updateUi_AssistantMessage(message);
+        setInputEnabled(false);
     }
 
     function onReceiveToken(assistantMessageId, assistantMessageClientId, token) {
@@ -1272,11 +1389,67 @@ window.Chat = (function () {
         setInputEnabled(true);
     }
 
+    function onAssistantVariantCreated(userMessageId, assistantMessageId, assistantMessageClientId, variantNavigation) {
+
+        if (!_activeSession?.id)
+            return;
+
+        const message = _activeSession.messages.find(m => m.chatRole === ChatEnums.ChatRole.Assistant && m.inReplyToMessageId === userMessageId);
+        if (!message)
+            return;
+
+        updateVariantsFromNavigation(message, variantNavigation, assistantMessageId);
+
+        const oldVariantClientId = message._clientId;
+        const $oldContainer = $(`[data-client-id='${oldVariantClientId}']`);
+        if ($oldContainer.length > 0) {
+            $oldContainer.attr("data-client-id", assistantMessageClientId);
+        }
+
+        message._clientId = assistantMessageClientId;
+        updateUi_AssistantMessage(message);
+
+        const activeVariant = message._variants[message._activeVariant];
+        if (activeVariant && (
+            activeVariant.status === ChatEnums.MessageStatus.Pending ||
+            activeVariant.status === ChatEnums.MessageStatus.Generating ||
+            activeVariant.status === ChatEnums.MessageStatus.Streaming
+        )) {
+            setInputEnabled(false);
+        }
+    }
+
+    function onAssistantVariantSelected(userMessageId, assistantMessageId, variantNavigation) {
+
+        if (!_activeSession?.id)
+            return;
+
+        const message = _activeSession.messages.find(m => m.chatRole === ChatEnums.ChatRole.Assistant && m.inReplyToMessageId === userMessageId);
+        if (!message)
+            return;
+
+        message.variantNavigation = variantNavigation;
+
+        message._variants.forEach(v => {
+            const matchedOption = variantNavigation.variants.find(o => o.messageId === v.id);
+            if (matchedOption) {
+                v.isSelected = matchedOption.isSelected;
+            }
+        });
+
+        const selectedIndex = variantNavigation.variants.findIndex(v => v.isSelected);
+        if (selectedIndex !== -1) {
+            message._activeVariant = selectedIndex;
+        }
+
+        updateUi_AssistantMessage(message);
+    }
+
     /* ==========================================================
        Variants
        ========================================================== */
 
-    function switchVariant(msgClientId, delta) {
+    async function switchVariant(msgClientId, delta) {
 
         const message = findMessageByClientId(msgClientId);
         if (!message)
@@ -1301,8 +1474,30 @@ window.Chat = (function () {
             nextIndex = 0;
         }
 
-        message._activeVariant =
-            nextIndex;
+        const targetVariant = message._variants[nextIndex];
+        if (!targetVariant._loaded) {
+            try {
+                const dto = await $.ajax({
+                    url: `/chat?handler=Variant&sessionId=${_activeSession.id}&messageId=${targetVariant.id}`,
+                    method: "GET",
+                    headers: {
+                        CallerConnectionId: callerConnectionId,
+                        ChatConnectionId: chatConnectionId,
+                    }
+                });
+
+                targetVariant.content = dto.content ?? "";
+                targetVariant.citations = (dto.citations ?? []).map(normalizeCitation);
+                targetVariant.status = dto.status;
+                targetVariant._loaded = true;
+            } catch (err) {
+                console.error("Failed to load variant content", err);
+                alert("Failed to load variant.");
+                return;
+            }
+        }
+
+        message._activeVariant = nextIndex;
 
         updateMessageFromVariant(message);
 
@@ -1316,13 +1511,7 @@ window.Chat = (function () {
     }
 
     function updateMessageFromVariant(message) {
-
-        const variant =
-            message._variants[
-            message._activeVariant];
-
-        message.content = variant.content;
-        message.citations = variant.citations;
+        // No-op. Handled dynamically via property proxies on the message wrapper.
     }
 
     /* ==========================================================
@@ -1339,43 +1528,212 @@ window.Chat = (function () {
             message.getContent() ?? "");
     }
 
+    function updateVariantsFromNavigation(message, variantNavigation, activeMessageId) {
+        message.variantNavigation = variantNavigation;
+
+        const oldVariantsMap = {};
+        message._variants.forEach(v => {
+            if (v.id) oldVariantsMap[v.id] = v;
+        });
+
+        message._variants = variantNavigation.variants.map(v => {
+            const isCurrent = v.messageId === activeMessageId;
+            const old = oldVariantsMap[v.messageId];
+            return {
+                id: v.messageId,
+                variantIndex: v.variantIndex,
+                isSelected: v.isSelected,
+                status: v.status,
+                content: old ? old.content : "",
+                citations: old ? old.citations : [],
+                generationErrors: old ? old.generationErrors : null,
+                sentAt: old ? old.sentAt : null,
+                _loaded: old ? old._loaded : isCurrent
+            };
+        });
+
+        message._activeVariant = variantNavigation.variants.findIndex(v => v.messageId === activeMessageId);
+        if (message._activeVariant === -1) {
+            message._activeVariant = 0;
+        }
+
+        updateUi_AssistantMessage(message);
+    }
+
     /* ==========================================================
        Regenerate
        ========================================================== */
 
-    function regenerateMessage(
-        msgClientId) {
-
+    async function regenerateMessage(msgClientId) {
         const message = findMessageByClientId(msgClientId);
         if (!message)
             return;
 
-        const variantNumber =
-            message._variants.length + 1;
+        setInputEnabled(false);
 
-        /* TODO */
+        const newVariantClientId = crypto.randomUUID();
 
-        const newVariant = {
+        const tempNewVariant = {
+            id: null,
+            variantIndex: message._variants.length + 1,
+            isSelected: true,
+            status: ChatEnums.MessageStatus.Pending,
+            content: "",
+            citations: [],
+            generationErrors: null,
+            sentAt: null,
+            _loaded: true
+        };
 
-            content:
-                `${message.content}`
-        }
-
-        /* ---- */
-
-        message._variants.push(
-            newVariant);
-
-        message._activeVariant =
-            message._variants.length - 1;
+        message._variants.push(tempNewVariant);
+        const oldActiveVariantIndex = message._activeVariant;
+        message._activeVariant = message._variants.length - 1;
 
         updateMessageFromVariant(message);
 
+        const oldVariantClientId = message._clientId;
+        const $oldContainer = $(`[data-client-id='${oldVariantClientId}']`);
+        if ($oldContainer.length > 0) {
+            $oldContainer.attr("data-client-id", newVariantClientId);
+        }
+
+        message._clientId = newVariantClientId;
+
         updateUi_AssistantMessage(message);
 
-        if (_activeSourcesClientId === message._clientId) {
+        try {
+            const response = await $.ajax({
+                url: `/chat?handler=Regenerate&sessionId=${_activeSession.id}`,
+                method: "POST",
+                contentType: "application/json",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
+                },
+                data: JSON.stringify({
+                    messageId: message._variants[oldActiveVariantIndex].id,
+                    assistantMessageClientId: newVariantClientId,
+                })
+            });
 
-            openSourcesPanel(message._clientId);
+            updateVariantsFromNavigation(message, response.variantNavigation, response.assistantMessageId);
+
+            if (_activeSourcesClientId === oldVariantClientId) {
+                _activeSourcesClientId = newVariantClientId;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to regenerate message.");
+            message._variants.pop();
+            message._activeVariant = oldActiveVariantIndex;
+
+            const $newContainer = $(`[data-client-id='${newVariantClientId}']`);
+            if ($newContainer.length > 0) {
+                $newContainer.attr("data-client-id", oldVariantClientId);
+            }
+            message._clientId = oldVariantClientId;
+
+            updateMessageFromVariant(message);
+            updateUi_AssistantMessage(message);
+            setInputEnabled(true);
+        }
+    }
+
+    /* ==========================================================
+       Delete Session, Retry, Select Variant
+       ========================================================== */
+
+    async function deleteSession(sessionId) {
+        try {
+            await $.ajax({
+                url: `/chat?handler=Session&sessionId=${sessionId}`,
+                method: "DELETE",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
+                }
+            });
+            if (_activeSession?.id === sessionId) {
+                await loadSession(_concurrencyToken = crypto.randomUUID(), null);
+            }
+            await loadSessionList(_concurrencyToken = crypto.randomUUID());
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete chat session.");
+        }
+    }
+
+    async function retryMessage(msgClientId) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
+            return;
+
+        message.status = ChatEnums.MessageStatus.Pending;
+        message.generationErrors = null;
+        updateUi_AssistantMessage(message);
+        setInputEnabled(false);
+
+        try {
+            const response = await $.ajax({
+                url: `/chat?handler=Retry&sessionId=${_activeSession.id}`,
+                method: "POST",
+                contentType: "application/json",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
+                },
+                data: JSON.stringify({
+                    messageId: message.id,
+                    assistantMessageClientId: message._clientId,
+                })
+            });
+
+            updateVariantsFromNavigation(message, response.variantNavigation, response.assistantMessageId);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to retry message.");
+            message.status = ChatEnums.MessageStatus.Failed;
+            message.generationErrors = "Request failed.";
+            updateUi_AssistantMessage(message);
+            setInputEnabled(true);
+        }
+    }
+
+    async function selectVariant(msgClientId) {
+        const message = findMessageByClientId(msgClientId);
+        if (!message)
+            return;
+
+        const activeVariant = message._variants[message._activeVariant];
+        if (activeVariant.isSelected)
+            return;
+
+        try {
+            await $.ajax({
+                url: `/chat?handler=SelectedVariant&sessionId=${_activeSession.id}`,
+                method: "PUT",
+                contentType: "application/json",
+                headers: {
+                    RequestVerificationToken: getAntiForgery(),
+                    CallerConnectionId: callerConnectionId,
+                    ChatConnectionId: chatConnectionId,
+                },
+                data: JSON.stringify({
+                    messageId: activeVariant.id,
+                })
+            });
+
+            message._variants.forEach((v, idx) => {
+                v.isSelected = (idx === message._activeVariant);
+            });
+
+            updateUi_AssistantMessage(message);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to select variant.");
         }
     }
 
