@@ -4,6 +4,10 @@ public record EffectiveAiConfiguration
 {
     public required string ChunkingStrategy { get; init; }
 
+    public required int ChunkSize { get; init; }
+
+    public required int ChunkOverlap { get; init; }
+
     public required string EmbeddingModel { get; init; }
 
     public required int TopK { get; init; }

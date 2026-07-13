@@ -37,4 +37,8 @@
 		<ContainerImageTag>educhatai-aspnetcore</ContainerImageTag>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="UnitTests" />
+	</ItemGroup>
+
 </Project>

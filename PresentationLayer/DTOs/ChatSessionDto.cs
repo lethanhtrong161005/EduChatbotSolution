@@ -27,6 +27,16 @@ public class ChatMessageDto
 
     public MessageStatus Status { get; set; }
 
+    public int? MessageIndex { get; set; }
+
+    public Guid? InReplyToMessageId { get; set; }
+
+    public int? VariantIndex { get; set; }
+
+    public bool IsSelectedVariant { get; set; }
+
+    public ChatVariantNavigationDto? VariantNavigation { get; set; }
+
     public string? GenerationErrors { get; set; }
 
     public List<ChatCitationDto> Citations { get; set; } = [];

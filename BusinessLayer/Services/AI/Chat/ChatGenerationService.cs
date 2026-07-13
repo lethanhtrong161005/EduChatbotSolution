@@ -1,6 +1,7 @@
 ﻿using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Microsoft.Extensions.AI;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -37,16 +38,18 @@ public class ChatGenerationService(
 
         var chatClient = _chatClientFactory.GetChatClient(req.Settings.LlmModel);
 
+        var responseTimer = Stopwatch.StartNew();
         var response = await chatClient.GetResponseAsync(chatMessages, chatOpts, cxlTkn);
+        responseTimer.Stop();
 
         var result = new TitleGenerationResult
         {
             Title = response.Text,
             Metrics = new TitleGenerationMetrics
             {
-                PromptTokens = 0,
-                CompletionTokens = 0,
-                ResponseTimeMs = 0,
+                PromptTokens = ToNullableInt(response.Usage?.InputTokenCount),
+                CompletionTokens = ToNullableInt(response.Usage?.OutputTokenCount),
+                ResponseTimeMs = responseTimer.ElapsedMilliseconds,
             },
         };
 
@@ -79,7 +82,10 @@ public class ChatGenerationService(
         Func<string, Task> onToken,
         CancellationToken cxlTkn = default)
     {
+        var totalTimer = Stopwatch.StartNew();
+        var retrievalTimer = Stopwatch.StartNew();
         var chunkRetrievals = await RetrieveChunksAsync(req, cxlTkn);
+        retrievalTimer.Stop();
         var chunkRetrievalsInContext = chunkRetrievals.Take(req.Settings.MaxContextChunks).ToList();
 
         var chatMessages = GetChatMessages(
@@ -100,16 +106,35 @@ public class ChatGenerationService(
         var chatClient = _chatClientFactory.GetChatClient(req.Settings.LlmModel);
 
         var rawAnswerSb = new StringBuilder();
+        var generationTimer = Stopwatch.StartNew();
+        long? timeToFirstTokenMs = null;
+        UsageDetails? usage = null;
 
         await foreach (var update in chatClient.GetStreamingResponseAsync(chatMessages, chatOpts, cxlTkn))
         {
-            rawAnswerSb.Append(update.Text);
-            await onToken(update.Text);
+            foreach (var usageContent in update.Contents.OfType<UsageContent>())
+                usage = usageContent.Details;
+
+            if (!string.IsNullOrEmpty(update.Text))
+            {
+                timeToFirstTokenMs ??= generationTimer.ElapsedMilliseconds;
+                rawAnswerSb.Append(update.Text);
+                await onToken(update.Text);
+            }
         }
+
+        generationTimer.Stop();
 
         var rawAnswer = rawAnswerSb.ToString();
 
         var (processedAnswer, chunkUsages) = ProcessAnswer(rawAnswer, chunkRetrievalsInContext);
+        totalTimer.Stop();
+
+        var promptTokens = ToNullableInt(usage?.InputTokenCount);
+        var completionTokens = ToNullableInt(usage?.OutputTokenCount);
+        double? tokensPerSecond = completionTokens is > 0 && generationTimer.Elapsed.TotalSeconds > 0
+            ? completionTokens.Value / generationTimer.Elapsed.TotalSeconds
+            : null;
 
         return new ChatGenerationResult
         {
@@ -120,15 +145,18 @@ public class ChatGenerationService(
             ChunkUsages = chunkUsages,
             Metrics = new ChatGenerationMetrics
             {
-                PromptTokens = 0,
-                CompletionTokens = 0,
-                RetrievalTimeMs = 0,
-                TimeToFirstTokenMs = 0,
-                TotalResponseTimeMs = 0,
-                TokensPerSecond = 0,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                RetrievalTimeMs = retrievalTimer.ElapsedMilliseconds,
+                TimeToFirstTokenMs = timeToFirstTokenMs,
+                TotalResponseTimeMs = totalTimer.ElapsedMilliseconds,
+                TokensPerSecond = tokensPerSecond,
             },
         };
     }
+
+    private static int? ToNullableInt(long? value)
+        => value.HasValue ? checked((int)value.Value) : null;
 
     private async Task<IReadOnlyList<ChunkRetrieval>> RetrieveChunksAsync(
         ChatGenerationRequest req,

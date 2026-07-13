@@ -35,13 +35,29 @@ public interface IChatPersistenceService
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
-    Task<ResolvedChatMessage> CreateUserMessageAsync(
+    Task<ChatExchangeResult> CreateExchangeAsync(
         Guid sessionId,
-        string content,
+        string userContent,
         CancellationToken cancellationToken = default);
 
-    Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
+    Task<ResolvedChatMessage> ResetFailedAssistantMessageAsync(
         Guid sessionId,
+        Guid assistantMessageId,
+        CancellationToken cancellationToken = default);
+
+    Task<ResolvedChatMessage> CreateAssistantVariantAsync(
+        Guid sessionId,
+        Guid completedAssistantMessageId,
+        CancellationToken cancellationToken = default);
+
+    Task<ResolvedChatMessage?> GetAssistantVariantAsync(
+        Guid sessionId,
+        Guid assistantMessageId,
+        CancellationToken cancellationToken = default);
+
+    Task<ResolvedChatMessage> SelectAssistantVariantAsync(
+        Guid sessionId,
+        Guid assistantMessageId,
         CancellationToken cancellationToken = default);
 
     Task<bool> UpdateAssistantMessageStatusAsync(

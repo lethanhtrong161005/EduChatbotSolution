@@ -209,8 +209,9 @@ public class IndexModel(
             if (session == null || session.UserId != userId)
                 return NotFound();
 
-            var userMessage = await _chatPersistenceService.CreateUserMessageAsync(session.Id, req.Content, cxlTkn);
-            var assistantMessage = await _chatPersistenceService.CreateStreamingAssistantMessageAsync(session.Id, cxlTkn);
+            var exchange = await _chatPersistenceService.CreateExchangeAsync(session.Id, req.Content, cxlTkn);
+            var userMessage = exchange.UserMessage;
+            var assistantMessage = exchange.AssistantMessage;
 
             await _chatHub.Clients
                 .GroupExcept(HubGroups.Chat(session.Id), ChatConnectionId)

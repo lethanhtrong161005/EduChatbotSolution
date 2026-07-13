@@ -41,6 +41,14 @@ public class Document : NaturalEntity
 
     public string? IndexingErrors { get; set; }
 
+    public string? IndexedChunkingStrategy { get; set; }
+
+    public int? IndexedChunkSize { get; set; }
+
+    public int? IndexedChunkOverlap { get; set; }
+
+    public string? IndexedEmbeddingModel { get; set; }
+
     /// <summary>Gets or sets when the document was uploaded.</summary>
     public DateTime UploadedAt { get; set; }
 

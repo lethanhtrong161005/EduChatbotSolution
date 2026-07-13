@@ -88,6 +88,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="ChatMessage"/> entities.</summary>
     GenericRepository<ChatMessage> ChatMessages { get; }
 
+    ChatTurnRepository ChatTurns { get; }
+
     GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings { get; }
 
     GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; }
@@ -104,8 +106,12 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="Experiment"/> entities.</summary>
     GenericRepository<Experiment> Experiments { get; }
 
+    GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots { get; }
+
     /// <summary>Gets the repository for <see cref="TestResponse"/> entities.</summary>
     GenericRepository<TestResponse> TestResponses { get; }
+
+    GenericRepository<TestResponseContext> TestResponseContexts { get; }
 
     /// <summary>Persists all pending changes to the database.</summary>
     /// <param name="cancellationToken">A cancellation token.</param>

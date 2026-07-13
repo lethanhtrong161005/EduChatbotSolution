@@ -91,9 +91,11 @@ public class ChatPersistenceService(
                 nameof(ChatMessage.Citations),
                 nameof(ChatMessage.Citations) + "." + nameof(Citation.Chunk),
                 nameof(ChatMessage.Citations) + "." + nameof(Citation.Chunk) + "." + nameof(Chunk.Document),
+                nameof(ChatMessage.InReplyToMessage),
+                nameof(ChatMessage.InReplyToMessage) + "." + nameof(ChatMessage.AssistantVariants),
             ],
-            filter: e => e.ChatSessionId == sessionId,
-            orderBy: q => q.OrderBy(e => e.SentAt),
+            filter: e => e.ChatSessionId == sessionId && (e.ChatRole != ChatRole.Assistant || e.IsSelectedVariant),
+            orderBy: q => q.OrderBy(e => e.MessageIndex),
             paginationSettings: limit.HasValue ? (limit.Value, 1) : (0, 0),
             asNoTracking: true,
             cancellationToken: cxlTkn);
@@ -164,47 +166,56 @@ public class ChatPersistenceService(
 
 
 
-    public async Task<ResolvedChatMessage> CreateUserMessageAsync(
+    public async Task<ChatExchangeResult> CreateExchangeAsync(
         Guid sessionId,
-        string content,
+        string userContent,
         CancellationToken cxlTkn = default)
     {
-        var newMessage = _unitOfWork.ChatMessages.Insert(
-            new ChatMessage
-            {
-                ChatSessionId = sessionId,
-                ChatRole = ChatRole.User,
-                Content = content,
-                RawContent = content,
-                SentAt = DateTime.UtcNow,
-                Status = MessageStatus.Completed,
-            });
+        var (userEntity, assistantEntity) = await _unitOfWork.ChatTurns.CreateExchangeAsync(sessionId, userContent, cxlTkn);
+        var userMessage = _mapper.Map<ResolvedChatMessage>(userEntity);
+        var assistantMessage = await ResolveAssistantMessageAsync(assistantEntity, cancellationToken: cxlTkn);
 
-        await _unitOfWork.SaveAsync(cxlTkn);
-
-        var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
-
-        return dto;
+        return new ChatExchangeResult
+        {
+            UserMessage = userMessage,
+            AssistantMessage = assistantMessage,
+        };
     }
 
-    public async Task<ResolvedChatMessage> CreateStreamingAssistantMessageAsync(
+    public async Task<ResolvedChatMessage> ResetFailedAssistantMessageAsync(
         Guid sessionId,
+        Guid assistantMessageId,
         CancellationToken cxlTkn = default)
     {
-        var newMessage = _unitOfWork.ChatMessages.Insert(
-            new ChatMessage
-            {
-                ChatSessionId = sessionId,
-                ChatRole = ChatRole.Assistant,
-                SentAt = DateTime.UtcNow,
-                Status = MessageStatus.Pending,
-            });
+        var message = await _unitOfWork.ChatTurns.ResetFailedAssistantMessageAsync(sessionId, assistantMessageId, cxlTkn);
+        return await ResolveAssistantMessageAsync(message, cancellationToken: cxlTkn);
+    }
 
-        await _unitOfWork.SaveAsync(cxlTkn);
+    public async Task<ResolvedChatMessage> CreateAssistantVariantAsync(
+        Guid sessionId,
+        Guid completedAssistantMessageId,
+        CancellationToken cxlTkn = default)
+    {
+        var message = await _unitOfWork.ChatTurns.CreateAssistantVariantAsync(sessionId, completedAssistantMessageId, cxlTkn);
+        return await ResolveAssistantMessageAsync(message, cancellationToken: cxlTkn);
+    }
 
-        var dto = _mapper.Map<ResolvedChatMessage>(newMessage);
+    public async Task<ResolvedChatMessage?> GetAssistantVariantAsync(
+        Guid sessionId,
+        Guid assistantMessageId,
+        CancellationToken cxlTkn = default)
+    {
+        var message = await _unitOfWork.ChatTurns.GetAssistantVariantAsync(sessionId, assistantMessageId, cxlTkn);
+        return message is null ? null : await ResolveAssistantMessageAsync(message, cancellationToken: cxlTkn);
+    }
 
-        return dto;
+    public async Task<ResolvedChatMessage> SelectAssistantVariantAsync(
+        Guid sessionId,
+        Guid assistantMessageId,
+        CancellationToken cxlTkn = default)
+    {
+        var message = await _unitOfWork.ChatTurns.SelectAssistantVariantAsync(sessionId, assistantMessageId, cxlTkn);
+        return await ResolveAssistantMessageAsync(message, cancellationToken: cxlTkn);
     }
 
     public async Task<bool> UpdateAssistantMessageStatusAsync(
@@ -309,18 +320,50 @@ public class ChatPersistenceService(
 
         await _unitOfWork.SaveAsync(cxlTkn);
 
-        var dto = new ResolvedChatMessage
+        return await ResolveAssistantMessageAsync(message, resolvedCitations, cxlTkn);
+    }
+
+    private async Task<ResolvedChatMessage> ResolveAssistantMessageAsync(
+        ChatMessage message,
+        IReadOnlyList<ResolvedCitation>? citations = null,
+        CancellationToken cancellationToken = default)
+    {
+        var dto = _mapper.Map<ResolvedChatMessage>(message) with
         {
-            Id = message.Id,
-            ChatRole = message.ChatRole,
-            Content = message.Content,
-            SentAt = message.SentAt,
-            Status = message.Status,
-            GenerationErrors = message.GenerationErrors,
-            Citations = resolvedCitations,
+            Citations = citations ?? _mapper.Map<IReadOnlyList<ResolvedCitation>>(message.Citations),
+            VariantNavigation = await CreateVariantNavigationAsync(message, cancellationToken),
         };
 
         return dto;
+    }
+
+    private async Task<ResolvedChatVariantNavigation> CreateVariantNavigationAsync(
+        ChatMessage message,
+        CancellationToken cancellationToken)
+    {
+        if (message.InReplyToMessageId is null || message.VariantIndex is null)
+            throw new EntityConstraintException("The assistant message has no variant identity.");
+
+        var variants = (await _unitOfWork.ChatMessages.GetAsync(
+            filter: item => item.ChatSessionId == message.ChatSessionId && item.InReplyToMessageId == message.InReplyToMessageId,
+            orderBy: query => query.OrderBy(item => item.VariantIndex),
+            asNoTracking: true,
+            cancellationToken: cancellationToken))
+            .ToList();
+
+        return new ResolvedChatVariantNavigation
+        {
+            UserMessageId = message.InReplyToMessageId.Value,
+            CurrentVariantIndex = message.VariantIndex.Value,
+            TotalVariantCount = variants.Count,
+            Variants = [.. variants.Select(item => new ResolvedChatVariantOption
+            {
+                MessageId = item.Id,
+                VariantIndex = item.VariantIndex!.Value,
+                IsSelected = item.IsSelectedVariant,
+                Status = item.Status,
+            })],
+        };
     }
 
     private async Task<IReadOnlyList<ResolvedCitation>> ResolveCitationsAsync(

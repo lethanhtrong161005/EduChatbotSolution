@@ -9,9 +9,9 @@ public record TitleGenerationResult
 
 public record TitleGenerationMetrics
 {
-    public required int PromptTokens { get; init; }
+    public required int? PromptTokens { get; init; }
 
-    public required int CompletionTokens { get; init; }
+    public required int? CompletionTokens { get; init; }
 
     public required long ResponseTimeMs { get; init; }
 }

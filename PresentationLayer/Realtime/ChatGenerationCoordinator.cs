@@ -87,8 +87,13 @@ public class ChatGenerationCoordinator(
             var session = await _chatPersistenceService.GetSessionWithMessagesByIdAsync(sessionId, cancellationToken: cxlTkn)
                           ?? throw new EntityNotFoundException($"Could not find parent session. Provided ID: {sessionId}");
 
-            var targetAssistantMessage = session.Messages.FirstOrDefault(e => e.Id == assistantMessageId)
-                                         ?? throw new EntityNotFoundException($"Could not find target asssistant message. Provided ID: {assistantMessageId}");
+            var targetAssistantMessage = session.Messages.FirstOrDefault(e => e.Id == assistantMessageId);
+            if (targetAssistantMessage is null)
+            {
+                var targetVariant = await _chatPersistenceService.GetAssistantVariantAsync(sessionId, assistantMessageId, cxlTkn)
+                    ?? throw new EntityNotFoundException($"Could not find target assistant message. Provided ID: {assistantMessageId}");
+                targetAssistantMessage = AttachTargetVariant(session, targetVariant);
+            }
 
             if (targetAssistantMessage.Status != MessageStatus.Pending)
                 throw new InvalidOperationException("Assistant message is not pending content generation.");
@@ -155,11 +160,10 @@ public class ChatGenerationCoordinator(
     {
         var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(session.SubjectId, cxlTkn);
 
-        var chatHistory = session.Messages
-            .Where(e => e.Status == MessageStatus.Completed
-                        && e.SentAt < targetAssistantMessage.SentAt)
-            .OrderBy(e => e.SentAt)
-            .TakeLast(aiConfig.MaxHistoryMessages)
+        var chatHistory = SelectHistoryMessages(
+                session.Messages,
+                targetAssistantMessage,
+                aiConfig.MaxHistoryMessages)
             .Select(e => new ChatHistoryMessage
             {
                 ChatRole = e.ChatRole,
@@ -197,5 +201,44 @@ public class ChatGenerationCoordinator(
         };
 
         return request;
+    }
+
+    internal static IReadOnlyList<ChatMessage> SelectHistoryMessages(
+        IEnumerable<ChatMessage> messages,
+        ChatMessage targetAssistantMessage,
+        int maximumMessageCount)
+    {
+        if (targetAssistantMessage.MessageIndex is null)
+            throw new EntityConstraintException("The target assistant message has no logical message index.");
+
+        return [.. messages
+            .Where(message =>
+                message.Status == MessageStatus.Completed &&
+                message.MessageIndex < targetAssistantMessage.MessageIndex &&
+                (message.ChatRole != ChatRole.Assistant || message.IsSelectedVariant))
+            .OrderBy(message => message.MessageIndex)
+            .TakeLast(maximumMessageCount)];
+    }
+
+    internal static ChatMessage AttachTargetVariant(ChatSession session, ResolvedChatMessage targetVariant)
+    {
+        var target = new ChatMessage
+        {
+            Id = targetVariant.Id,
+            ChatSessionId = session.Id,
+            ChatRole = targetVariant.ChatRole,
+            Content = targetVariant.Content,
+            RawContent = targetVariant.Content,
+            SentAt = targetVariant.SentAt,
+            Status = targetVariant.Status,
+            GenerationErrors = targetVariant.GenerationErrors,
+            MessageIndex = targetVariant.MessageIndex,
+            InReplyToMessageId = targetVariant.InReplyToMessageId,
+            VariantIndex = targetVariant.VariantIndex,
+            IsSelectedVariant = targetVariant.IsSelectedVariant,
+        };
+
+        session.Messages.Add(target);
+        return target;
     }
 }

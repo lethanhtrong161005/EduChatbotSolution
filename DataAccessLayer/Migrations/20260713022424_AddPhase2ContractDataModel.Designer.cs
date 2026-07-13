@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713022424_AddPhase2ContractDataModel")]
+    partial class AddPhase2ContractDataModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,10 +104,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
-
-                    b.Property<bool>("MustChangePassword")
-                        .HasColumnType("boolean")
-                        .HasColumnName("must_change_password");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -261,18 +260,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("generation_errors");
 
-                    b.Property<Guid?>("InReplyToMessageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("in_reply_to_message_id");
-
-                    b.Property<bool>("IsSelectedVariant")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_selected_variant");
-
-                    b.Property<int?>("MessageIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("message_index");
-
                     b.Property<string>("RawContent")
                         .IsRequired()
                         .HasColumnType("text")
@@ -291,41 +278,13 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<int?>("VariantIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("variant_index");
-
                     b.HasKey("Id")
                         .HasName("pk_chat_messages");
 
-                    b.HasAlternateKey("Id", "ChatSessionId")
-                        .HasName("ak_chat_messages_id_chat_session_id");
+                    b.HasIndex("ChatSessionId")
+                        .HasDatabaseName("ix_chat_messages_chat_session_id");
 
-                    b.HasIndex("InReplyToMessageId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_chat_messages_in_reply_to_message_id")
-                        .HasFilter("\"is_selected_variant\" = TRUE");
-
-                    b.HasIndex("ChatSessionId", "MessageIndex")
-                        .IsUnique()
-                        .HasDatabaseName("ix_chat_messages_chat_session_id_message_index")
-                        .HasFilter("\"chat_role\" = 1");
-
-                    b.HasIndex("InReplyToMessageId", "ChatSessionId")
-                        .HasDatabaseName("ix_chat_messages_in_reply_to_message_id_chat_session_id");
-
-                    b.HasIndex("InReplyToMessageId", "VariantIndex")
-                        .IsUnique()
-                        .HasDatabaseName("ix_chat_messages_in_reply_to_message_id_variant_index")
-                        .HasFilter("\"chat_role\" = 2");
-
-                    b.HasIndex("ChatSessionId", "MessageIndex", "VariantIndex")
-                        .HasDatabaseName("ix_chat_messages_chat_session_id_message_index_variant_index");
-
-                    b.ToTable("chat_messages", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_chat_messages_turn_variant_shape", "(chat_role = 0 AND message_index IS NULL AND in_reply_to_message_id IS NULL AND variant_index IS NULL AND is_selected_variant = FALSE) OR (chat_role = 1 AND message_index > 0 AND message_index % 2 = 1 AND in_reply_to_message_id IS NULL AND variant_index IS NULL AND is_selected_variant = FALSE) OR (chat_role = 2 AND message_index > 0 AND message_index % 2 = 0 AND in_reply_to_message_id IS NOT NULL AND variant_index > 0)");
-                        });
+                    b.ToTable("chat_messages", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.ChatMessageGenerationMetrics", b =>
@@ -1927,144 +1886,6 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("test_responses", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<int>("FailedRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("failed_rows");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_name");
-
-                    b.Property<Guid>("ImportedById")
-                        .HasColumnType("uuid")
-                        .HasColumnName("imported_by_id");
-
-                    b.Property<int>("ProcessedRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("processed_rows");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<string>("StorageLocator")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("storage_locator");
-
-                    b.Property<int>("SuccessRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("success_rows");
-
-                    b.Property<int>("TotalRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_rows");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_import_batches");
-
-                    b.HasIndex("ImportedById")
-                        .HasDatabaseName("ix_user_import_batches_imported_by_id");
-
-                    b.ToTable("user_import_batches", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportRow", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BatchId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("batch_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<Guid?>("CreatedUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_user_id");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("full_name");
-
-                    b.Property<DateTimeOffset?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("role");
-
-                    b.Property<int>("RowNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("row_number");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_import_rows");
-
-                    b.HasIndex("BatchId")
-                        .HasDatabaseName("ix_user_import_rows_batch_id");
-
-                    b.HasIndex("CreatedUserId")
-                        .HasDatabaseName("ix_user_import_rows_created_user_id");
-
-                    b.ToTable("user_import_rows", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.TestResponseContext", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2262,16 +2083,7 @@ namespace DataAccessLayer.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_chat_messages_chat_sessions_chat_session_id");
 
-                    b.HasOne("Domain.Entities.ChatMessage", "InReplyToMessage")
-                        .WithMany("AssistantVariants")
-                        .HasForeignKey("InReplyToMessageId", "ChatSessionId")
-                        .HasPrincipalKey("Id", "ChatSessionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("fk_chat_messages_chat_messages_in_reply_to_message_id_chat_ses");
-
                     b.Navigation("ChatSession");
-
-                    b.Navigation("InReplyToMessage");
                 });
 
             modelBuilder.Entity("Domain.Entities.ChatMessageGenerationMetrics", b =>
@@ -2634,37 +2446,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("TestResponse");
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.HasOne("Domain.Entities.ApplicationUser", "ImportedBy")
-                        .WithMany()
-                        .HasForeignKey("ImportedById")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_import_batches_users_imported_by_id");
-
-                    b.Navigation("ImportedBy");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportRow", b =>
-                {
-                    b.HasOne("Domain.Entities.UserImportBatch", "Batch")
-                        .WithMany("Rows")
-                        .HasForeignKey("BatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_import_rows_user_import_batches_batch_id");
-
-                    b.HasOne("Domain.Entities.ApplicationUser", "CreatedUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedUserId")
-                        .HasConstraintName("fk_user_import_rows_users_created_user_id");
-
-                    b.Navigation("Batch");
-
-                    b.Navigation("CreatedUser");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Domain.Entities.ApplicationRole", null)
@@ -2726,8 +2507,6 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.ChatMessage", b =>
                 {
-                    b.Navigation("AssistantVariants");
-
                     b.Navigation("Citations");
 
                     b.Navigation("GenerationMetrics");
@@ -2815,11 +2594,6 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("Domain.Entities.TestResponse", b =>
                 {
                     b.Navigation("RetrievedContexts");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.Navigation("Rows");
                 });
 #pragma warning restore 612, 618
         }

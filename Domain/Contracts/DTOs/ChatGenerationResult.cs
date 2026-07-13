@@ -35,15 +35,15 @@ public record ChunkUsage
 
 public record ChatGenerationMetrics
 {
-    public required int PromptTokens { get; init; }
+    public required int? PromptTokens { get; init; }
 
-    public required int CompletionTokens { get; init; }
+    public required int? CompletionTokens { get; init; }
 
     public required long RetrievalTimeMs { get; init; }
 
-    public required long TimeToFirstTokenMs { get; init; }
+    public required long? TimeToFirstTokenMs { get; init; }
 
     public required long TotalResponseTimeMs { get; init; }
 
-    public required double TokensPerSecond { get; init; }
+    public required double? TokensPerSecond { get; init; }
 }

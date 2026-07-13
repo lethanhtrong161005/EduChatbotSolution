@@ -37,13 +37,16 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<ChatSessionTitleGenerationSettings>? _chatSessionTitleGenerationSettings;
     GenericRepository<ChatSessionTitleGenerationMetrics>? _chatSessionTitleGenerationMetrics;
     GenericRepository<ChatMessage>? _chatMessages;
+    ChatTurnRepository? _chatTurns;
     GenericRepository<ChatMessageGenerationSettings>? _chatMessageGenerationSettings;
     GenericRepository<ChatMessageGenerationMetrics>? _chatMessageGenerationMetrics;
     GenericRepository<Citation>? _citations;
     GenericRepository<CitationOccurrence>? _citationOccurrences;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
+    GenericRepository<ExperimentConfigurationSnapshot>? _experimentConfigurationSnapshots;
     GenericRepository<TestResponse>? _testResponses;
+    GenericRepository<TestResponseContext>? _testResponseContexts;
 
     /// <inheritdoc/>
     public GenericRepository<ApplicationUser> Users => _users ??= new GenericRepository<ApplicationUser>(_context);
@@ -95,6 +98,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics => _chatSessionTitleGenerationMetrics ??= new GenericRepository<ChatSessionTitleGenerationMetrics>(_context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(_context);
+    public ChatTurnRepository ChatTurns => _chatTurns ??= new ChatTurnRepository(_context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(_context);
     /// <inheritdoc/>
@@ -107,8 +111,10 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(_context);
     /// <inheritdoc/>
     public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(_context);
+    public GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots => _experimentConfigurationSnapshots ??= new GenericRepository<ExperimentConfigurationSnapshot>(_context);
     /// <inheritdoc/>
     public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(_context);
+    public GenericRepository<TestResponseContext> TestResponseContexts => _testResponseContexts ??= new GenericRepository<TestResponseContext>(_context);
 
     /// <inheritdoc/>
     public async Task SaveAsync(CancellationToken cancellationToken = default)

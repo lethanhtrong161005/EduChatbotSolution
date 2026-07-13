@@ -23,9 +23,21 @@ public class ChatMessage : NaturalEntity
 
     public string? GenerationErrors { get; set; }
 
+    public int? MessageIndex { get; set; }
+
+    public Guid? InReplyToMessageId { get; set; }
+
+    public int? VariantIndex { get; set; }
+
+    public bool IsSelectedVariant { get; set; }
+
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent conversation.</summary>
     public virtual ChatSession ChatSession { get; set; } = null!;
+
+    public virtual ChatMessage? InReplyToMessage { get; set; }
+
+    public virtual ICollection<ChatMessage> AssistantVariants { get; } = [];
 
     public virtual ChatMessageGenerationSettings? GenerationSettings { get; set; }
 

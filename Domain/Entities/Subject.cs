@@ -15,6 +15,8 @@ public class Subject : CategoryLikeEntity
     /// <summary>Gets or sets an optional description of the subject.</summary>
     public string? Description { get; set; }
 
+    public SubjectIndexAvailability IndexAvailability { get; set; } = SubjectIndexAvailability.Ready;
+
     // ── Navigation ──────────────────────────────────────────
     public virtual SubjectAiConfiguration? AiConfiguration { get; set; }
 
@@ -26,4 +28,10 @@ public class Subject : CategoryLikeEntity
     public virtual ICollection<Membership> Memberships { get; } = [];
 
     public virtual ICollection<ApplicationUser> Members { get; } = [];
+
+    public virtual ICollection<Document> Documents { get; } = [];
+
+    public virtual ICollection<Experiment> Experiments { get; } = [];
+
+    public virtual ICollection<TestQuestion> TestQuestions { get; } = [];
 }

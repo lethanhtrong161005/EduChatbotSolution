@@ -6,6 +6,10 @@ public class GlobalAiConfiguration : CategoryLikeEntity
 {
     public string ChunkingStrategy { get; set; } = Constants.ChunkingStrategy.FixedLength;
 
+    public int ChunkSize { get; set; } = 1000;
+
+    public int ChunkOverlap { get; set; } = 200;
+
     public string EmbeddingModel { get; set; } = EmbeddingModelName.NemotronEmbedVLFree;
 
     public int TopK { get; set; } = 15;

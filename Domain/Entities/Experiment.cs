@@ -1,32 +1,26 @@
-﻿namespace Domain.Entities;
+using Domain.Contracts.DTOs;
 
-/// <summary>
-/// Represents a RAG evaluation experiment, mapped to the <c>experiments</c> table.
-/// </summary>
+namespace Domain.Entities;
+
 public class Experiment : NaturalEntity
 {
-    /// <summary>Gets or sets the experiment name.</summary>
     public string ExperimentName { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the text embedding model used (e.g., text-embedding-ada-002).</summary>
-    public string EmbeddingModel { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the chunking strategy used (e.g., fixed-size, semantic).</summary>
-    public string ChunkingStrategy { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the retrieval method used (e.g., cosine similarity).</summary>
-    public string RetrievalMethod { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the LLM used for generation (e.g., gpt-4o).</summary>
-    public string LlmModel { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the average RAGAS score achieved (nullable).</summary>
-    public double? AverageRagasScore { get; set; }
-
-    /// <summary>Gets or sets additional notes about this experiment (nullable).</summary>
+    public int SubjectId { get; set; }
+    public ExperimentStatus Status { get; set; } = ExperimentStatus.Queued;
+    public string QuestionSetKey { get; set; } = string.Empty;
+    public int IndexedDocumentCount { get; set; }
+    public int AffectedDocumentCount { get; set; }
+    public int CompletedQuestionCount { get; set; }
+    public int TotalQuestionCount { get; set; }
+    public double? Faithfulness { get; set; }
+    public double? AnswerRelevancy { get; set; }
+    public double? ContextPrecision { get; set; }
+    public double? ContextRecall { get; set; }
     public string? Notes { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public string? FailureReason { get; set; }
 
-    // ── Navigation ──────────────────────────────────────────
-    /// <summary>Gets or sets the individual question responses for this experiment.</summary>
+    public virtual Subject Subject { get; set; } = null!;
+    public virtual ExperimentConfigurationSnapshot ConfigurationSnapshot { get; set; } = null!;
     public virtual ICollection<TestResponse> TestResponses { get; } = [];
 }

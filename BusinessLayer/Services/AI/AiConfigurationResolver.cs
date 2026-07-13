@@ -26,6 +26,14 @@ public class AiConfigurationResolver(IUnitOfWork unitOfWork) : IAiConfigurationR
                 subjectConfig?.ChunkingStrategy
                 ?? globalConfig.ChunkingStrategy,
 
+            ChunkSize =
+                subjectConfig?.ChunkSize
+                ?? globalConfig.ChunkSize,
+
+            ChunkOverlap =
+                subjectConfig?.ChunkOverlap
+                ?? globalConfig.ChunkOverlap,
+
             EmbeddingModel =
                 subjectConfig?.EmbeddingModel
                 ?? globalConfig.EmbeddingModel,

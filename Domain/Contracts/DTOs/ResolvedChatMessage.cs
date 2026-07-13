@@ -14,6 +14,16 @@ public record ResolvedChatMessage
 
     public required MessageStatus Status { get; init; }
 
+    public required int? MessageIndex { get; init; }
+
+    public required Guid? InReplyToMessageId { get; init; }
+
+    public required int? VariantIndex { get; init; }
+
+    public required bool IsSelectedVariant { get; init; }
+
+    public ResolvedChatVariantNavigation? VariantNavigation { get; init; }
+
     public string? GenerationErrors { get; set; }
 
     public IReadOnlyList<ResolvedCitation> Citations { get; init; } = [];

@@ -4,6 +4,10 @@ public class SubjectAiConfiguration : CategoryLikeEntity
 {
     public string? ChunkingStrategy { get; set; }
 
+    public int? ChunkSize { get; set; }
+
+    public int? ChunkOverlap { get; set; }
+
     public string? EmbeddingModel { get; set; }
 
     public int? TopK { get; set; }

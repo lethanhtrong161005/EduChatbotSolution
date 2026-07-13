@@ -33,4 +33,8 @@ public interface IAiChatClient
     Task GenerationCompleted(Guid assistantMessageId, Guid assistantMessageClientId, ChatMessageDto chatMessageDto);
 
     Task GenerationFailed(Guid assistantMessageId, Guid assistantMessageClientId, string error);
+
+    Task AssistantVariantCreated(Guid userMessageId, Guid assistantMessageId, Guid assistantMessageClientId, ChatVariantNavigationDto variantNavigation);
+
+    Task AssistantVariantSelected(Guid userMessageId, Guid assistantMessageId, ChatVariantNavigationDto variantNavigation);
 }

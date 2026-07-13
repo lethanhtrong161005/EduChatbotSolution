@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713023205_AddChatMessageVariants")]
+    partial class AddChatMessageVariants
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -101,10 +104,6 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
-
-                    b.Property<bool>("MustChangePassword")
-                        .HasColumnType("boolean")
-                        .HasColumnName("must_change_password");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -1927,144 +1926,6 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("test_responses", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<int>("FailedRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("failed_rows");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_name");
-
-                    b.Property<Guid>("ImportedById")
-                        .HasColumnType("uuid")
-                        .HasColumnName("imported_by_id");
-
-                    b.Property<int>("ProcessedRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("processed_rows");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<string>("StorageLocator")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("storage_locator");
-
-                    b.Property<int>("SuccessRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("success_rows");
-
-                    b.Property<int>("TotalRows")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_rows");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_import_batches");
-
-                    b.HasIndex("ImportedById")
-                        .HasDatabaseName("ix_user_import_batches_imported_by_id");
-
-                    b.ToTable("user_import_batches", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportRow", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BatchId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("batch_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<Guid?>("CreatedUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_user_id");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("full_name");
-
-                    b.Property<DateTimeOffset?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("role");
-
-                    b.Property<int>("RowNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("row_number");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_import_rows");
-
-                    b.HasIndex("BatchId")
-                        .HasDatabaseName("ix_user_import_rows_batch_id");
-
-                    b.HasIndex("CreatedUserId")
-                        .HasDatabaseName("ix_user_import_rows_created_user_id");
-
-                    b.ToTable("user_import_rows", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.TestResponseContext", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2634,37 +2495,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("TestResponse");
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.HasOne("Domain.Entities.ApplicationUser", "ImportedBy")
-                        .WithMany()
-                        .HasForeignKey("ImportedById")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_import_batches_users_imported_by_id");
-
-                    b.Navigation("ImportedBy");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportRow", b =>
-                {
-                    b.HasOne("Domain.Entities.UserImportBatch", "Batch")
-                        .WithMany("Rows")
-                        .HasForeignKey("BatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_import_rows_user_import_batches_batch_id");
-
-                    b.HasOne("Domain.Entities.ApplicationUser", "CreatedUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedUserId")
-                        .HasConstraintName("fk_user_import_rows_users_created_user_id");
-
-                    b.Navigation("Batch");
-
-                    b.Navigation("CreatedUser");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Domain.Entities.ApplicationRole", null)
@@ -2815,11 +2645,6 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("Domain.Entities.TestResponse", b =>
                 {
                     b.Navigation("RetrievedContexts");
-                });
-
-            modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>
-                {
-                    b.Navigation("Rows");
                 });
 #pragma warning restore 612, 618
         }

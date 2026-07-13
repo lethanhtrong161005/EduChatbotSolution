@@ -1,44 +1,26 @@
-﻿namespace Domain.Entities;
+using Domain.Contracts.DTOs;
 
-/// <summary>
-/// Represents an individual RAG evaluation result, mapped to the <c>experiment_results</c> table.
-/// </summary>
+namespace Domain.Entities;
+
 public class TestResponse : NaturalEntity
 {
-    /// <summary>Gets or sets the foreign key to the <see cref="Experiment"/>.</summary>
     public Guid ExperimentId { get; set; }
-
-    /// <summary>Gets or sets the foreign key to the <see cref="TestQuestion"/>.</summary>
     public int TestQuestionId { get; set; }
-
-    /// <summary>Gets or sets the generated answer from the RAG pipeline.</summary>
-    public string GeneratedAnswer { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the RAGAS faithfulness score (nullable).</summary>
+    public ExperimentQuestionStatus Status { get; set; } = ExperimentQuestionStatus.Pending;
+    public string? GeneratedAnswer { get; set; }
     public double? Faithfulness { get; set; }
-
-    /// <summary>Gets or sets the RAGAS answer relevancy score (nullable).</summary>
     public double? AnswerRelevancy { get; set; }
-
-    /// <summary>Gets or sets the RAGAS context precision score (nullable).</summary>
     public double? ContextPrecision { get; set; }
-
-    /// <summary>Gets or sets the RAGAS context recall score (nullable).</summary>
     public double? ContextRecall { get; set; }
+    public string? Explanation { get; set; }
+    public string? FailureReason { get; set; }
+    public int? PromptTokens { get; set; }
+    public int? CompletionTokens { get; set; }
+    public long? RetrievalTimeMs { get; set; }
+    public long? TimeToFirstTokenMs { get; set; }
+    public long? TotalResponseTimeMs { get; set; }
 
-    /// <summary>Gets or sets the latency time till the first token generation in milliseconds.</summary>
-    public int LatencyTimeToFirstTokenMs { get; set; }
-
-    /// <summary>Gets or sets the average latency time between generated tokens in milliseconds.</summary>
-    public int LatencyTimePerOutputTokenMs { get; set; }
-
-    /// <summary>Gets or sets the total generation latency in milliseconds.</summary>
-    public int LatencyTotalGenerationTimeMs { get; set; }
-
-    // ── Navigation ──────────────────────────────────────────
-    /// <summary>Gets or sets the parent experiment.</summary>
     public virtual Experiment Experiment { get; set; } = null!;
-
-    /// <summary>Gets or sets the test question this response answers.</summary>
     public virtual TestQuestion TestQuestion { get; set; } = null!;
+    public virtual ICollection<TestResponseContext> RetrievedContexts { get; } = [];
 }
