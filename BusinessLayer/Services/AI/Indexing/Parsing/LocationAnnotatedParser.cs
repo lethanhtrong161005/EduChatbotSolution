@@ -127,7 +127,7 @@ public class LocationAnnotatedParser : IDocumentParser
         }
 
         // Flush at end-of-file.
-        // The check is meant to prevent flushing an empty section from a empty document.
+        // The check is meant to prevent flushing an empty section from an empty document.
         if (sectionText.Length > 0)
         {
             FlushCurrentSection();

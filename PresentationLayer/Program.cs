@@ -78,19 +78,28 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
+
 builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
+
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
-builder.Services.AddSingleton<IDocumentChunker>(new FixedLengthChunker(chunkSize: 1000, overlap: 200));
+
+builder.Services.AddSingleton<IDocumentChunker, FixedLengthChunker>();
+builder.Services.AddSingleton<IDocumentChunker, RecursiveSeparatorChunker>();
+builder.Services.AddSingleton<IDocumentChunker, SentenceParagraphChunker>();
+builder.Services.AddSingleton<IDocumentChunkerSelector, DocumentChunkerSelector>();
+
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
 builder.Services.AddSingleton<IEmbeddingGeneratorFactory, EmbeddingGeneratorFactory>();
 
-builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
-builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
+builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
 
 builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
 builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
-builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
+
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
+
 
 // ── File Storage ──────────────────────────────────────
 var supabaseOpts = builder.Configuration.GetSection("BlobStorage:Supabase").Get<SupabaseOptions>()

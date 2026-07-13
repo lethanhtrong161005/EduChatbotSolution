@@ -12,6 +12,8 @@ public record DocumentStatusUpdate
 
     public string? ParserUsed { get; init; }
 
+    public string? ChunkingStrategy { get; init; }
+
     public int? ChunkCount { get; init; }
 
     public string? EmbeddingModel { get; init; }

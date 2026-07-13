@@ -1,8 +1,13 @@
-﻿namespace Domain.Contracts;
+﻿using Domain.Common;
+using Domain.Contracts.DTOs;
+
+namespace Domain.Contracts;
 
 public interface IDocumentIndexer
 {
-    Task ParseAsync(Guid documentId, CancellationToken cancellationToken = default);
-    Task ChunkAsync(Guid documentId, CancellationToken cancellationToken = default);
-    Task EmbedAsync(Guid documentId, CancellationToken cancellationToken = default);
+    [Retry(Retries = 2)]
+    Task IndexAsync(Guid documentId, CancellationToken cancellationToken = default);
+
+    [Retry(Retries = 2)]
+    Task IndexAsync(Guid documentId, EffectiveAiConfiguration configuration, CancellationToken cancellationToken = default);
 }

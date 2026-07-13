@@ -308,17 +308,7 @@ public class LibraryModel(
             var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
                 uploadJobId,
                 HangfireConstants.LowPriorityQueue,
-                e => e.ParseAsync(doc.Id));
-
-            var chunkJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                parseJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.ChunkAsync(doc.Id));
-
-            BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                chunkJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.EmbedAsync(doc.Id));
+                e => e.IndexAsync(doc.Id));
 
             var dtos = _mapper.Map<DocumentFileDto>(newDoc);
             return new JsonResult(dtos);
@@ -350,9 +340,7 @@ public class LibraryModel(
             HangfireHelper.CancelJobs(doc.Id,
             [
                 nameof(DocumentPersistenceJob.PersistAsync),
-                nameof(IDocumentIndexer.ParseAsync),
-                nameof(IDocumentIndexer.ChunkAsync),
-                nameof(IDocumentIndexer.EmbedAsync),
+                nameof(IDocumentIndexer.IndexAsync),
             ]);
 
             var result = await _fileService.DeleteAsync(doc.Id, cxlTkn);

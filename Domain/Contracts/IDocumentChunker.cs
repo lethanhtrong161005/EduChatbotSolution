@@ -5,5 +5,7 @@ namespace Domain.Contracts;
 
 public interface IDocumentChunker
 {
-    IEnumerable<ChunkResult> Chunk(ParsedSection section, int startIndex = 0);
+    string StrategyName { get; }
+
+    IReadOnlyList<ChunkResult> Chunk(IReadOnlyList<ParsedSection> sections, ChunkingOptions options, int startIndex = 0);
 }

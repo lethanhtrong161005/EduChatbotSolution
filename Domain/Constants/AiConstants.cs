@@ -3,6 +3,8 @@
 public static class ChunkingStrategy
 {
     public const string FixedLength = "FixedLength";
+    public const string RecursiveSeparator = "RecursiveSeparator";
+    public const string SentenceParagraph = "SentenceParagraph";
 }
 
 public static class EmbeddingModelName

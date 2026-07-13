@@ -100,11 +100,6 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-
-        optionsBuilder.ConfigureWarnings((cfg) =>
-        {
-            cfg.Ignore(RelationalEventId.PendingModelChangesWarning);
-        });
     }
 
     /// <inheritdoc/>
@@ -245,8 +240,13 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .HasStorageParameter("ef_construction", 128);
         modelBuilder.Entity<Chunk>()
             .ToTable(table => table.HasCheckConstraint(
-                "ck_chunks_end_page_number",
-                "end_page_number >= start_page_number"));
+                "ck_chunks_page_numbers",
+                "(start_page_number IS NULL AND end_page_number IS NULL) OR " +
+                "(start_page_number IS NOT NULL AND end_page_number IS NOT NULL AND end_page_number >= start_page_number)"))
+            .ToTable(table => table.HasCheckConstraint(
+                "ck_chunks_section_titles",
+                "(start_section_title IS NULL AND end_section_title IS NULL) OR " +
+                "(start_section_title IS NOT NULL AND end_section_title IS NOT NULL)"));
 
         modelBuilder.Entity<ChatSessionTitleGenerationSettings>()
             .HasOne(d => d.ChatSession)

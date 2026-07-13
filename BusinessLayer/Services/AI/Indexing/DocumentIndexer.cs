@@ -3,204 +3,86 @@ using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
+using Microsoft.Extensions.Logging;
+using Pgvector;
 
 namespace Business.Services.AI.Indexing;
 
-public class DocumentIndexer(
+public sealed class DocumentIndexer(
     IDocumentParser parser,
-    IDocumentChunker chunker,
+    IDocumentChunkerSelector chunkerSelector,
     IEmbeddingService embedder,
     IDocumentFileService fileService,
     IAiConfigurationResolver aiConfigResolver,
     IUnitOfWork unitOfWork,
-    IDocumentStatusRealtimeNotifier notifier)
-    : IDocumentIndexer
+    IDocumentStatusRealtimeNotifier notifier,
+    ILogger<DocumentIndexer> logger) : IDocumentIndexer
 {
+    private const int BatchSize = 50;
+
     private readonly IDocumentParser _parser = parser;
-    private readonly IDocumentChunker _chunker = chunker;
+    private readonly IDocumentChunkerSelector _chunkerSelector = chunkerSelector;
     private readonly IEmbeddingService _embedder = embedder;
     private readonly IDocumentFileService _fileService = fileService;
     private readonly IAiConfigurationResolver _aiConfigResolver = aiConfigResolver;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IDocumentStatusRealtimeNotifier _notifier = notifier;
+    private readonly ILogger<DocumentIndexer> _logger = logger;
 
-    private const int BatchSize = 50;
+    public Task IndexAsync(Guid documentId, CancellationToken cxlTkn = default) => IndexCoreAsync(documentId, null, cxlTkn);
+    public Task IndexAsync(Guid documentId, EffectiveAiConfiguration configuration, CancellationToken cxlTkn = default) => IndexCoreAsync(documentId, configuration, cxlTkn);
 
-    public async Task ParseAsync(Guid documentId, CancellationToken cxlTkn = default)
+    private async Task IndexCoreAsync(Guid documentId, EffectiveAiConfiguration? config, CancellationToken cxlTkn)
     {
         var doc = await _unitOfWork.Documents.FindByIdAsync(documentId, cxlTkn)
-                  ?? throw new EntityNotFoundException("Could not find target document.");
-
-        if (doc.Status >= DocumentStatus.Parsed
-            || await _unitOfWork.ParsedSections.ExistsAsync(e => e.DocumentId == doc.Id, cxlTkn))
-            return;
+            ?? throw new EntityNotFoundException("Could not find target document.");
 
         try
         {
-            doc.IndexingErrors = null;
+            config ??= await _aiConfigResolver.GetAiConfigurationAsync(doc.SubjectId, cxlTkn);
 
-            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
+            var sections = (await _unitOfWork.ParsedSections.GetAsync(
+                filter: e => e.DocumentId == doc.Id,
+                orderBy: q => q.OrderBy(e => e.SectionIndex),
+                cancellationToken: cxlTkn))
+                .ToList();
 
-            var result = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
-            if (!result.Success)
-                throw new FileNotFoundException("Failed to read document file.");
+            var chunks = (await _unitOfWork.Chunks.GetAsync(
+                filter: e => e.DocumentId == doc.Id,
+                orderBy: q => q.OrderBy(e => e.ChunkIndex),
+                cancellationToken: cxlTkn))
+                .ToList();
 
-            doc.ParserUsed = _parser.ParserName;
-            await SaveAndUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cancellationToken: cxlTkn);
-
-            await using var fileStream = result.FileStream;
-            var parsedDoc = await _parser.ParseAsync(fileStream, doc.FileType, cxlTkn);
-
-            foreach (var section in parsedDoc.Sections)
+            if (IsComplete(doc, chunks, config))
             {
-                section.DocumentId = doc.Id;
-                _unitOfWork.ParsedSections.Insert(section);
-            }
-
-            await SaveAndUpdate(doc, DocumentStatus.Parsed, cancellationToken: cxlTkn);
-        }
-        catch (Exception ex)
-        {
-            await SaveFailure(doc, ex);
-            throw;
-        }
-    }
-
-    public async Task ChunkAsync(Guid documentId, CancellationToken cxlTkn = default)
-    {
-        var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
-                                                        includeProperties: [nameof(Document.ParsedSections)],
-                                                        cancellationToken: cxlTkn))
-                                              .FirstOrDefault()
-                  ?? throw new EntityNotFoundException("Could not find target document.");
-
-        if (doc.Status >= DocumentStatus.Chunked
-            || await _unitOfWork.Chunks.ExistsAsync(e => e.DocumentId == doc.Id, cxlTkn))
-            return;
-
-        try
-        {
-            doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
-            await SaveAndUpdate(doc, DocumentStatus.Chunking, chunkCount: 0, cancellationToken: cxlTkn);
-
-            var sections = doc.ParsedSections.OrderBy(e => e.SectionIndex);
-            var totalSectionCount = sections.Count();
-            var sectionCount = 0;
-            var chunkCount = 0;
-
-            var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.SubjectId, cxlTkn);
-
-            // TODO: Swap _chunker for ChunkingService -> Use strategy pattern
-
-            foreach (var section in sections)
-            {
-                cxlTkn.ThrowIfCancellationRequested();
-
-                sectionCount++;
-
-                foreach (var chunkRes in _chunker.Chunk(section, startIndex: chunkCount))
+                if (doc.Status != DocumentStatus.Indexed)
                 {
-                    chunkCount++;
-
-                    _unitOfWork.Chunks.Insert(new Chunk
-                    {
-                        DocumentId = doc.Id,
-                        ChunkIndex = chunkRes.ChunkIndex,
-                        ChunkText = chunkRes.ChunkText,
-                        StartPageNumber = chunkRes.StartPageNumber,
-                        EndPageNumber = chunkRes.EndPageNumber,
-                        StartSectionTitle = chunkRes.StartSectionTitle,
-                        EndSectionTitle = chunkRes.EndSectionTitle,
-                        ChunkStrategy = aiConfig.ChunkingStrategy,
-                    });
+                    await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
+                    await SaveAndUpdate(doc, DocumentStatus.Indexed, 100, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
                 }
-
-                await _notifier.PushUpdateAsync(new DocumentStatusUpdate
-                {
-                    Id = doc.Id,
-                    Status = DocumentStatus.Chunking,
-                    Progress = 100d * sectionCount / totalSectionCount,
-                    ChunkCount = chunkCount,
-                    UpdatedAt = DateTime.UtcNow,
-                });
+                return;
             }
-
-            await SaveAndUpdate(doc, DocumentStatus.Chunked, chunkCount: chunkCount, cancellationToken: cxlTkn);
-        }
-        catch (Exception ex)
-        {
-            await SaveFailure(doc, ex);
-            throw;
-        }
-    }
-
-    public async Task EmbedAsync(Guid documentId, CancellationToken cxlTkn = default)
-    {
-        var doc = (await _unitOfWork.Documents.GetAsync(filter: e => e.Id == documentId,
-                                                        includeProperties: [nameof(Document.Chunks)],
-                                                        cancellationToken: cxlTkn))
-                                              .FirstOrDefault()
-                  ?? throw new EntityNotFoundException("Could not find target document.");
-
-        if (doc.Status >= DocumentStatus.Indexed
-            && doc.Chunks.All(c => c.Embedding != null))
-            return;
-
-        var pendingChunks = doc.Chunks
-            .Where(e => e.Embedding == null)
-            .OrderBy(e => e.ChunkIndex)
-            .ToList();
-
-        if (pendingChunks.Count == 0)
-        {
-            // TODO: Log WARN
-            doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
-            await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
-            return;
-        }
-
-        var aiConfig = await _aiConfigResolver.GetAiConfigurationAsync(doc.SubjectId, cxlTkn);
-
-        try
-        {
-            var total = doc.Chunks.Count;
-            var cur = total - pendingChunks.Count;
-            var progress = 100d * cur / total;
 
             doc.IndexingErrors = null;
             await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
-            await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, embeddingModel: aiConfig.EmbeddingModel, cancellationToken: cxlTkn);
 
-            foreach (var batch in pendingChunks.Chunk(BatchSize))
-            {
-                var result = await _embedder.EmbedAsync(batch.Select(e => e.ChunkText), aiConfig.EmbeddingModel, cxlTkn);
-
-                if (result.Vectors.Count != batch.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"Expected {batch.Length} embeddings, got {result.Vectors.Count}.");
-                }
-
-                for (int i = 0; i < batch.Length; i++)
-                {
-                    var chunk = batch[i];
-
-                    chunk.Embedding = new Pgvector.Vector(result.Vectors[i]);
-                    chunk.EmbeddingModel = result.Model;
-                    chunk.TokenCount = null; // TODO: Tokenizer service
-
-                    _unitOfWork.Chunks.Update(chunk);
-                }
-
-                cur += batch.Length;
-                progress = 100d * cur / total;
-                await SaveAndUpdate(doc, DocumentStatus.Embedding, progress, cancellationToken: cxlTkn);
-            }
+            if (sections.Count == 0) sections = await ParseDocumentAsync(doc, cxlTkn);
+            chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
+            await EmbedChunksAsync(doc, chunks, config, cxlTkn);
 
             await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
-            await SaveAndUpdate(doc, DocumentStatus.Indexed, cancellationToken: cxlTkn);
+
+            doc.IndexedChunkingStrategy = config.ChunkingStrategy;
+            doc.IndexedChunkSize = config.ChunkSize;
+            doc.IndexedChunkOverlap = config.ChunkOverlap;
+            doc.IndexedEmbeddingModel = config.EmbeddingModel;
+            doc.IndexingErrors = null;
+
+            await SaveAndUpdate(doc, DocumentStatus.Indexed, 100, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+        }
+        catch (OperationCanceledException) when (cxlTkn.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -209,52 +91,160 @@ public class DocumentIndexer(
         }
     }
 
-    private async Task MoveToDir(
+    private async Task<List<ParsedSection>> ParseDocumentAsync(Document doc, CancellationToken cxlTkn)
+    {
+        doc.ParserUsed = _parser.ParserName;
+        await SaveAndUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cancellationToken: cxlTkn);
+
+        var fileRead = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
+        if (!fileRead.Success) throw new FileNotFoundException(string.Join(Environment.NewLine, fileRead.Errors));
+
+        await using var stream = fileRead.FileStream;
+        var result = await _parser.ParseAsync(stream, doc.FileType, cxlTkn);
+        var sections = result.Sections.OrderBy(e => e.SectionIndex).ToList();
+
+        if (sections.Count == 0) throw new InvalidOperationException("The parser produced no document sections.");
+
+        foreach (var section in sections)
+        {
+            section.DocumentId = doc.Id;
+            _unitOfWork.ParsedSections.Insert(section);
+        }
+
+        await SaveAndUpdate(doc, DocumentStatus.Parsed, cancellationToken: cxlTkn);
+        return sections;
+    }
+
+    private async Task<List<Chunk>> ChunkDocumentAsync(
         Document doc,
-        DocumentFileDirectory dir,
-        CancellationToken cxlTkn = default)
+        List<ParsedSection> sections,
+        List<Chunk> existingChunks,
+        EffectiveAiConfiguration config,
+        CancellationToken cxlTkn)
     {
-        if (!await _fileService.ExistsAsync(doc.Id, cxlTkn))
-            throw new FileNotFoundException($"Could not locate document file at '{doc.StorageLocator}'");
+        await SaveAndUpdate(doc, DocumentStatus.Chunking, chunkingStrategy: config.ChunkingStrategy, chunkCount: 0, cancellationToken: cxlTkn);
 
-        var result = await _fileService.MoveAsync(doc.Id, dir, cxlTkn);
+        var chunker = _chunkerSelector.Select(config.ChunkingStrategy);
+        var results = chunker.Chunk(sections, new ChunkingOptions(config.ChunkSize, config.ChunkOverlap));
+        if (results.Count == 0) throw new InvalidOperationException("The chunker produced no document chunks.");
 
-        if (!result.Success)
-            throw new IOException(string.Join(Environment.NewLine, result.Errors));
+        cxlTkn.ThrowIfCancellationRequested();
+
+        foreach (var chunk in existingChunks) _unitOfWork.Chunks.Delete(chunk);
+
+        var chunks = results.Select(result => _unitOfWork.Chunks.Insert(new Chunk
+        {
+            DocumentId = doc.Id,
+            ChunkIndex = result.ChunkIndex,
+            ChunkText = result.ChunkText,
+            StartPageNumber = result.StartPageNumber,
+            EndPageNumber = result.EndPageNumber,
+            StartSectionTitle = result.StartSectionTitle,
+            EndSectionTitle = result.EndSectionTitle,
+            ChunkStrategy = chunker.StrategyName,
+        })).ToList();
+
+        await SaveAndUpdate(doc, DocumentStatus.Chunked, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, cancellationToken: cxlTkn);
+        return chunks;
+    }
+
+    private async Task EmbedChunksAsync(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config, CancellationToken cxlTkn)
+    {
+        await SaveAndUpdate(doc, DocumentStatus.Embedding, 0, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+
+        var completed = 0;
+
+        foreach (var batch in chunks.Chunk(BatchSize))
+        {
+            cxlTkn.ThrowIfCancellationRequested();
+
+            var result = await _embedder.EmbedAsync(batch.Select(e => e.ChunkText), config.EmbeddingModel, cxlTkn);
+            if (result.Vectors.Count != batch.Length) throw new InvalidOperationException($"Expected {batch.Length} embeddings, got {result.Vectors.Count}.");
+            if (!string.Equals(result.Model, config.EmbeddingModel, StringComparison.Ordinal)) throw new InvalidOperationException($"Expected embedding model '{config.EmbeddingModel}', got '{result.Model}'.");
+
+            for (var i = 0; i < batch.Length; i++)
+            {
+                batch[i].Embedding = new Vector(result.Vectors[i]);
+                batch[i].EmbeddingModel = result.Model;
+                batch[i].TokenCount = null; // TODO
+                _unitOfWork.Chunks.Update(batch[i]);
+            }
+
+            completed += batch.Length;
+            await SaveAndUpdate(doc, DocumentStatus.Embedding, 100d * completed / chunks.Count, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+        }
+    }
+
+    private static bool IsComplete(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config) =>
+        chunks.Count > 0
+        && doc.IndexedChunkingStrategy == config.ChunkingStrategy
+        && doc.IndexedChunkSize == config.ChunkSize
+        && doc.IndexedChunkOverlap == config.ChunkOverlap
+        && doc.IndexedEmbeddingModel == config.EmbeddingModel
+        && chunks.All(e => e.Embedding != null
+                           && e.ChunkStrategy == config.ChunkingStrategy
+                           && e.EmbeddingModel == config.EmbeddingModel);
+
+    private async Task MoveToDir(Document doc, DocumentFileDirectory directory, CancellationToken cxlTkn)
+    {
+        var result = await _fileService.MoveAsync(doc.Id, directory, cxlTkn);
+        if (!result.Success) throw new IOException(string.Join(Environment.NewLine, result.Errors));
     }
 
     private async Task SaveAndUpdate(
         Document doc,
-        DocumentStatus docStatus,
+        DocumentStatus status,
         double? progress = null,
         string? parser = null,
+        string? chunkingStrategy = null,
         int? chunkCount = null,
         string? embeddingModel = null,
         CancellationToken cancellationToken = default)
     {
-        doc.Status = docStatus;
+        doc.Status = status;
         await _unitOfWork.SaveAsync(cancellationToken);
 
-        var docStatusUpd = new DocumentStatusUpdate
+        try
         {
-            Id = doc.Id,
-            Status = docStatus,
-            Progress = progress,
-            ParserUsed = parser,
-            ChunkCount = chunkCount,
-            EmbeddingModel = embeddingModel,
-            UpdatedAt = DateTime.UtcNow,
-        };
-
-        await _notifier.PushUpdateAsync(docStatusUpd);
+            await _notifier.PushUpdateAsync(new DocumentStatusUpdate
+            {
+                Id = doc.Id,
+                Status = status,
+                Progress = progress,
+                ParserUsed = parser,
+                ChunkingStrategy = chunkingStrategy,
+                ChunkCount = chunkCount,
+                EmbeddingModel = embeddingModel,
+                UpdatedAt = DateTime.UtcNow,
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not publish indexing status for document {DocumentId}.", doc.Id);
+        }
     }
 
-    private async Task SaveFailure(
-        Document doc,
-        Exception ex)
+    private async Task SaveFailure(Document doc, Exception exception)
     {
-        doc.IndexingErrors = ex.ToString();
-        await MoveToDir(doc, DocumentFileDirectory.Failed);
-        await SaveAndUpdate(doc, DocumentStatus.Failed);
+        doc.IndexingErrors = exception.ToString();
+
+        try
+        {
+            await MoveToDir(doc, DocumentFileDirectory.Failed, CancellationToken.None);
+        }
+        catch (Exception moveException)
+        {
+            _logger.LogWarning(moveException, "Could not move failed document {DocumentId}.", doc.Id);
+            doc.IndexingErrors += $"{Environment.NewLine}{Environment.NewLine}File move failure:{Environment.NewLine}{moveException}";
+        }
+
+        try
+        {
+            await SaveAndUpdate(doc, DocumentStatus.Failed, cancellationToken: CancellationToken.None);
+        }
+        catch (Exception saveException)
+        {
+            _logger.LogError(saveException, "Could not persist indexing failure for document {DocumentId}.", doc.Id);
+        }
     }
 }

@@ -6,11 +6,12 @@ public static class DocumentExtensions
 {
     public static string? BuildLocation(this Chunk chunk) => BuildLocation(chunk.StartPageNumber, chunk.EndPageNumber, chunk.StartSectionTitle, chunk.EndSectionTitle);
 
-    public static string? BuildLocation(this ParsedSection section) => BuildLocation(section.PageNumber, section.PageNumber, section.SectionTitle, section.SectionTitle);
+    public static string? BuildLocation(this ParsedSection section) => BuildLocation(section.PageNumber, section.SectionTitle);
 
     private static string? BuildLocation(int? startPageNumber, int? endPageNumber, string? startSectionTitle, string? endSectionTitle)
     {
         var locations = new List<string>();
+
         if (startPageNumber != null)
         {
             if (endPageNumber != null && endPageNumber > startPageNumber)
@@ -18,15 +19,18 @@ public static class DocumentExtensions
             else
                 locations.Add($"Page: {startPageNumber}");
         }
-        if (!string.IsNullOrWhiteSpace(startSectionTitle))
-        {
-            if (!string.IsNullOrWhiteSpace(endSectionTitle) && endSectionTitle != startSectionTitle)
-                locations.Add($"Section: {startSectionTitle} → {endSectionTitle}");
-            else
-                locations.Add($"Section: {startSectionTitle}");
-        }
-        return locations.Count > 0
-            ? string.Join(" • ", locations)
-            : null;
+
+        var startTitle = string.IsNullOrWhiteSpace(startSectionTitle) ? null : startSectionTitle;
+        var endTitle = string.IsNullOrWhiteSpace(endSectionTitle) ? null : endSectionTitle;
+        var title = startTitle ?? endTitle;
+
+        if (startTitle != null && endTitle != null && endTitle != startTitle)
+            locations.Add($"Section: {startTitle} → {endTitle}");
+        else if (title != null)
+            locations.Add($"Section: {title}");
+
+        return locations.Count > 0 ? string.Join(" • ", locations) : null;
     }
+
+    private static string? BuildLocation(int? pageNumber, string? sectionTitle) => BuildLocation(pageNumber, null, sectionTitle, null);
 }

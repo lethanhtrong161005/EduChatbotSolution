@@ -779,7 +779,9 @@ public static class HostExtensions
                     DocumentId = doc.Id,
                     ChunkIndex = 0,
                     StartPageNumber = 1,
+                    EndPageNumber = 1,
                     StartSectionTitle = "Introduction",
+                    EndSectionTitle = "Introduction",
                     ChunkText =
                         $"Introduction content for '{doc.Title}'. " +
                         $"This material explains the fundamental concepts covered by the document."
@@ -790,7 +792,9 @@ public static class HostExtensions
                     DocumentId = doc.Id,
                     ChunkIndex = 1,
                     StartPageNumber = 2,
+                    EndPageNumber = 2,
                     StartSectionTitle = "Key Concepts",
+                    EndSectionTitle = "Key Concepts",
                     ChunkText =
                         $"Key concepts from '{doc.Title}'. " +
                         $"This section contains the primary learning objectives and terminology."
@@ -801,7 +805,9 @@ public static class HostExtensions
                     DocumentId = doc.Id,
                     ChunkIndex = 2,
                     StartPageNumber = 3,
+                    EndPageNumber = 3,
                     StartSectionTitle = "Summary",
+                    EndSectionTitle = "Summary",
                     ChunkText =
                         $"Summary of '{doc.Title}'. " +
                         $"This section reviews the most important takeaways."
