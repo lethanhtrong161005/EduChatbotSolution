@@ -209,7 +209,7 @@ public class ChatGenerationCoordinator(
         int maximumMessageCount)
     {
         if (targetAssistantMessage.MessageIndex is null)
-            throw new EntityConstraintException("The target assistant message has no logical message index.");
+            throw new InvalidOperationException("The target assistant message has no logical message index.");
 
         return [.. messages
             .Where(message =>

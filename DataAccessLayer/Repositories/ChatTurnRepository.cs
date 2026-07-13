@@ -25,7 +25,7 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             .MaxAsync(message => message.MessageIndex, cancellationToken) ?? 0;
 
         if (maximumIndex % 2 != 0)
-            throw new EntityConstraintException("The chat session ends with an incomplete logical turn.");
+            throw new InvalidOperationException("The chat session ends with an incomplete logical turn.");
 
         var sentAt = DateTime.UtcNow;
         var userMessage = new ChatMessage
@@ -79,7 +79,7 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         if (message.ChatRole != ChatRole.Assistant || message.Status != MessageStatus.Failed)
-            throw new EntityConstraintException("Only a failed assistant message can be retried.");
+            throw new EntityConflictException("Only a failed assistant message can be retried.", nameof(ChatMessage.Status));
 
         if (message.GenerationSettings is not null)
             _context.ChatMessageGenerationSettings.Remove(message.GenerationSettings);
@@ -111,10 +111,10 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         if (source.ChatRole != ChatRole.Assistant || source.Status != MessageStatus.Completed || source.InReplyToMessageId is null)
-            throw new EntityConstraintException("Only a completed assistant message can be regenerated.");
+            throw new EntityConflictException("Only a completed assistant message can be regenerated.", nameof(ChatMessage.Status));
 
         _ = await LockMessageAsync(source.InReplyToMessageId.Value, sessionId, cancellationToken)
-            ?? throw new EntityConstraintException("The assistant message has no valid user reply target.");
+            ?? throw new InvalidOperationException("The assistant message has no valid user reply target.");
 
         var variants = await _context.ChatMessages
             .Where(item => item.ChatSessionId == sessionId && item.InReplyToMessageId == source.InReplyToMessageId)
@@ -170,10 +170,10 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             ?? throw new EntityNotFoundException("No assistant message matched the provided ID.");
 
         if (target.ChatRole != ChatRole.Assistant || target.InReplyToMessageId is null)
-            throw new EntityConstraintException("Only an assistant variant can be selected.");
+            throw new EntityConflictException("Only an assistant variant can be selected.", nameof(ChatMessage.ChatRole));
 
         _ = await LockMessageAsync(target.InReplyToMessageId.Value, sessionId, cancellationToken)
-            ?? throw new EntityConstraintException("The assistant message has no valid user reply target.");
+            ?? throw new InvalidOperationException("The assistant message has no valid user reply target.");
 
         var variants = await _context.ChatMessages
             .Where(item => item.ChatSessionId == sessionId && item.InReplyToMessageId == target.InReplyToMessageId)

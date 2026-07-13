@@ -108,7 +108,7 @@ public class ChatTurnRepositoryIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(outcomes.Count(exception => exception is null), Is.EqualTo(1));
-            Assert.That(outcomes.Count(exception => exception is Domain.Exceptions.EntityConstraintException), Is.EqualTo(1));
+            Assert.That(outcomes.Count(exception => exception is Domain.Exceptions.EntityConflictException), Is.EqualTo(1));
         });
     }
 

@@ -1,6 +1,7 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -88,7 +89,7 @@ public class SubjectManageModel(
 
             return new JsonResult(new { success = true, subject });
         }
-        catch (Domain.Exceptions.BadRequestException ex)
+        catch (Exception ex) when (ex is EntityValidationException or EntityConflictException)
         {
             return new JsonResult(new { success = false, error = ex.Message });
         }
@@ -124,7 +125,7 @@ public class SubjectManageModel(
 
             return new JsonResult(new { success = true, subject });
         }
-        catch (Domain.Exceptions.BadRequestException ex)
+        catch (Domain.Exceptions.EntityValidationException ex)
         {
             return new JsonResult(new { success = false, error = ex.Message });
         }
@@ -208,7 +209,7 @@ public class SubjectManageModel(
 
             return new JsonResult(new { success = true, chapter });
         }
-        catch (Domain.Exceptions.BadRequestException ex)
+        catch (Domain.Exceptions.EntityValidationException ex)
         {
             return new JsonResult(new { success = false, error = ex.Message });
         }
@@ -249,7 +250,7 @@ public class SubjectManageModel(
 
             return new JsonResult(new { success = true, chapter });
         }
-        catch (Domain.Exceptions.BadRequestException ex)
+        catch (Domain.Exceptions.EntityValidationException ex)
         {
             return new JsonResult(new { success = false, error = ex.Message });
         }
@@ -372,7 +373,7 @@ public class SubjectManageModel(
 
             return new JsonResult(new { success = true });
         }
-        catch (Domain.Exceptions.BadRequestException ex)
+        catch (Domain.Exceptions.EntityValidationException ex)
         {
             return new JsonResult(new { success = false, error = ex.Message });
         }

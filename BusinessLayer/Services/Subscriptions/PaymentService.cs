@@ -68,7 +68,7 @@ public class PaymentService(IUnitOfWork unitOfWork) : IPaymentService
 
         if (order.Status != OrderStatus.PendingPayment)
         {
-            throw new EntityConstraintException("Only pending orders can be paid for.");
+            throw new EntityConflictException("Only pending orders can be paid for.", nameof(Order.Status));
         }
 
         var pendingPayment = new Payment

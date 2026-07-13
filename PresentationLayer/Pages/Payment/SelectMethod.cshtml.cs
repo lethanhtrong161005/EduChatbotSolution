@@ -58,7 +58,7 @@ public class SelectMethodModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     /// <returns>The payment method page.</returns>
     /// <exception cref="BadRequestException">Thrown when the order ID is empty.</exception>
-    /// <exception cref="EntityConstraintException">Thrown when the order is not pending payment.</exception>
+    /// <exception cref="EntityConflictException">Thrown when the order is not pending payment.</exception>
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cxlTkn)
     {
         if (id == Guid.Empty)
@@ -69,7 +69,7 @@ public class SelectMethodModel(
         var order = await GetAndValidateOrderAsync(id, cxlTkn);
         if (order.Status != OrderStatus.PendingPayment)
         {
-            throw new EntityConstraintException("Only pending orders can be paid for.");
+            throw new EntityConflictException("Only pending orders can be paid for.", nameof(Order.Status));
         }
 
         ViewModel = new PaymentSelectMethodVm
@@ -89,7 +89,8 @@ public class SelectMethodModel(
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     /// <returns>A redirect to the payment provider.</returns>
     /// <exception cref="BadRequestException">Thrown when the order ID is missing or mismatched.</exception>
-    /// <exception cref="EntityConstraintException">Thrown when the order cannot be paid.</exception>
+    /// <exception cref="EntityValidationException">Thrown when the order data is malformed.</exception>
+    /// <exception cref="EntityConflictException">Thrown when the order cannot be paid.</exception>
     public async Task<IActionResult> OnPostMakePaymentAsync(
         Guid id,
         [Bind(Prefix = nameof(ViewModel))] PaymentSelectMethodVm viewModel,
@@ -109,13 +110,13 @@ public class SelectMethodModel(
 
         if (!ModelState.IsValid)
         {
-            throw new EntityConstraintException("Invalid payment method and/or order. Please try again.");
+            throw new EntityValidationException("Invalid payment method and/or order. Please try again.", nameof(ViewModel));
         }
 
         var order = await GetAndValidateOrderAsync(id, cxlTkn);
         if (order.Status != OrderStatus.PendingPayment)
         {
-            throw new EntityConstraintException("Only pending orders can be paid for.");
+            throw new EntityConflictException("Only pending orders can be paid for.", nameof(Order.Status));
         }
 
         switch (ViewModel.SelectedMethod)

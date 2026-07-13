@@ -33,12 +33,12 @@ public class ProcessingPaymentModel(
     /// <param name="transactionId">The provider transaction code.</param>
     /// <param name="cxlTkn">A token used to cancel the request.</param>
     /// <returns>The processing payment page.</returns>
-    /// <exception cref="BadRequestException">Thrown when the transaction code is missing.</exception>
+    /// <exception cref="EntityValidationException">Thrown when the transaction code is missing.</exception>
     public async Task<IActionResult> OnGetAsync([FromQuery] string transactionId, CancellationToken cxlTkn)
     {
         if (string.IsNullOrEmpty(transactionId))
         {
-            throw new BadRequestException("Missing payment transaction code.");
+            throw new EntityValidationException("Missing or invalid payment transaction code.", nameof(Domain.Entities.Payment.ExternalTransactionCode));
         }
 
         var payment = await GetAndValidatePaymentAsync(transactionId, cxlTkn);
@@ -91,7 +91,9 @@ public class ProcessingPaymentModel(
     public async Task<IActionResult> OnGetStatusAsync([FromQuery] string id, CancellationToken cxlTkn)
     {
         if (string.IsNullOrEmpty(id) || !Guid.TryParse(id, out var paymentId))
-            throw new BadRequestException("Missing or invalid transaction ID.");
+        {
+            throw new EntityValidationException("Missing or invalid payment transaction code.", nameof(Domain.Entities.Payment.ExternalTransactionCode));
+        }
 
         var payment = await GetAndValidatePaymentAsync(paymentId.ToString(), cxlTkn);
         return new JsonResult(new

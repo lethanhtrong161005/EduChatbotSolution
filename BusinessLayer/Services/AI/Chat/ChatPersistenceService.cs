@@ -127,7 +127,7 @@ public class ChatPersistenceService(
         CancellationToken cxlTkn = default)
     {
         if (title == string.Empty)
-            throw new EntityConstraintException("Title must not be empty");
+            throw new EntityValidationException("Title must not be empty", nameof(ChatSession.Title));
 
         var session = await _unitOfWork.ChatSessions.FindByIdAsync(sessionId, cxlTkn)
                       ?? throw new EntityNotFoundException("No chat session matched the provided ID.");
@@ -342,7 +342,7 @@ public class ChatPersistenceService(
         CancellationToken cancellationToken)
     {
         if (message.InReplyToMessageId is null || message.VariantIndex is null)
-            throw new EntityConstraintException("The assistant message has no variant identity.");
+            throw new InvalidOperationException("The assistant message has no variant identity.");
 
         var variants = (await _unitOfWork.ChatMessages.GetAsync(
             filter: item => item.ChatSessionId == message.ChatSessionId && item.InReplyToMessageId == message.InReplyToMessageId,

@@ -79,9 +79,9 @@ public class SubjectService(
     public async Task<Subject> CreateSubjectAsync(string subjectCode, string subjectName, string? description)
     {
         if (string.IsNullOrWhiteSpace(subjectCode))
-            throw new BadRequestException("Subject code cannot be empty.");
+            throw new EntityValidationException("Subject code cannot be empty.", nameof(Subject.Code));
         if (string.IsNullOrWhiteSpace(subjectName))
-            throw new BadRequestException("Subject name cannot be empty.");
+            throw new EntityValidationException("Subject name cannot be empty.", nameof(Subject.Name));
 
         // Check uniqueness of subjectCode
         var code = subjectCode.Trim();
@@ -89,7 +89,7 @@ public class SubjectService(
             filter: s => s.Code.ToLower() == code.ToLower());
 
         if (existing.Any())
-            throw new BadRequestException($"Subject code '{code}' already exists in the system.");
+            throw new EntityConflictException($"Subject code '{code}' already exists in the system.");
 
         var subject = new Subject
         {
@@ -109,9 +109,9 @@ public class SubjectService(
     public async Task<Subject> UpdateSubjectAsync(int id, string subjectCode, string subjectName, string? description)
     {
         if (string.IsNullOrWhiteSpace(subjectCode))
-            throw new BadRequestException("Subject code cannot be empty.");
+            throw new EntityValidationException("Subject code cannot be empty.", nameof(Subject.Code));
         if (string.IsNullOrWhiteSpace(subjectName))
-            throw new BadRequestException("Subject name cannot be empty.");
+            throw new EntityValidationException("Subject name cannot be empty.", nameof(Subject.Name));
 
         var subject = await _unitOfWork.Subjects.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
@@ -122,7 +122,7 @@ public class SubjectService(
             filter: s => s.Code.ToLower() == code.ToLower() && s.Id != id);
 
         if (existing.Any())
-            throw new BadRequestException($"Subject code '{code}' is already in use by another subject.");
+            throw new EntityConflictException($"Subject code '{code}' is already in use by another subject.");
 
         subject.Code = code;
         subject.Name = subjectName.Trim();
@@ -167,7 +167,7 @@ public class SubjectService(
     public async Task<Chapter> CreateChapterAsync(int subjectId, string chapterName, int chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
-            throw new BadRequestException("Chapter name cannot be empty.");
+            throw new EntityValidationException("Chapter name cannot be empty.", nameof(Chapter.Name));
 
         _ = await _unitOfWork.Subjects.FindByIdAsync(subjectId)
             ?? throw new EntityNotFoundException(subjectId);
@@ -190,7 +190,7 @@ public class SubjectService(
     public async Task<Chapter> UpdateChapterAsync(int id, string chapterName, int chapterNumber)
     {
         if (string.IsNullOrWhiteSpace(chapterName))
-            throw new BadRequestException("Chapter name cannot be empty.");
+            throw new EntityValidationException("Chapter name cannot be empty.", nameof(Chapter.Name));
 
         var chapter = await _unitOfWork.Chapters.FindByIdAsync(id)
             ?? throw new EntityNotFoundException(id);
@@ -238,19 +238,19 @@ public class SubjectService(
             ?? throw new EntityNotFoundException(userId);
 
         if (!user.IsActive || user.DeletedAt.HasValue)
-            throw new BadRequestException("This user account is inactive or has been deleted.");
+            throw new EntityConflictException("This user account is inactive or has been deleted.", nameof(ApplicationUser.DeletedAt));
 
         // Verify system role matches the assignment role
         var systemRoles = await _userManager.GetRolesAsync(user);
         if (role == MembershipRole.Student)
         {
             if (!systemRoles.Contains("Student"))
-                throw new BadRequestException("Only users with the Student system role can be assigned as a Student member.");
+                throw new EntityConflictException("Only users with the Student system role can be assigned as a Student member.", nameof(ApplicationUser.Roles));
         }
         else if (role == MembershipRole.Lecturer || role == MembershipRole.Chief)
         {
             if (!systemRoles.Contains("Lecturer"))
-                throw new BadRequestException("Only users with the Lecturer system role can be assigned as a Lecturer or Subject-Lead.");
+                throw new EntityConflictException("Only users with the Lecturer system role can be assigned as a Lecturer or Subject-Lead.", nameof(ApplicationUser.Roles));
         }
 
         // Check if user is already a member
@@ -271,7 +271,7 @@ public class SubjectService(
                 var currentChief = await _unitOfWork.Memberships.GetAsync(
                     filter: m => m.SubjectId == subjectId && m.Role == MembershipRole.Chief && m.UserId != userId);
                 if (currentChief.Any())
-                    throw new BadRequestException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.");
+                    throw new EntityConflictException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.", nameof(Membership.Role));
             }
 
             membership.Role = role;
@@ -288,7 +288,7 @@ public class SubjectService(
                 var currentChief = await _unitOfWork.Memberships.GetAsync(
                     filter: m => m.SubjectId == subjectId && m.Role == MembershipRole.Chief);
                 if (currentChief.Any())
-                    throw new BadRequestException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.");
+                    throw new EntityConflictException("This subject already has a Subject-Lead. Please remove the current Subject-Lead first.", nameof(Membership.Role));
             }
 
             var newMembership = new Membership

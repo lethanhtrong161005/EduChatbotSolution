@@ -16,9 +16,10 @@ public class CustomExceptionMiddleware : IMiddleware
     private static readonly Dictionary<Type, int> ErrorStatusCodes = new()
     {
         { typeof(BadRequestException), StatusCodes.Status400BadRequest },
+        { typeof(EntityValidationException), StatusCodes.Status400BadRequest },
         { typeof(UserClaimException), StatusCodes.Status401Unauthorized },
         { typeof(EntityNotFoundException), StatusCodes.Status404NotFound },
-        { typeof(EntityConstraintException), StatusCodes.Status422UnprocessableEntity },
+        { typeof(EntityConflictException), StatusCodes.Status409Conflict },
     };
 
     private static readonly HashSet<string> AllowedHeaderNames = new(StringComparer.OrdinalIgnoreCase)

@@ -137,13 +137,13 @@ public class SubjectServiceTests
     [Test]
     public void CreateSubjectAsync_EmptyCode_ThrowsBadRequestException()
     {
-        Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateSubjectAsync("", "Test Subject", null));
+        Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateSubjectAsync("", "Test Subject", null));
     }
 
     [Test]
     public void CreateSubjectAsync_EmptyName_ThrowsBadRequestException()
     {
-        Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateSubjectAsync("CS101", "", null));
+        Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateSubjectAsync("CS101", "", null));
     }
 
     [Test]
@@ -163,7 +163,7 @@ public class SubjectServiceTests
             .ReturnsAsync(new List<Subject> { duplicateSubject });
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateSubjectAsync("CS101", "New Subject", null));
+        var ex = Assert.ThrowsAsync<EntityConflictException>(() => _sut.CreateSubjectAsync("CS101", "New Subject", null));
         Assert.That(ex.Message, Does.Contain("already exists"));
     }
 
@@ -256,7 +256,7 @@ public class SubjectServiceTests
     [Test]
     public void CreateChapterAsync_EmptyName_ThrowsBadRequestException()
     {
-        Assert.ThrowsAsync<BadRequestException>(() => _sut.CreateChapterAsync(_random.Next(), "", 1));
+        Assert.ThrowsAsync<EntityValidationException>(() => _sut.CreateChapterAsync(_random.Next(), "", 1));
     }
 
     // ── MEMBERSHIP ASSIGNMENT TESTS ──────────────────────────────────
@@ -308,7 +308,7 @@ public class SubjectServiceTests
         _userManagerMock.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Student" }); // User ONLY has Student role
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<BadRequestException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Lecturer));
+        var ex = Assert.ThrowsAsync<EntityConflictException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Lecturer));
         Assert.That(ex.Message, Does.Contain("Only users with the Lecturer"));
     }
 
@@ -376,7 +376,7 @@ public class SubjectServiceTests
             .ReturnsAsync(new List<Membership> { existingChief }); // 2nd call: check if chief exists
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<BadRequestException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief));
+        var ex = Assert.ThrowsAsync<EntityConflictException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Chief));
         Assert.That(ex.Message, Does.Contain("already has a Subject-Lead"));
     }
 
@@ -393,7 +393,7 @@ public class SubjectServiceTests
         _userManagerMock.Setup(m => m.FindByIdAsync(userId.ToString())).ReturnsAsync(user);
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<BadRequestException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Lecturer));
+        var ex = Assert.ThrowsAsync<EntityConflictException>(() => _sut.AssignMemberAsync(subjectId, userId, MembershipRole.Lecturer));
         Assert.That(ex.Message, Does.Contain("inactive or has been deleted"));
     }
 }
