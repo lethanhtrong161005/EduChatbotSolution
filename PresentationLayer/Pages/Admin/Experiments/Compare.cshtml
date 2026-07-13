@@ -1,0 +1,107 @@
+@page "{handler?}"
+@model Presentation.Pages.Admin.Experiments.CompareModel
+@{
+    ViewData["Title"] = "Experiment Comparison";
+    Layout = "~/Pages/Admin/_AdminLayout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="ec-page">
+
+    <!-- ── Back navigation ────────────────────────────────────── -->
+    <div class="ec-nav">
+        <a href="/admin/experiments/results" class="ec-back-link">
+            <i class="fas fa-arrow-left"></i> Back to Results
+        </a>
+    </div>
+
+    <!-- ── Error banner (shown on load failure) ───────────────── -->
+    <div class="ec-error" id="ecError" hidden>
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="ecErrorText"></span>
+        <a href="/admin/experiments/results" class="ec-back-link">← Return to Results</a>
+    </div>
+
+    <!-- ── Loading state ──────────────────────────────────────── -->
+    <div class="ec-loading" id="ecLoading">
+        <i class="fas fa-circle-notch fa-spin ec-spinner"></i>
+        <span>Loading comparison…</span>
+    </div>
+
+    <!-- ── Comparison content ─────────────────────────────────── -->
+    <div id="ecContent" hidden>
+
+        <!-- Experiment header cards -->
+        <div class="ec-header-row">
+            <div class="ec-exp-card ec-exp-card--left" id="ecLeftCard">
+                <div class="ec-exp-side-label">Run A</div>
+                <div class="ec-exp-name" id="ecLeftName">—</div>
+                <div class="ec-exp-meta" id="ecLeftMeta"></div>
+            </div>
+            <div class="ec-vs-badge">VS</div>
+            <div class="ec-exp-card ec-exp-card--right" id="ecRightCard">
+                <div class="ec-exp-side-label">Run B</div>
+                <div class="ec-exp-name" id="ecRightName">—</div>
+                <div class="ec-exp-meta" id="ecRightMeta"></div>
+            </div>
+        </div>
+
+        <!-- ── Aggregate metrics ──────────────────────────────── -->
+        <section class="ec-section">
+            <h2 class="ec-section-title">RAGAS-Style Aggregate Scores</h2>
+            <p class="ec-section-subtitle">
+                Scores produced by a C# evaluator using RAGAS-style prompts.
+                Results reflect production retrieval and generation paths on the selected question set.
+            </p>
+            <div class="ec-metrics-grid" id="ecMetricsGrid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- ── Per-question comparison ────────────────────────── -->
+        <section class="ec-section">
+            <h2 class="ec-section-title">Per-Question Score Comparison</h2>
+            <div class="ec-table-wrap">
+                <table class="ec-table" id="ecQuestionsTable">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width:7%">ID</th>
+                            <th rowspan="2" style="width:27%">Question</th>
+                            <th colspan="2" class="ec-th-metric">Faithfulness</th>
+                            <th colspan="2" class="ec-th-metric">Answer Relevancy</th>
+                            <th colspan="2" class="ec-th-metric">Context Precision</th>
+                            <th colspan="2" class="ec-th-metric">Context Recall</th>
+                        </tr>
+                        <tr>
+                            <th class="ec-th-sub">A</th>
+                            <th class="ec-th-sub">B</th>
+                            <th class="ec-th-sub">A</th>
+                            <th class="ec-th-sub">B</th>
+                            <th class="ec-th-sub">A</th>
+                            <th class="ec-th-sub">B</th>
+                            <th class="ec-th-sub">A</th>
+                            <th class="ec-th-sub">B</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ecQuestionsTableBody">
+                        <tr class="ec-loading-row">
+                            <td colspan="10"><i class="fas fa-circle-notch fa-spin"></i></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/css/admin-experiment-results.css" asp-append-version="true" />
+    <script>
+        window.ecLeftId  = '@(Model.InitialLeftId?.ToString() ?? "")';
+        window.ecRightId = '@(Model.InitialRightId?.ToString() ?? "")';
+    </script>
+    <script src="~/js/admin/admin-experiment-compare.js" asp-append-version="true"></script>
+}

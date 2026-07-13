@@ -1,0 +1,269 @@
+@page "{handler?}"
+@model Presentation.Pages.Admin.ReportsModel
+@{
+    ViewData["Title"] = "Reports";
+    Layout = "~/Pages/Admin/_AdminLayout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="rp-page">
+
+    <!-- ── Controls bar ──────────────────────────────────────────── -->
+    <div class="rp-controls" id="rpControls">
+        <div class="rp-controls-group">
+            <label class="rp-label" for="rangeSelect">Time range</label>
+            <div class="rp-select-wrap">
+                <select id="rangeSelect" class="rp-select">
+                    <option value="0" selected>Last 7 days</option>
+                    <option value="1">Last 30 days</option>
+                    <option value="2">All time</option>
+                </select>
+                <i class="fas fa-chevron-down rp-select-icon"></i>
+            </div>
+        </div>
+        <div class="rp-controls-group">
+            <label class="rp-label" for="roleSelect">Role</label>
+            <div class="rp-select-wrap">
+                <select id="roleSelect" class="rp-select">
+                    <option value="0" selected>All roles</option>
+                    <option value="1">Student</option>
+                    <option value="2">Lecturer</option>
+                    <option value="3">Admin</option>
+                </select>
+                <i class="fas fa-chevron-down rp-select-icon"></i>
+            </div>
+        </div>
+        <div class="rp-controls-group">
+            <label class="rp-label" for="trendSubjectSelect">Trend subject</label>
+            <div class="rp-select-wrap">
+                <select id="trendSubjectSelect" class="rp-select">
+                    <option value="">All subjects</option>
+                </select>
+                <i class="fas fa-chevron-down rp-select-icon"></i>
+            </div>
+        </div>
+        <div class="rp-controls-status" id="rpStatus" hidden>
+            <span class="rp-status-dot"></span>
+            <span class="rp-status-text" id="rpStatusText">Loading…</span>
+        </div>
+    </div>
+
+    <!-- ── KPI Cards ─────────────────────────────────────────────── -->
+    <section class="rp-section">
+        <h2 class="rp-section-title">Key Metrics</h2>
+        <div class="rp-kpi-grid" id="rpKpiGrid">
+            <div class="rp-kpi-card" id="kpiActiveUsers">
+                <div class="rp-kpi-icon rp-kpi-icon--blue"><i class="fas fa-users"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiActiveUsersVal">—</div>
+                    <div class="rp-kpi-label">Active Users</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiActiveSessions">
+                <div class="rp-kpi-icon rp-kpi-icon--teal"><i class="fas fa-comments"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiActiveSessionsVal">—</div>
+                    <div class="rp-kpi-label">Active Sessions</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiGenerations">
+                <div class="rp-kpi-icon rp-kpi-icon--green"><i class="fas fa-robot"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiGenerationsVal">—</div>
+                    <div class="rp-kpi-label">Completed Generations</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiTokenCoverage">
+                <div class="rp-kpi-icon rp-kpi-icon--purple"><i class="fas fa-microchip"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiTokenCoverageVal">—</div>
+                    <div class="rp-kpi-label">Token Coverage</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiSuccessRate">
+                <div class="rp-kpi-icon rp-kpi-icon--green"><i class="fas fa-check-circle"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiSuccessRateVal">—</div>
+                    <div class="rp-kpi-label">Generation Success Rate</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiCitationCoverage">
+                <div class="rp-kpi-icon rp-kpi-icon--orange"><i class="fas fa-quote-right"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiCitationCoverageVal">—</div>
+                    <div class="rp-kpi-label">Citation Coverage</div>
+                </div>
+            </div>
+            <div class="rp-kpi-card" id="kpiLatency">
+                <div class="rp-kpi-icon rp-kpi-icon--red"><i class="fas fa-tachometer-alt"></i></div>
+                <div class="rp-kpi-body">
+                    <div class="rp-kpi-value" id="kpiLatencyVal">—</div>
+                    <div class="rp-kpi-label">p95 Response Time</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Token detail ──────────────────────────────────────────── -->
+    <div class="rp-token-detail" id="rpTokenDetail" hidden>
+        <i class="fas fa-info-circle"></i>
+        <span id="rpTokenDetailText"></span>
+    </div>
+
+    <!-- ── Trend charts ──────────────────────────────────────────── -->
+    <section class="rp-section">
+        <h2 class="rp-section-title">
+            Daily Trends
+            <span class="rp-section-subtitle" id="rpTrendSubtitle">(all subjects)</span>
+        </h2>
+        <div class="rp-charts-grid">
+            <div class="rp-chart-card">
+                <div class="rp-chart-title">Completed Generations / Day</div>
+                <div class="rp-chart-wrap">
+                    <canvas id="chartGenerations" aria-label="Completed generations per day"></canvas>
+                </div>
+            </div>
+            <div class="rp-chart-card">
+                <div class="rp-chart-title">Tokens / Day</div>
+                <div class="rp-chart-wrap">
+                    <canvas id="chartTokens" aria-label="Prompt and completion tokens per day"></canvas>
+                </div>
+            </div>
+            <div class="rp-chart-card">
+                <div class="rp-chart-title">p95 Response Time / Day</div>
+                <div class="rp-chart-wrap">
+                    <canvas id="chartLatency" aria-label="p95 response time in milliseconds per day"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Subject comparison ────────────────────────────────────── -->
+    <section class="rp-section">
+        <h2 class="rp-section-title">Subject Comparison</h2>
+        <div class="rp-subject-comparison">
+            <div class="rp-chart-card rp-chart-card--wide">
+                <div class="rp-chart-header">
+                    <div class="rp-chart-title">By Subject</div>
+                    <div class="rp-select-wrap rp-select-wrap--sm">
+                        <select id="subjectMetricSelect" class="rp-select rp-select--sm">
+                            <option value="uniqueActiveUserCount">Active Users</option>
+                            <option value="activeSessionCount">Active Sessions</option>
+                            <option value="completedAssistantGenerationCount">Completed Generations</option>
+                            <option value="measuredTotalTokens">Measured Total Tokens</option>
+                        </select>
+                        <i class="fas fa-chevron-down rp-select-icon"></i>
+                    </div>
+                </div>
+                <div class="rp-chart-wrap rp-chart-wrap--bar">
+                    <canvas id="chartSubjectBar" aria-label="Subject comparison bar chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- All-subjects table -->
+        <div class="rp-table-card" id="rpSubjectTableCard">
+            <div class="rp-table-title">All Subjects — Full Metrics</div>
+            <div class="rp-table-wrap">
+                <table class="rp-table" id="subjectTable">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th class="rp-th-num">Active Users</th>
+                            <th class="rp-th-num">Sessions</th>
+                            <th class="rp-th-num">Completions</th>
+                            <th class="rp-th-num">Prompt Tokens</th>
+                            <th class="rp-th-num">Completion Tokens</th>
+                            <th class="rp-th-num">Total Tokens</th>
+                            <th class="rp-th-num">Coverage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subjectTableBody">
+                        <tr class="rp-table-loading">
+                            <td colspan="8"><i class="fas fa-circle-notch fa-spin"></i> Loading…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Bottom section ────────────────────────────────────────── -->
+    <section class="rp-section">
+        <div class="rp-bottom-grid">
+
+            <!-- Health table -->
+            <div class="rp-table-card">
+                <div class="rp-table-title">
+                    <i class="fas fa-heartbeat rp-title-icon rp-title-icon--red"></i>
+                    Subject Health
+                </div>
+                <div class="rp-table-wrap">
+                    <table class="rp-table" id="healthTable">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th class="rp-th-num">Completions</th>
+                                <th class="rp-th-num">No Context</th>
+                                <th class="rp-th-num">Failure Rate</th>
+                                <th class="rp-th-num">p95 (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="healthTableBody">
+                            <tr class="rp-table-loading">
+                                <td colspan="5"><i class="fas fa-circle-notch fa-spin"></i> Loading…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Hot documents table -->
+            <div class="rp-table-card">
+                <div class="rp-table-title">
+                    <i class="fas fa-fire rp-title-icon rp-title-icon--orange"></i>
+                    Hot Documents
+                </div>
+                <div class="rp-table-wrap">
+                    <table class="rp-table" id="hotDocsTable">
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Subject</th>
+                                <th class="rp-th-num">Citations</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hotDocsTableBody">
+                            <tr class="rp-table-loading">
+                                <td colspan="3"><i class="fas fa-circle-notch fa-spin"></i> Loading…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Indexing donut -->
+            <div class="rp-chart-card rp-chart-card--donut">
+                <div class="rp-chart-title">
+                    <i class="fas fa-database rp-title-icon rp-title-icon--blue"></i>
+                    Indexing Status
+                </div>
+                <div class="rp-donut-wrap">
+                    <canvas id="chartIndexingDonut" aria-label="Document indexing status donut chart"></canvas>
+                    <div class="rp-donut-legend" id="rpDonutLegend"></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+            integrity="sha256-2a+8a7W3gp8mC6z/GFTHvzpBH3xXOv6xFD/WlJL5pY="
+            crossorigin="anonymous"></script>
+    <script src="~/js/admin/admin-reports.js" asp-append-version="true"></script>
+}

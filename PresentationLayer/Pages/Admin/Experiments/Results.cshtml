@@ -1,0 +1,184 @@
+@page "{handler?}"
+@model Presentation.Pages.Admin.Experiments.ResultsModel
+@{
+    ViewData["Title"] = "Experiment Results";
+    Layout = "~/Pages/Admin/_AdminLayout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="er-page">
+
+    <!-- ── Toolbar ───────────────────────────────────────────────── -->
+    <div class="er-toolbar">
+        <div class="er-toolbar-left">
+            <span class="er-toolbar-title">
+                <i class="fas fa-flask"></i> Experiment Runs
+            </span>
+            <span class="er-run-count" id="erRunCount">—</span>
+        </div>
+        <div class="er-toolbar-right">
+            <button class="er-btn er-btn--compare" id="btnCompare" disabled title="Select exactly two completed runs with the same subject and question set">
+                <i class="fas fa-balance-scale"></i> Compare
+            </button>
+            <button class="er-btn er-btn--refresh" id="btnRefresh" title="Refresh experiment list">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Summaries table ───────────────────────────────────────── -->
+    <div class="er-card" id="erSummaryCard">
+        <div class="er-table-wrap">
+            <table class="er-table" id="erSummaryTable">
+                <thead>
+                    <tr>
+                        <th class="er-th-check"><input type="checkbox" id="erSelectAll" title="Select all completed" /></th>
+                        <th>Name</th>
+                        <th>Subject</th>
+                        <th>Strategy</th>
+                        <th>Chunk</th>
+                        <th>Model</th>
+                        <th>Status</th>
+                        <th class="er-th-num">Progress</th>
+                        <th class="er-th-num">F</th>
+                        <th class="er-th-num">AR</th>
+                        <th class="er-th-num">CP</th>
+                        <th class="er-th-num">CR</th>
+                        <th>Created</th>
+                        <th>View</th>
+                    </tr>
+                </thead>
+                <tbody id="erSummaryTableBody">
+                    <tr class="er-table-loading">
+                        <td colspan="14"><i class="fas fa-circle-notch fa-spin"></i> Loading experiments…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Detail panel ──────────────────────────────────────────── -->
+    <div class="er-detail-panel" id="erDetailPanel" hidden>
+
+        <!-- Panel header -->
+        <div class="er-detail-header">
+            <div class="er-detail-title-row">
+                <h2 class="er-detail-title" id="erDetailName">—</h2>
+                <span class="er-status-badge" id="erDetailStatus"></span>
+            </div>
+            <button class="er-btn er-btn--close" id="btnCloseDetail" title="Close detail panel">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Progress section (shown when not completed/failed) -->
+        <div id="erProgressSection">
+            <div class="er-progress-stepper" id="erProgressStepper" hidden>
+                <div class="er-step" id="erStepQueued" data-label="Queued">
+                    <div class="er-step-dot"></div>
+                    <div class="er-step-label">Queued</div>
+                </div>
+                <div class="er-step-line"></div>
+                <div class="er-step" id="erStepPreparingIndex" data-label="Preparing Index">
+                    <div class="er-step-dot"></div>
+                    <div class="er-step-label">Reindexing</div>
+                </div>
+                <div class="er-step-line"></div>
+                <div class="er-step" id="erStepRunning" data-label="Running">
+                    <div class="er-step-dot"></div>
+                    <div class="er-step-label">Running</div>
+                </div>
+                <div class="er-step-line"></div>
+                <div class="er-step" id="erStepEvaluating" data-label="Evaluating">
+                    <div class="er-step-dot"></div>
+                    <div class="er-step-label">Evaluating</div>
+                </div>
+                <div class="er-step-line"></div>
+                <div class="er-step" id="erStepCompleted" data-label="Done">
+                    <div class="er-step-dot"></div>
+                    <div class="er-step-label">Done</div>
+                </div>
+            </div>
+            <div class="er-progress-counts" id="erProgressCounts" hidden></div>
+        </div>
+
+        <!-- Configuration snapshot -->
+        <details class="er-config-details" id="erConfigDetails">
+            <summary class="er-config-summary">
+                <i class="fas fa-cog"></i> Configuration Snapshot
+            </summary>
+            <div class="er-config-grid" id="erConfigGrid"></div>
+        </details>
+
+        <!-- Aggregate score cards -->
+        <div class="er-score-row" id="erScoreRow" hidden>
+            <div class="er-score-card" id="scoreFaithfulness">
+                <div class="er-score-value" id="scoreF">—</div>
+                <div class="er-score-label">Faithfulness</div>
+                <div class="er-score-note">(RAGAS-style)</div>
+            </div>
+            <div class="er-score-card" id="scoreAnswerRelevancy">
+                <div class="er-score-value" id="scoreAR">—</div>
+                <div class="er-score-label">Answer Relevancy</div>
+                <div class="er-score-note">(RAGAS-style)</div>
+            </div>
+            <div class="er-score-card" id="scoreContextPrecision">
+                <div class="er-score-value" id="scoreCP">—</div>
+                <div class="er-score-label">Context Precision</div>
+                <div class="er-score-note">(RAGAS-style)</div>
+            </div>
+            <div class="er-score-card" id="scoreContextRecall">
+                <div class="er-score-value" id="scoreCR">—</div>
+                <div class="er-score-label">Context Recall</div>
+                <div class="er-score-note">(RAGAS-style)</div>
+            </div>
+        </div>
+
+        <!-- Failure reason (shown for Failed experiments) -->
+        <div class="er-failure-banner" id="erFailureBanner" hidden>
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="erFailureText"></span>
+        </div>
+
+        <!-- Question results table -->
+        <div class="er-questions-section" id="erQuestionsSection" hidden>
+            <h3 class="er-questions-title">
+                <i class="fas fa-list-ul"></i> Question Results
+            </h3>
+            <div class="er-table-wrap">
+                <table class="er-table er-table--questions" id="erQuestionsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:7%">ID</th>
+                            <th style="width:23%">Question</th>
+                            <th style="width:8%">Status</th>
+                            <th style="width:22%">Answer</th>
+                            <th class="er-th-num" style="width:5%">Ctx</th>
+                            <th class="er-th-num" title="Faithfulness" style="width:5%">F</th>
+                            <th class="er-th-num" title="Answer Relevancy" style="width:5%">AR</th>
+                            <th class="er-th-num" title="Context Precision" style="width:5%">CP</th>
+                            <th class="er-th-num" title="Context Recall" style="width:5%">CR</th>
+                            <th class="er-th-num" style="width:8%">Total (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="erQuestionsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- compare target placeholder (IDs are passed via URL) -->
+    <input type="hidden" id="erCompareLeft" />
+    <input type="hidden" id="erCompareRight" />
+
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/css/admin-experiment-results.css" asp-append-version="true" />
+    <script>
+        window.erInitialId = '@(Model.InitialExperimentId?.ToString() ?? "")';
+    </script>
+    <script src="~/js/admin/admin-experiment-results.js" asp-append-version="true"></script>
+}

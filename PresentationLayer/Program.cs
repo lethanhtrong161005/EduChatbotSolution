@@ -92,6 +92,13 @@ builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
 builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
 builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
 
+// -- STUB: Frontend preview � TODO: remove when real services are registered -
+// Added 2026-07-13 by Teammate C's agent so admin pages load without the
+// Business layer implementations. Replace both lines with real registrations.
+builder.Services.AddScoped<IAdminReportService, Presentation.Services.Stubs.StubAdminReportService>();
+builder.Services.AddScoped<IExperimentService, Presentation.Services.Stubs.StubExperimentService>();
+// ----------------------------------------------------------------------------
+
 // ── File Storage ──────────────────────────────────────
 var supabaseOpts = builder.Configuration.GetSection("BlobStorage:Supabase").Get<SupabaseOptions>()
                    ?? throw new KeyNotFoundException("Supabase is not configured.");
