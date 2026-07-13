@@ -6,7 +6,11 @@ public record ChunkResult
 
     public required string ChunkText { get; init; }
 
-    public int? PageNumber { get; init; }
+    public int? StartPageNumber { get; init; }
 
-    public string? SectionTitle { get; init; }
+    public int? EndPageNumber { get; init; }
+
+    public string? StartSectionTitle { get; init; }
+
+    public string? EndSectionTitle { get; init; }
 }

@@ -17,9 +17,13 @@ public class Chunk : NaturalEntity
     /// <summary>Gets or sets the raw text content of this chunk.</summary>
     public string ChunkText { get; set; } = string.Empty;
 
-    public int? PageNumber { get; set; }
+    public int? StartPageNumber { get; set; }
 
-    public string? SectionTitle { get; set; }
+    public int? EndPageNumber { get; set; }
+
+    public string? StartSectionTitle { get; set; }
+
+    public string? EndSectionTitle { get; set; }
 
     /// <summary>Gets or sets the chunking strategy used (e.g., fixed-size, semantic).</summary>
     public string ChunkStrategy { get; set; } = string.Empty;

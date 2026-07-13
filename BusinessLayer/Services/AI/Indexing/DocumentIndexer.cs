@@ -108,8 +108,10 @@ public class DocumentIndexer(
                         DocumentId = doc.Id,
                         ChunkIndex = chunkRes.ChunkIndex,
                         ChunkText = chunkRes.ChunkText,
-                        PageNumber = chunkRes.PageNumber,
-                        SectionTitle = chunkRes.SectionTitle,
+                        StartPageNumber = chunkRes.StartPageNumber,
+                        EndPageNumber = chunkRes.EndPageNumber,
+                        StartSectionTitle = chunkRes.StartSectionTitle,
+                        EndSectionTitle = chunkRes.EndSectionTitle,
                         ChunkStrategy = aiConfig.ChunkingStrategy,
                     });
                 }

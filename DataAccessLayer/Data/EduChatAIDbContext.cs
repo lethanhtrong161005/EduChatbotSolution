@@ -2,6 +2,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace DataAccess.Data;
 
@@ -99,6 +100,11 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
+
+        optionsBuilder.ConfigureWarnings((cfg) =>
+        {
+            cfg.Ignore(RelationalEventId.PendingModelChangesWarning);
+        });
     }
 
     /// <inheritdoc/>
@@ -237,6 +243,10 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .HasOperators("vector_cosine_ops")
             .HasStorageParameter("m", 32)
             .HasStorageParameter("ef_construction", 128);
+        modelBuilder.Entity<Chunk>()
+            .ToTable(table => table.HasCheckConstraint(
+                "ck_chunks_end_page_number",
+                "end_page_number >= start_page_number"));
 
         modelBuilder.Entity<ChatSessionTitleGenerationSettings>()
             .HasOne(d => d.ChatSession)
@@ -309,6 +319,11 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .Property(e => e.Id)
             .ValueGeneratedNever();
 
+        modelBuilder.Entity<ExperimentConfigurationSnapshot>()
+            .ToTable(table => table.HasCheckConstraint(
+                "ck_experiment_configuration_snapshots_chunk_values",
+                "chunk_size BETWEEN 100 AND 8000 AND chunk_overlap >= 0 AND chunk_overlap < chunk_size"));
+
         modelBuilder.Entity<TestQuestion>()
             .HasOne(e => e.Subject)
             .WithMany(e => e.TestQuestions)
@@ -332,11 +347,6 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<TestResponseContext>()
             .HasIndex(e => new { e.TestResponseId, e.ContextIndex })
             .IsUnique();
-
-        modelBuilder.Entity<ExperimentConfigurationSnapshot>()
-            .ToTable(table => table.HasCheckConstraint(
-                "ck_experiment_configuration_snapshots_chunk_values",
-                "chunk_size BETWEEN 100 AND 8000 AND chunk_overlap >= 0 AND chunk_overlap < chunk_size"));
 
         modelBuilder.Entity<TestResponseContext>()
             .ToTable(table => table.HasCheckConstraint(

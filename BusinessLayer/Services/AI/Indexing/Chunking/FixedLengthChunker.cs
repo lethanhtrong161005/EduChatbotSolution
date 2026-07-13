@@ -30,8 +30,10 @@ public class FixedLengthChunker(
             {
                 ChunkIndex = chunkIndex++,
                 ChunkText = text.Substring(start, length),
-                PageNumber = section.PageNumber,
-                SectionTitle = section.SectionTitle,
+                StartPageNumber = section.PageNumber,
+                //EndPageNumber
+                StartSectionTitle = section.SectionTitle,
+                //EndSectionTitle
             };
 
             if (start + length >= text.Length)

@@ -17,9 +17,13 @@ public class ChunkPreviewDto
 
     public string ChunkText { get; set; } = string.Empty;
 
-    public int? PageNumber { get; set; }
+    public int? StartPageNumber { get; set; }
 
-    public string? SectionTitle { get; set; }
+    public int? EndPageNumber { get; set; }
+
+    public string? StartSectionTitle { get; set; }
+
+    public string? EndSectionTitle { get; set; }
 
     public int? TokenCount { get; set; }
 

@@ -778,8 +778,8 @@ public static class HostExtensions
                 {
                     DocumentId = doc.Id,
                     ChunkIndex = 0,
-                    PageNumber = 1,
-                    SectionTitle = "Introduction",
+                    StartPageNumber = 1,
+                    StartSectionTitle = "Introduction",
                     ChunkText =
                         $"Introduction content for '{doc.Title}'. " +
                         $"This material explains the fundamental concepts covered by the document."
@@ -789,8 +789,8 @@ public static class HostExtensions
                 {
                     DocumentId = doc.Id,
                     ChunkIndex = 1,
-                    PageNumber = 2,
-                    SectionTitle = "Key Concepts",
+                    StartPageNumber = 2,
+                    StartSectionTitle = "Key Concepts",
                     ChunkText =
                         $"Key concepts from '{doc.Title}'. " +
                         $"This section contains the primary learning objectives and terminology."
@@ -800,8 +800,8 @@ public static class HostExtensions
                 {
                     DocumentId = doc.Id,
                     ChunkIndex = 2,
-                    PageNumber = 3,
-                    SectionTitle = "Summary",
+                    StartPageNumber = 3,
+                    StartSectionTitle = "Summary",
                     ChunkText =
                         $"Summary of '{doc.Title}'. " +
                         $"This section reviews the most important takeaways."
@@ -1055,9 +1055,9 @@ public static class HostExtensions
                     CitationIndex = citationIndex,
                     SimilarityScore = similarity,
                     LocationInDocument =
-                        $"Page: {chunk.PageNumber ?? 1}" +
-                        (!string.IsNullOrWhiteSpace(chunk.SectionTitle)
-                            ? $" • Section: {chunk.SectionTitle}"
+                        $"Page: {chunk.StartPageNumber ?? 1}" +
+                        (!string.IsNullOrWhiteSpace(chunk.StartSectionTitle)
+                            ? $" • Section: {chunk.StartSectionTitle}"
                             : "")
                 });
             }
