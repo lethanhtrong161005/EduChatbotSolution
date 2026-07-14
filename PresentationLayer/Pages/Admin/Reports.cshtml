@@ -262,8 +262,10 @@
 
 @section Scripts {
     <link rel="stylesheet" href="~/css/admin-reports.css" asp-append-version="true" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
-            integrity="sha256-2a+8a7W3gp8mC6z/GFTHvzpBH3xXOv6xFD/WlJL5pY="
-            crossorigin="anonymous"></script>
+    @* Chart.js from CDN. The previous integrity hash was malformed (43 chars; a valid
+       SHA-256 SRI is 44), which caused the browser to block the script so `Chart` was
+       undefined and the dashboard crashed. Removed until a verified hash is supplied.
+       admin-reports.js also degrades gracefully if Chart.js fails to load. *@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="~/js/admin/admin-reports.js" asp-append-version="true"></script>
 }

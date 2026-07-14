@@ -1,5 +1,6 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -56,10 +57,24 @@ public class CompareModel(IExperimentService experimentService) : PageModel
         if (leftId == rightId)
             return BadRequest(new { error = "Cannot compare an experiment with itself." });
 
-        var comparison = await _experimentService.CompareAsync(leftId, rightId, cxlTkn);
-        if (comparison is null)
-            return NotFound(new { error = "One or both experiments were not found." });
+        try
+        {
+            var comparison = await _experimentService.CompareAsync(leftId, rightId, cxlTkn);
+            if (comparison is null)
+                return NotFound(new { error = "One or both experiments were not found." });
 
-        return new JsonResult(comparison);
+            return new JsonResult(comparison);
+        }
+        catch (EntityNotFoundException ex)
+        {
+            // Either experiment absent. JSON 404 for the AJAX caller.
+            return NotFound(new { error = ex.Message });
+        }
+        catch (EntityConstraintException ex)
+        {
+            // Incompatible runs (different subject / question set, or not-yet-completed).
+            // Translate to a JSON 409 conflict rather than falling through to HTML middleware.
+            return new ConflictObjectResult(new { error = ex.Message });
+        }
     }
 }

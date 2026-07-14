@@ -79,6 +79,22 @@ let chartLatency = null;
 let chartSubjectBar = null;
 let chartIndexingDonut = null;
 
+/**
+ * True when the Chart.js library is available on the page.
+ * Chart.js is loaded from a CDN; if that request is blocked or offline,
+ * `Chart` is undefined. Render functions must bail gracefully so the page
+ * (KPIs, tables) still works instead of throwing a ReferenceError.
+ */
+let _chartMissingWarned = false;
+function ensureChart() {
+    if (typeof Chart !== 'undefined') return true;
+    if (!_chartMissingWarned) {
+        console.warn('[admin-reports] Chart.js is not loaded; charts will be skipped.');
+        _chartMissingWarned = true;
+    }
+    return false;
+}
+
 // Shared chart default overrides
 function applyChartDefaults() {
     if (typeof Chart === 'undefined') return;
@@ -232,7 +248,7 @@ function updateTrendSubtitle(trendSubjectId, options) {
 
 function renderGenerationsChart(trend) {
     const ctx = document.getElementById('chartGenerations');
-    if (!ctx) return;
+    if (!ctx || !ensureChart()) return;
     const config = makeLineChartConfig(
         trend.labels,
         [{
@@ -258,7 +274,7 @@ function renderGenerationsChart(trend) {
 
 function renderTokensChart(trend) {
     const ctx = document.getElementById('chartTokens');
-    if (!ctx) return;
+    if (!ctx || !ensureChart()) return;
     const config = makeLineChartConfig(
         trend.labels,
         [
@@ -310,7 +326,7 @@ function renderTokensChart(trend) {
 
 function renderLatencyChart(trend) {
     const ctx = document.getElementById('chartLatency');
-    if (!ctx) return;
+    if (!ctx || !ensureChart()) return;
     const config = makeLineChartConfig(
         trend.labels,
         [{
@@ -348,7 +364,7 @@ function renderLatencyChart(trend) {
 
 function renderSubjectBarChart(subjectUsage, metric) {
     const ctx = document.getElementById('chartSubjectBar');
-    if (!ctx) return;
+    if (!ctx || !ensureChart()) return;
 
     // Filter null-subject bucket for per-subject bar comparison,
     // include all entries as this chart always shows all subjects
@@ -489,13 +505,12 @@ function renderHotDocuments(docs) {
 
 function renderIndexingDonut(status) {
     const ctx = document.getElementById('chartIndexingDonut');
-    if (!ctx) return;
-
-    const total = status.indexedDocumentCount + status.processingDocumentCount + status.failedDocumentCount;
     const labels = ['Indexed', 'Processing', 'Failed'];
     const values = [status.indexedDocumentCount, status.processingDocumentCount, status.failedDocumentCount];
     const colors = ['#2ecc71', '#3498db', '#e74c3c'];
 
+    // Guard chart rendering; the custom legend below still renders without Chart.js.
+    if (ctx && ensureChart()) {
     if (chartIndexingDonut) {
         chartIndexingDonut.data.datasets[0].data = values;
         chartIndexingDonut.update('none');
@@ -519,8 +534,13 @@ function renderIndexingDonut(status) {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
+                            // Recompute total from the live dataset so percentages stay
+                            // correct after update() replaces the data (do not close over
+                            // a `total` captured at first construction).
                             label: ctx => {
                                 const v = ctx.parsed;
+                                const data = ctx.dataset?.data ?? [];
+                                const total = data.reduce((sum, n) => sum + (Number(n) || 0), 0);
                                 const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0';
                                 return `${ctx.label}: ${v} (${pct}%)`;
                             },
@@ -529,6 +549,7 @@ function renderIndexingDonut(status) {
                 },
             },
         });
+    }
     }
 
     // Update custom legend
@@ -567,6 +588,11 @@ $(function () {
     let currentSubjectMetric = 'uniqueActiveUserCount';
     let currentNormalized = null;
 
+    // Concurrency generation: guards against out-of-order AJAX responses when the
+    // user changes range/role/trend faster than the network responds. Each load
+    // establishes a new generation; a stale response is dropped before rendering.
+    let _reportReqId = 0;
+
     function getParams() {
         return {
             range: parseInt($('#rangeSelect').val(), 10),
@@ -596,14 +622,17 @@ $(function () {
     /** Full reload — fetches and renders everything. */
     function loadDashboard() {
         const p = getParams();
+        const reqId = ++_reportReqId;
         showLoading();
         fetchDashboard(p.range, p.role, p.trendSubjectId)
             .done(dto => {
+                if (reqId !== _reportReqId) return; // superseded by a newer load
                 currentNormalized = normalizeDashboard(dto);
                 renderAll(currentNormalized, currentSubjectMetric);
                 hideLoading();
             })
             .fail((xhr, status, err) => {
+                if (reqId !== _reportReqId) return; // stale failure; a newer load owns the UI
                 showError(`Failed to load dashboard: ${xhr.responseJSON?.error ?? err}`);
             });
     }
@@ -615,9 +644,11 @@ $(function () {
      */
     function loadTrendOnly() {
         const p = getParams();
+        const reqId = ++_reportReqId;
         showLoading();
         fetchDashboard(p.range, p.role, p.trendSubjectId)
             .done(dto => {
+                if (reqId !== _reportReqId) return; // superseded by a newer load
                 const norm = normalizeDashboard(dto);
                 // Update trend charts only
                 renderGenerationsChart(norm.generationsTrend);
@@ -628,6 +659,7 @@ $(function () {
                 hideLoading();
             })
             .fail((xhr, status, err) => {
+                if (reqId !== _reportReqId) return; // stale failure; a newer load owns the UI
                 showError(`Failed to update trends: ${xhr.responseJSON?.error ?? err}`);
             });
     }

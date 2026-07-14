@@ -162,6 +162,10 @@ function normalizeSummary(s) {
         chunkLabel: `${s.chunkSize}/${s.chunkOverlap}`,
         model: s.llmModel,
         progress: `${s.completedQuestionCount}/${s.totalQuestionCount}`,
+        // Numeric progress fields consumed by the detail stepper. Set here (not only in
+        // openDetail) so they survive polling, which re-normalizes via normalizeResult.
+        completedQ: s.completedQuestionCount,
+        totalQ: s.totalQuestionCount,
         indexedDocs: s.indexedDocumentCount,
         affectedDocs: s.affectedDocumentCount,
         scores: s.aggregateScores,
@@ -402,9 +406,14 @@ function renderExperimentDetail(normalized) {
     // Config
     if (normalized.config) renderConfigGrid(normalized.config);
 
-    // Aggregate scores
+    // Aggregate scores — only meaningful once Complete. Re-hide otherwise so a
+    // previously-viewed completed run's scores don't linger when switching to an
+    // Active/Failed run (or when the same panel polls through non-terminal states).
     if (s.status === ExperimentStatus.Completed) {
         renderAggregateScores(s.scores);
+    } else {
+        const scoreRow = document.getElementById('erScoreRow');
+        if (scoreRow) scoreRow.setAttribute('hidden', true);
     }
 
     // Failure reason
@@ -481,6 +490,11 @@ function updateCompareButton() {
 let _pollTimer = null;
 let _pollingId = null;
 
+// Concurrency generations: guard against out-of-order AJAX responses so a stale
+// response cannot overwrite a newer view (rapid row switches / repeated refreshes).
+let _detailReqId = 0;
+let _summariesReqId = 0;
+
 function stopPolling() {
     if (_pollTimer) {
         clearInterval(_pollTimer);
@@ -514,15 +528,13 @@ function startPolling(id) {
 // ── Load & open detail ────────────────────────────────────────
 
 function openDetail(id) {
+    const reqId = ++_detailReqId;
     fetchResult(id)
         .done(dto => {
+            if (reqId !== _detailReqId) return; // a newer detail request superseded this one
+            // normalizeSummary already maps completedQ/totalQ/indexedDocs/affectedDocs,
+            // so no manual flatten is needed here.
             const norm = normalizeResult(dto);
-            // Extend summary with counts for progress display
-            const s = dto.summary;
-            norm.summary.completedQ = s.completedQuestionCount;
-            norm.summary.totalQ = s.totalQuestionCount;
-            norm.summary.indexedDocs = s.indexedDocumentCount;
-            norm.summary.affectedDocs = s.affectedDocumentCount;
             renderExperimentDetail(norm);
 
             if (!isTerminal(norm.summary.status)) {
@@ -532,6 +544,7 @@ function openDetail(id) {
             }
         })
         .fail((xhr) => {
+            if (reqId !== _detailReqId) return; // stale failure; a newer request owns the panel
             const msg = xhr.responseJSON?.error ?? 'Failed to load experiment details.';
             alert(msg);
         });
@@ -540,12 +553,15 @@ function openDetail(id) {
 let _lastSummaries = [];
 
 function loadSummaries() {
+    const reqId = ++_summariesReqId;
     fetchSummaries()
         .done(dtos => {
+            if (reqId !== _summariesReqId) return; // superseded by a newer refresh
             _lastSummaries = normalizeSummaries(dtos);
             renderSummaryTable(_lastSummaries);
         })
         .fail(() => {
+            if (reqId !== _summariesReqId) return; // stale failure; a newer refresh owns the table
             const tbody = document.getElementById('erSummaryTableBody');
             if (tbody) {
                 tbody.innerHTML = '<tr class="er-table-empty"><td colspan="14">Failed to load experiments. <button onclick="loadSummaries()" class="er-btn er-btn--refresh">Retry</button></td></tr>';

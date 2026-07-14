@@ -1,5 +1,6 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -226,6 +227,36 @@ public class AdminExperimentResultsPageTests
         Assert.That(result, Is.InstanceOf<JsonResult>());
         var json = (JsonResult)result;
         Assert.That(json.Value, Is.SameAs(dto));
+    }
+
+    // ── Comparison domain-exception translation ───────────────
+
+    [Test]
+    public async Task OnGetComparisonAsync_ServiceThrowsNotFound_Returns404()
+    {
+        var leftId  = Guid.NewGuid();
+        var rightId = Guid.NewGuid();
+        _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new EntityNotFoundException("Experiment not found."));
+
+        var result = await _compareModel.OnGetComparisonAsync(leftId, rightId, CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<NotFoundObjectResult>(),
+            "EntityNotFoundException must map to a JSON 404.");
+    }
+
+    [Test]
+    public async Task OnGetComparisonAsync_ServiceThrowsConstraint_Returns409()
+    {
+        var leftId  = Guid.NewGuid();
+        var rightId = Guid.NewGuid();
+        _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new EntityConstraintException("Runs use different question sets."));
+
+        var result = await _compareModel.OnGetComparisonAsync(leftId, rightId, CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<ConflictObjectResult>(),
+            "Incompatible runs must map EntityConstraintException to a JSON 409.");
     }
 
     // ── Comparison compatibility requirements ─────────────────

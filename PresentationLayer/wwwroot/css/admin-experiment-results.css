@@ -4,6 +4,26 @@
  * Uses design-system tokens from colors.css.
  */
 
+/* ── Light-mode token pin ────────────────────────────────────────
+ * colors.css flips --color-surface / --color-text-* / --color-border-*
+ * to dark values under @media (prefers-color-scheme: dark). The admin
+ * shell stays light, so on a dark-OS machine cards rendered dark on a
+ * light page (dark text on dark card = unreadable). Re-declaring the
+ * tokens on the page scope (.er-page/.ec-page out-specify :root; custom
+ * props inherit) locks these pages to light mode like the other admin
+ * pages. Both Results (.er-page) and Compare (.ec-page) use this file. */
+.er-page,
+.ec-page {
+    --color-surface: #ffffff;
+    --color-surface-alt: #f9fafb;
+    --color-surface-hover: #f3f4f6;
+    --color-card-bg: #ffffff;
+    --color-text-primary: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border-light: #e5e7eb;
+    --color-border-neutral: #d1d5db;
+}
+
 /* ── Page layout ─────────────────────────────────────────────── */
 
 .er-page {

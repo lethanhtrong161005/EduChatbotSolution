@@ -1,5 +1,6 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -142,6 +143,20 @@ public class AdminReportsPageTests
 
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
         _serviceMock.VerifyNoOtherCalls();
+    }
+
+    // ── Not-found subject ─────────────────────────────────────
+
+    [Test]
+    public async Task OnGetDashboardAsync_SubjectNotFound_Returns404()
+    {
+        _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<ReportRange>(), It.IsAny<ReportRoleFilter>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new EntityNotFoundException("Subject 999 not found."));
+
+        var result = await _model.OnGetDashboardAsync(ReportRange.Last7Days, ReportRoleFilter.All, 999, CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<NotFoundObjectResult>(),
+            "An unknown trendSubjectId must map EntityNotFoundException to a JSON 404.");
     }
 
     // ── Missing/partial/full token coverage ───────────────────

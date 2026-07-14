@@ -1,5 +1,6 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -38,7 +39,16 @@ public class ReportsModel(IAdminReportService reportService) : PageModel
         if (!Enum.IsDefined(range) || !Enum.IsDefined(role))
             return BadRequest(new { error = "Invalid range or role value." });
 
-        var dashboard = await _reportService.GetDashboardAsync(range, role, trendSubjectId, cxlTkn);
-        return new JsonResult(dashboard);
+        try
+        {
+            var dashboard = await _reportService.GetDashboardAsync(range, role, trendSubjectId, cxlTkn);
+            return new JsonResult(dashboard);
+        }
+        catch (EntityNotFoundException ex)
+        {
+            // An unknown trendSubjectId resolves to a missing subject. Translate to a JSON 404
+            // so the AJAX caller gets a parseable payload instead of the HTML error middleware.
+            return NotFound(new { error = ex.Message });
+        }
     }
 }

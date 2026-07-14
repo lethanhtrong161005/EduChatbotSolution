@@ -33,7 +33,9 @@
             <table class="er-table" id="erSummaryTable">
                 <thead>
                     <tr>
-                        <th class="er-th-check"><input type="checkbox" id="erSelectAll" title="Select all completed" /></th>
+                        @* No "select all": comparison is strictly pairwise (exactly two runs),
+                           so a select-all control has no valid use. Header kept for alignment. *@
+                        <th class="er-th-check" aria-label="Select"></th>
                         <th>Name</th>
                         <th>Subject</th>
                         <th>Strategy</th>
