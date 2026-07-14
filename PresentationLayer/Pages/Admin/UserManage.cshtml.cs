@@ -211,7 +211,7 @@ public class UserManageModel(
             var sheetData = new DocumentFormat.OpenXml.Spreadsheet.SheetData();
             worksheetPart.Worksheet = new DocumentFormat.OpenXml.Spreadsheet.Worksheet(sheetData);
 
-            var sheets = document.WorkbookPart.Workbook.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
+            var sheets = document.WorkbookPart!.Workbook!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
             var sheet = new DocumentFormat.OpenXml.Spreadsheet.Sheet() { Id = document.WorkbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Users" };
             sheets.Append(sheet);
 

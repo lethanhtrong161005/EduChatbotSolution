@@ -1,25 +1,20 @@
+using DataAccess.Data;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Hangfire;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Presentation.Realtime;
-using DataAccess.Data;
-using System.Text.Json;
-
-using Presentation.Background;
-using Hangfire;
 
 namespace Presentation.Background;
 
 public sealed class UserImportJob(
-    IServiceProvider serviceProvider,
+    IUserManagementService userManagementService,
+    [FromKeyedServices(DocumentStorageMethod.Supabase)] IDurableStorageStrategy storageStrategy,
     EduChatAiDbContext dbContext,
     IHubContext<ResourceHub, IResourceClient> hubContext,
-    ILogger<UserImportJob> logger,
-    IUserManagementService userManagementService,
-    [Microsoft.Extensions.DependencyInjection.FromKeyedServices(DocumentStorageMethod.Supabase)] IDurableStorageStrategy storageStrategy,
     IBackgroundJobClient backgroundJobs)
 {
     [Queue(HangfireConstants.MediumPriorityQueue)]
@@ -40,7 +35,7 @@ public sealed class UserImportJob(
             {
                 throw new Exception($"Failed to download file from storage: {string.Join(", ", readResult.Errors ?? Array.Empty<string>())}");
             }
-            
+
             using var ms = new MemoryStream();
             await readResult.FileStream.CopyToAsync(ms, cxlTkn);
             ms.Position = 0; // reset to beginning before passing to parser
@@ -50,20 +45,20 @@ public sealed class UserImportJob(
 
             // Re-fetch batch to get the updated status and row counts
             batch = await dbContext.UserImportBatches.FindAsync([batchId], cxlTkn);
-            
+
             if (!validationResult.IsValid)
             {
                 batch!.Status = ImportBatchStatus.Failed;
                 batch.ErrorMessage = string.Join(" | ", validationResult.Errors);
                 await dbContext.SaveChangesAsync(cxlTkn);
-                
+
                 await PushProgressAsync(batchId, ImportBatchStatus.Failed.ToString(), batch.ErrorMessage);
                 return;
             }
 
             batch!.Status = ImportBatchStatus.Validated;
             await dbContext.SaveChangesAsync(cxlTkn);
-            
+
             await PushProgressAsync(batchId, ImportBatchStatus.Validated.ToString());
 
             // Enqueue Phase 2
@@ -105,7 +100,7 @@ public sealed class UserImportJob(
 
             // Reload batch counts
             batch = await dbContext.UserImportBatches.Include(b => b.Rows).FirstAsync(b => b.Id == batchId, cxlTkn);
-            
+
             var properties = new Dictionary<string, object?>
             {
                 { "processedRows", batch.ProcessedRows },
