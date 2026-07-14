@@ -783,11 +783,11 @@
 <div class="doc-page-container">
     <!-- Breadcrumbs -->
     <nav class="breadcrumb-nav mb-4" aria-label="breadcrumb">
-        <a asp-page="/Home/Index">Trang chủ</a>
+        <a asp-page="/Home/Index">Home</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <a asp-page="/Documents/Library">Tài liệu</a>
+        <a asp-page="/Documents/Library">Documents</a>
         <i class="fas fa-chevron-right text-muted mx-2" style="font-size: 0.7rem;"></i>
-        <span class="text-muted">Chi tiết</span>
+        <span class="text-muted">Details</span>
     </nav>
 
     <!-- Document Heading Info -->
@@ -802,7 +802,7 @@
                     <span id="documentStatusBadge" data-status="@Model.ViewModel.Status"></span>
                 </div>
                 <div class="document-subtitle">
-                    <span>Người đăng: <strong>@Model.ViewModel.UploadedBy</strong></span>
+                    <span>Uploaded by: <strong>@Model.ViewModel.UploadedBy</strong></span>
                     <span><i class="far fa-calendar-alt me-1"></i> @Model.ViewModel.UploadedAt.ToString("dd-MM-yyyy HH:mm")</span>
                 </div>
             </div>
@@ -810,16 +810,16 @@
 
         <div class="document-stats-grid">
             <div class="document-stat">
-                <div class="stat-label">Công cụ phân tích</div>
-                <div class="stat-value" id="docParserUsed">@(Model.ViewModel.ParserUsed ?? "Chờ xử lý")</div>
+                <div class="stat-label">Analysis Tool</div>
+                <div class="stat-value" id="docParserUsed">@(Model.ViewModel.ParserUsed ?? "Pending")</div>
             </div>
             <div class="document-stat">
-                <div class="stat-label">Số Vector Chunks</div>
-                <div class="stat-value" id="docChunkCount">@(Model.ViewModel.ChunkCount?.ToString() ?? "Chờ xử lý")</div>
+                <div class="stat-label">Vector Chunks</div>
+                <div class="stat-value" id="docChunkCount">@(Model.ViewModel.ChunkCount?.ToString() ?? "Pending")</div>
             </div>
             <div class="document-stat">
-                <div class="stat-label">Mô hình nhúng (Embedding)</div>
-                <div class="stat-value" id="docEmbeddingModel">@(Model.ViewModel.EmbeddingModel ?? "Chờ xử lý")</div>
+                <div class="stat-label">Embedding Model</div>
+                <div class="stat-value" id="docEmbeddingModel">@(Model.ViewModel.EmbeddingModel ?? "Pending")</div>
             </div>
         </div>
     </div>
@@ -832,7 +832,7 @@
                 <div class="viewer-toolbar">
                     <div class="viewer-title">
                         <i class="fas fa-eye text-primary"></i>
-                        <span>Bộ xem tài liệu trực tuyến</span>
+                        <span>Online Document Viewer</span>
                     </div>
 
                     <!-- View Mode Selector (docx, pptx, txt, or pdf when physical file is missing) -->
@@ -844,16 +844,16 @@
                                 @if (showBoth)
                                 {
                                     <button class="tab-toggle-btn active" id="btn-formatted-view" onclick="setViewMode('formatted')">
-                                        <i class="fas fa-file-alt me-1"></i> Định dạng gốc
+                                        <i class="fas fa-file-alt me-1"></i> Original Layout
                                     </button>
                                     <button class="tab-toggle-btn" id="btn-text-view" onclick="setViewMode('text')">
-                                        <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
+                                        <i class="fas fa-align-left me-1"></i> Text (RAG)
                                     </button>
                                 }
                                 else
                                 {
                                     <button class="tab-toggle-btn active" id="btn-text-view" onclick="setViewMode('text')">
-                                        <i class="fas fa-align-left me-1"></i> Văn bản (RAG)
+                                        <i class="fas fa-align-left me-1"></i> Text (RAG)
                                     </button>
                                 }
                             </div>
@@ -886,7 +886,7 @@
                                         }
                                         else
                                         {
-                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                            <p class="text-muted fst-italic">No text data available or document has not been extracted.</p>
                                         }
                                     </div>
                                 </div>
@@ -896,7 +896,7 @@
                         {
                             <div id="pdf-text-viewer" class="txt-viewer-container w-100">
                                 <div class="alert alert-warning m-3">
-                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Physical file not found on the server. Showing extracted text (RAG).
                                 </div>
                                 <div class="txt-scroller">
                                     <div class="docx-page-sheet" style="margin: 0 auto;">
@@ -913,7 +913,7 @@
                                         }
                                         else
                                         {
-                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                            <p class="text-muted fst-italic">No text data available or document has not been extracted.</p>
                                         }
                                     </div>
                                 </div>
@@ -930,7 +930,7 @@
                                     <div id="docx-render-target" class="docx-rendered-container">
                                         <div class="d-flex flex-column align-items-center justify-content-center py-5">
                                             <i class="fas fa-circle-notch fa-spin text-primary font-size-3xl mb-3"></i>
-                                            <span class="text-muted">Đang phân tích và hiển thị file Word...</span>
+                                            <span class="text-muted">Parsing and rendering Word file...</span>
                                         </div>
                                     </div>
                                 </div>
@@ -952,7 +952,7 @@
                                         }
                                         else
                                         {
-                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                            <p class="text-muted fst-italic">No text data available or document has not been extracted.</p>
                                         }
                                     </div>
                                 </div>
@@ -962,7 +962,7 @@
                         {
                             <div id="docx-text-viewer" class="txt-viewer-container w-100">
                                 <div class="alert alert-warning m-3">
-                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Physical file not found on the server. Showing extracted text (RAG).
                                 </div>
                                 <div class="txt-scroller">
                                     <div class="docx-page-sheet">
@@ -979,7 +979,7 @@
                                         }
                                         else
                                         {
-                                            <p class="text-muted fst-italic">Không có dữ liệu text hoặc tài liệu chưa được trích xuất.</p>
+                                            <p class="text-muted fst-italic">No text data available or document has not been extracted.</p>
                                         }
                                     </div>
                                 </div>
@@ -997,13 +997,13 @@
                                 @if (!Model.IsPhysicalFileAvailable)
                                 {
                                     <div class="alert alert-warning mx-auto mb-3" style="max-width: 800px; width: 100%;">
-                                        <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                        <i class="fas fa-exclamation-triangle me-2"></i> Physical file not found on the server. Showing extracted text (RAG).
                                     </div>
                                 }
                                 <div class="slide-box" id="slide-presentation-box">
-                                    <div class="slide-title" id="active-slide-title">Đang tải Slide...</div>
+                                    <div class="slide-title" id="active-slide-title">Loading Slides...</div>
                                     <div class="slide-body" id="active-slide-body">
-                                        <p class="text-muted">Đang tải nội dung slides...</p>
+                                        <p class="text-muted">Loading slide content...</p>
                                     </div>
                                 </div>
                                 <div class="slide-footer-controls">
@@ -1036,12 +1036,12 @@
                             @if (!Model.IsPhysicalFileAvailable)
                             {
                                 <div class="alert alert-warning m-3">
-                                    <i class="fas fa-exclamation-triangle me-2"></i> Không tìm thấy tệp vật lý trên máy chủ. Đang hiển thị văn bản trích xuất (RAG).
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Physical file not found on the server. Showing extracted text (RAG).
                                 </div>
                             }
                             <div class="txt-search-bar">
                                 <i class="fas fa-search"></i>
-                                <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Tìm kiếm văn bản trong file..." oninput="searchInTextViewer(this.value)" />
+                                <input type="text" class="txt-search-input" id="text-viewer-search" placeholder="Search text in file..." oninput="searchInTextViewer(this.value)" />
                                 <span class="badge bg-secondary font-size-xs d-none" id="txt-search-count">0 matches</span>
                             </div>
                             <div class="txt-scroller">
@@ -1061,18 +1061,18 @@
                         <!-- FALLBACK CARD -->
                         <div class="d-flex flex-column align-items-center justify-content-center py-5 px-3 text-center" style="height: 600px;">
                             <i class="fas fa-file-alt text-muted mb-4" style="font-size: 4rem;"></i>
-                            <h4>Không hỗ trợ xem trực tuyến file @Model.ViewModel.Extension</h4>
-                            <p class="text-muted max-w-md mt-2">Định dạng file này chưa được hỗ trợ xem trước trực tiếp. Bạn có thể tải file gốc về máy để mở.</p>
+                            <h4>Preview not supported for @Model.ViewModel.Extension files</h4>
+                            <p class="text-muted max-w-md mt-2">This file format is not supported for live preview. You can download the original file to open it.</p>
                             @if (Model.IsPhysicalFileAvailable)
                             {
                                 <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary mt-3">
-                                    <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                                    <i class="fas fa-download"></i> Download Original Document
                                 </a>
                             }
                             else
                             {
-                                <button class="btn-action-primary mt-3" style="opacity: 0.5; cursor: not-allowed;" disabled title="Không tìm thấy tệp vật lý trên máy chủ">
-                                    <i class="fas fa-download"></i> Tải xuống tài liệu gốc
+                                <button class="btn-action-primary mt-3" style="opacity: 0.5; cursor: not-allowed;" disabled title="Physical file not found on the server">
+                                    <i class="fas fa-download"></i> Download Original Document
                                 </button>
                             }
                         </div>
@@ -1084,7 +1084,7 @@
             <div class="comments-section-card">
                 <div class="comments-header">
                     <i class="fas fa-comments text-primary" style="font-size: 1.25rem;"></i>
-                    <h2 class="comments-title">Thảo luận môn học</h2>
+                    <h2 class="comments-title">Subject Discussion</h2>
                 </div>
                 <div class="comments-body">
                     <div class="comments-list-wrapper">
@@ -1145,8 +1145,8 @@
                         {
                             <div class="comments-empty-state">
                                 <i class="far fa-comments empty-state-icon"></i>
-                                <h5>Chưa có thảo luận nào</h5>
-                                <p class="text-muted font-size-sm mt-1">Hãy để lại câu hỏi hoặc ý kiến đầu tiên của bạn về tài liệu này bên dưới.</p>
+                                <h5>No discussions yet</h5>
+                                <p class="text-muted font-size-sm mt-1">Be the first to share your thoughts or questions about this document below.</p>
                             </div>
                         }
                     </div>
@@ -1156,10 +1156,10 @@
                         <form asp-page="/Documents/Details" asp-route-id="@Model.ViewModel.Id" asp-page-handler="AddComment" method="post">
                             <input type="hidden" name="documentId" value="@Model.ViewModel.Id" />
                             <div class="comment-input-area">
-                                <textarea name="content" class="comment-textarea" placeholder="Viết câu hỏi hoặc chia sẻ ý kiến của bạn tại đây..." required></textarea>
+                                <textarea name="content" class="comment-textarea" placeholder="Write a question or share your thoughts here..." required></textarea>
                                 <div class="comment-toolbar">
                                     <button type="submit" class="btn-action-primary">
-                                        <i class="fas fa-paper-plane me-1"></i> Gửi ý kiến
+                                        <i class="fas fa-paper-plane me-1"></i> Post Comment
                                     </button>
                                 </div>
                             </div>
@@ -1172,49 +1172,49 @@
         <!-- Right: Metadata Sidebar -->
         <aside>
             <div class="sidebar-details-card">
-                <h3 class="sidebar-details-title">Thông tin file</h3>
+                <h3 class="sidebar-details-title">File Details</h3>
                 <div class="meta-row">
-                    <span class="meta-row-label">Tên tệp gốc</span>
+                    <span class="meta-row-label">Original Filename</span>
                     <span class="meta-row-val text-truncate" title="@Model.ViewModel.OriginalFileName">@Model.ViewModel.OriginalFileName</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-row-label">Môn học</span>
+                    <span class="meta-row-label">Subject</span>
                     <span class="meta-row-val">@Model.ViewModel.SubjectName</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-row-label">Dung lượng</span>
+                    <span class="meta-row-label">File Size</span>
                     <span class="meta-row-val">@FormatFileSize(Model.ViewModel.FileSize)</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-row-label">Định dạng</span>
+                    <span class="meta-row-label">Format</span>
                     <span class="meta-row-val text-uppercase">@Model.ViewModel.Extension.TrimStart('.')</span>
                 </div>
                 <div class="meta-row">
-                    <span class="meta-row-label">Mô tả</span>
-                    <span class="meta-row-val" style="font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">@(string.IsNullOrWhiteSpace(Model.ViewModel.Description) ? "Không có" : Model.ViewModel.Description)</span>
+                    <span class="meta-row-label">Description</span>
+                    <span class="meta-row-val" style="font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">@(string.IsNullOrWhiteSpace(Model.ViewModel.Description) ? "None" : Model.ViewModel.Description)</span>
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-4">
                     @if (Model.CanEdit)
                     {
                         <a href="/documents/edit/@Model.ViewModel.Id" class="btn-action-primary w-100" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <i class="fas fa-edit"></i> Chỉnh sửa thông tin
+                            <i class="fas fa-edit"></i> Edit Details
                         </a>
                     }
                     @if (Model.IsPhysicalFileAvailable)
                     {
                         <a href="/documents/download/@Model.ViewModel.Id" class="btn-action-primary w-100">
-                            <i class="fas fa-download"></i> Tải xuống tài liệu
+                            <i class="fas fa-download"></i> Download Document
                         </a>
                     }
                     else
                     {
-                        <button class="btn-action-primary w-100" style="opacity: 0.5; cursor: not-allowed;" disabled title="Không tìm thấy tệp vật lý trên máy chủ">
-                            <i class="fas fa-download"></i> Tải xuống tài liệu
+                        <button class="btn-action-primary w-100" style="opacity: 0.5; cursor: not-allowed;" disabled title="Physical file not found on the server">
+                            <i class="fas fa-download"></i> Download Document
                         </button>
                     }
                     <button type="button" class="btn-action-secondary w-100" onclick="toggleChunkDrawer(true)">
-                        <i class="fas fa-cubes"></i> Mở hộc Vector Chunks
+                        <i class="fas fa-cubes"></i> View Vector Chunks
                     </button>
                 </div>
             </div>
@@ -1230,7 +1230,7 @@
     <div class="chunk-drawer-header">
         <h5>
             <i class="fas fa-cubes text-primary me-2"></i>
-            Hộc Vector Chunks
+            Vector Chunks Drawer
         </h5>
         <button type="button" class="btn-close-drawer" onclick="toggleChunkDrawer(false)" aria-label="Close">
             <i class="fas fa-times"></i>

@@ -1,4 +1,4 @@
-﻿// --- 1. View Mode Toggling ---
+// --- 1. View Mode Toggling ---
 function setViewMode(mode) {
     const btnFormatted = document.getElementById("btn-formatted-view");
     const btnText = document.getElementById("btn-text-view");
@@ -79,7 +79,7 @@ function showDocxTextFallback() {
     const renderContainer = document.getElementById("docx-render-target");
     renderContainer.innerHTML = `
     <div class="alert alert-warning">
-    <i class="fas fa-exclamation-triangle me-2"></i> Không thể hiển thị bản xem trước có định dạng. Hệ thống đã tự động chuyển sang chế độ hiển thị văn bản trần.
+    <i class="fas fa-exclamation-triangle me-2"></i> Could not display formatted preview. The system has automatically switched to plain text mode.
     </div>
     `;
     setViewMode('text');
@@ -98,9 +98,9 @@ function renderPPTXSlides() {
 
     sidebar.innerHTML = "";
     if (!pptxSlides || pptxSlides.length === 0) {
-        sidebar.innerHTML = "<div class='text-muted' style='font-size:0.8rem;'>Không có slide nào.</div>";
-        document.getElementById("active-slide-title").textContent = "Nội dung trống";
-        document.getElementById("active-slide-body").innerHTML = "<p class='text-muted fst-italic'>Slide này không có nội dung văn bản.</p>";
+        sidebar.innerHTML = "<div class='text-muted' style='font-size:0.8rem;'>No slides available.</div>";
+        document.getElementById("active-slide-title").textContent = "Empty Content";
+        document.getElementById("active-slide-body").innerHTML = "<p class='text-muted fst-italic'>This slide does not contain any text content.</p>";
         document.getElementById("slide-progress-indicator").textContent = "Slide 0 / 0";
         return;
     }
@@ -109,7 +109,7 @@ function renderPPTXSlides() {
         const thumb = document.createElement("div");
         thumb.className = `slide-thumb ${idx === 0 ? 'active' : ''}`;
         thumb.setAttribute("onclick", `goToSlide(${idx})`);
-        thumb.innerHTML = `<div>Slide ${idx + 1}</div><div style="font-size:0.6rem; opacity:0.7; font-weight:normal; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(slide.sectionTitle || 'Không có tiêu đề')}</div>`;
+        thumb.innerHTML = `<div>Slide ${idx + 1}</div><div style="font-size:0.6rem; opacity:0.7; font-weight:normal; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(slide.sectionTitle || 'Untitled')}</div>`;
         sidebar.appendChild(thumb);
     });
 
@@ -142,7 +142,7 @@ function displaySlide(idx) {
         html += "</ul>";
         bodyEl.innerHTML = html;
     } else {
-        bodyEl.innerHTML = `<p class="text-muted fst-italic">Slide này không có nội dung văn bản trích xuất.</p>`;
+        bodyEl.innerHTML = `<p class="text-muted fst-italic">This slide does not contain any text content.</p>`;
     }
 
     document.getElementById("slide-progress-indicator").textContent = `Slide ${idx + 1} / ${pptxSlides.length}`;
@@ -183,7 +183,7 @@ function toggleFullscreenSlide() {
 if (docType === "TXT") {
     const textLinesContainer = document.getElementById("txt-lines-container");
     if (textLinesContainer) {
-        const lines = rawTextContent ? rawTextContent.split('\n') : ["Tài liệu không có nội dung văn bản."];
+        const lines = rawTextContent ? rawTextContent.split('\n') : ["The document has no text content."];
         let html = "";
         lines.forEach((line, idx) => {
             html += `
