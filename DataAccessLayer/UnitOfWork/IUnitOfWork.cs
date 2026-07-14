@@ -101,6 +101,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     GenericRepository<CitationOccurrence> CitationOccurrences { get; }
 
+    AdminReportRepository AdminReports { get; }
+
     // ── Research & Evaluation ────────────────────────────────
     /// <summary>Gets the repository for <see cref="TestQuestion"/> entities.</summary>
     GenericRepository<TestQuestion> TestQuestions { get; }
