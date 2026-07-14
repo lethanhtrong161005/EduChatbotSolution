@@ -24,12 +24,12 @@ public class ChatGenerationMetricsTests
         var service = CreateService(client.Object);
         var result = await service.GenerateTitleAsync(TitleRequest());
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Metrics.PromptTokens, Is.EqualTo(11));
             Assert.That(result.Metrics.CompletionTokens, Is.EqualTo(4));
             Assert.That(result.Metrics.ResponseTimeMs, Is.GreaterThanOrEqualTo(0));
-        });
+        }
     }
 
     [Test]
@@ -45,11 +45,11 @@ public class ChatGenerationMetricsTests
         var service = CreateService(client.Object);
         var result = await service.GenerateTitleAsync(TitleRequest());
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Metrics.PromptTokens, Is.Null);
             Assert.That(result.Metrics.CompletionTokens, Is.Null);
-        });
+        }
     }
 
     [Test]
@@ -63,9 +63,9 @@ public class ChatGenerationMetricsTests
             .Returns(StreamWithUsage());
 
         var service = CreateService(client.Object);
-        var result = await service.GenerateChatAsync(ChatRequest(), _ => Task.CompletedTask);
+        var result = await service.GenerateAnswerAsync(ChatRequest(), _ => Task.CompletedTask);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Metrics.PromptTokens, Is.EqualTo(20));
             Assert.That(result.Metrics.CompletionTokens, Is.EqualTo(5));
@@ -73,7 +73,7 @@ public class ChatGenerationMetricsTests
             Assert.That(result.Metrics.TimeToFirstTokenMs, Is.GreaterThanOrEqualTo(0));
             Assert.That(result.Metrics.TotalResponseTimeMs, Is.GreaterThanOrEqualTo(result.Metrics.RetrievalTimeMs));
             Assert.That(result.Metrics.TokensPerSecond, Is.Not.Null);
-        });
+        }
     }
 
     [Test]
@@ -87,13 +87,13 @@ public class ChatGenerationMetricsTests
             .Returns(StreamWithUsage(outputTokens: 0));
 
         var service = CreateService(client.Object);
-        var result = await service.GenerateChatAsync(ChatRequest(), _ => Task.CompletedTask);
+        var result = await service.GenerateAnswerAsync(ChatRequest(), _ => Task.CompletedTask);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Metrics.CompletionTokens, Is.Zero);
             Assert.That(result.Metrics.TokensPerSecond, Is.Null);
-        });
+        }
     }
 
     private static ChatGenerationService CreateService(IChatClient client)

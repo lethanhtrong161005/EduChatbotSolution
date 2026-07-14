@@ -1,12 +1,14 @@
 using Business.Services.Account;
 using Business.Services.AI;
 using Business.Services.AI.Chat;
+using Business.Services.AI.Experiments;
 using Business.Services.AI.Indexing;
 using Business.Services.AI.Indexing.Chunking;
 using Business.Services.AI.Indexing.Embedding;
 using Business.Services.AI.Indexing.Parsing;
 using Business.Services.Documents;
 using Business.Services.Documents.File;
+using Business.Services.Reports;
 using Business.Services.Subscriptions;
 using Business.Services.Subscriptions.ExternalPayment;
 using DataAccess.Data;
@@ -65,7 +67,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(redisConn));
 
 // ── Application Services ──────────────────────────────────────
-builder.Services.AddAdminReports();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
@@ -105,6 +106,14 @@ builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator
 
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 
+builder.Services.AddScoped<IAdminReportService, AdminReportService>();
+
+builder.Services.AddScoped<IExperimentDatasetProvider, EmbeddedExperimentDatasetProvider>();
+builder.Services.AddScoped<IExperimentService, ExperimentService>();
+builder.Services.AddScoped<IExperimentRunner, ExperimentRunner>();
+builder.Services.AddScoped<IRagasStyleEvaluator, RagasStyleEvaluator>();
+builder.Services.AddSingleton<IExperimentDispatcher, HangfireExperimentDispatcher>();
+builder.Services.AddScoped<ExperimentJob>();
 
 // ── File Storage ──────────────────────────────────────
 var supabaseOpts = builder.Configuration.GetSection("BlobStorage:Supabase").Get<SupabaseOptions>()
@@ -249,6 +258,8 @@ builder.Services.AddHangfireServer(opts =>
 // ── Helper Services ───────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly());
+
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.Configure<PaymentProviderOptions>(builder.Configuration.GetRequiredSection("PaymentProviders"));
 builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetRequiredSection("BlobStorage:Supabase"));

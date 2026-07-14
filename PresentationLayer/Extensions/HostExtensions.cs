@@ -1,5 +1,6 @@
 using DataAccess.UnitOfWork;
 using Domain.Constants;
+using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -1077,6 +1078,19 @@ public static class HostExtensions
             unitOfWork.GlobalAiConfigurations.Insert(new GlobalAiConfiguration());
 
             await unitOfWork.SaveAsync();
+        }
+
+    EXPERIMENT_DATASET:
+        try
+        {
+            var datasetProvider = services.GetRequiredService<IExperimentDatasetProvider>();
+            var changed = await datasetProvider.ImportAsync();
+            logger.LogInformation("DB201 experiment dataset import completed with {ChangedCount} changed question(s).", changed);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "DB201 experiment dataset import failed.");
+            throw;
         }
     }
 }

@@ -113,7 +113,7 @@ public class ChatGenerationCoordinator(
                            .GenerationStarted(assistantMessageId, assistantMessageClientId);
             }
 
-            var result = await _chatGenerationService.GenerateChatAsync(
+            var result = await _chatGenerationService.GenerateAnswerAsync(
                     request,
                     async token =>
                     {

@@ -96,7 +96,6 @@ public class SubjectService(
             Code = code,
             Name = subjectName.Trim(),
             Description = description?.Trim(),
-            CreatedAt = DateTime.UtcNow
         };
 
         _unitOfWork.Subjects.Insert(subject);
@@ -177,7 +176,6 @@ public class SubjectService(
             SubjectId = subjectId,
             Name = chapterName.Trim(),
             ChapterNumber = chapterNumber,
-            CreatedAt = DateTime.UtcNow
         };
 
         _unitOfWork.Chapters.Insert(chapter);
@@ -297,7 +295,6 @@ public class SubjectService(
                 UserId = userId,
                 Role = role,
                 AssignedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
             };
 
             _unitOfWork.Memberships.Insert(newMembership);

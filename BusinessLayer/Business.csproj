@@ -1,36 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\Domain\Domain.csproj" />
-    <ProjectReference Include="..\DataAccessLayer\DataAccess.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Domain\Domain.csproj" />
+		<ProjectReference Include="..\DataAccessLayer\DataAccess.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Templates\EmailVerificationCode.html" />
-    <EmbeddedResource Include="Templates\AdminCreatedAccountCredentials.html" />
-    <EmbeddedResource Include="Templates\PasswordResetCode.html" />
-    <EmbeddedResource Include="Templates\EmailUpdateVerify.html" />
-    <EmbeddedResource Include="Templates\AccountDisabled.html" />
-    <EmbeddedResource Include="Templates\AccountDeleted.html" />
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="Templates\EmailVerificationCode.html" />
+		<EmbeddedResource Include="Templates\AdminCreatedAccountCredentials.html" />
+		<EmbeddedResource Include="Templates\PasswordResetCode.html" />
+		<EmbeddedResource Include="Templates\EmailUpdateVerify.html" />
+		<EmbeddedResource Include="Templates\AccountDisabled.html" />
+		<EmbeddedResource Include="Templates\AccountDeleted.html" />
+		<EmbeddedResource Include="Services\AI\Experiments\Data\db201-vi-50.json" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.1.1" />
-    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
-    <PackageReference Include="MailKit" Version="4.17.0" />
-    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
-    <PackageReference Include="Mime-Detective" Version="25.8.1" />
-    <PackageReference Include="OllamaSharp" Version="5.4.25" />
-    <PackageReference Include="PdfPig" Version="0.1.15" />
-    <PackageReference Include="StackExchange.Redis" Version="3.0.11" />
-    <PackageReference Include="Supabase" Version="1.1.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="AutoMapper" Version="16.1.1" />
+		<PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+		<PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+		<PackageReference Include="MailKit" Version="4.17.0" />
+		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
+		<PackageReference Include="Mime-Detective" Version="25.8.1" />
+		<PackageReference Include="OllamaSharp" Version="5.4.25" />
+		<PackageReference Include="PdfPig" Version="0.1.15" />
+		<PackageReference Include="StackExchange.Redis" Version="3.0.11" />
+		<PackageReference Include="Supabase" Version="1.1.1" />
+	</ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
 </Project>

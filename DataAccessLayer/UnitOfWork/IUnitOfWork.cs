@@ -112,6 +112,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots { get; }
 
+    ExperimentRunRepository ExperimentRuns { get; }
+
     /// <summary>Gets the repository for <see cref="TestResponse"/> entities.</summary>
     GenericRepository<TestResponse> TestResponses { get; }
 

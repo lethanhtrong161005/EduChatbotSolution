@@ -8,7 +8,7 @@ public interface IChatGenerationService
         TitleGenerationRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<ChatGenerationResult> GenerateChatAsync(
+    Task<ChatGenerationResult> GenerateAnswerAsync(
         ChatGenerationRequest request,
         Func<string, Task> onToken,
         CancellationToken cancellationToken = default);

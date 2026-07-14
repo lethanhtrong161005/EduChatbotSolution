@@ -1,5 +1,7 @@
-﻿using Domain.Contracts;
+﻿using DataAccess.UnitOfWork;
+using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
 using Microsoft.Extensions.AI;
 using System.Diagnostics;
 using System.Text;
@@ -10,12 +12,14 @@ namespace Business.Services.AI.Chat;
 public class ChatGenerationService(
     IEmbeddingService embedder,
     IVectorSearchService vectorSearcher,
-    IChatClientFactory chatClientFactory)
+    IChatClientFactory chatClientFactory,
+    IUnitOfWork unitOfWork)
     : IChatGenerationService
 {
     private readonly IEmbeddingService _embedder = embedder;
     private readonly IVectorSearchService _vectorSearcher = vectorSearcher;
     private readonly IChatClientFactory _chatClientFactory = chatClientFactory;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     private static readonly Regex CitationRegex = ChatGenerationServiceRegexes.CitationRegex();
     private static readonly Regex ConsecutiveWhitespaceRegex = ChatGenerationServiceRegexes.ConsecutiveWhitespaceRegex();
@@ -77,11 +81,13 @@ public class ChatGenerationService(
         ];
     }
 
-    public async Task<ChatGenerationResult> GenerateChatAsync(
+    public async Task<ChatGenerationResult> GenerateAnswerAsync(
         ChatGenerationRequest req,
         Func<string, Task> onToken,
         CancellationToken cxlTkn = default)
     {
+        await EnsureSubjectIndexesReadyAsync(req.AllowedSubjects, cxlTkn);
+
         var totalTimer = Stopwatch.StartNew();
         var retrievalTimer = Stopwatch.StartNew();
         var chunkRetrievals = await RetrieveChunksAsync(req, cxlTkn);
@@ -157,6 +163,23 @@ public class ChatGenerationService(
 
     private static int? ToNullableInt(long? value)
         => value.HasValue ? checked((int)value.Value) : null;
+
+    private async Task EnsureSubjectIndexesReadyAsync(IReadOnlyList<int> allowedSubjectIds, CancellationToken cxlTkn)
+    {
+        var subjectIds = allowedSubjectIds.Distinct().ToArray();
+        if (subjectIds.Length == 0) throw new EntityValidationException("At least one subject is required for chat generation.", nameof(ChatGenerationRequest.AllowedSubjects));
+
+        var subjects = (await _unitOfWork.Subjects.GetAsync(filter: e => subjectIds.Contains(e.Id), asNoTracking: true, cancellationToken: cxlTkn)).ToArray();
+        if (subjects.Length != subjectIds.Length)
+        {
+            var found = subjects.Select(e => e.Id).ToHashSet();
+            throw new EntityNotFoundException($"No subject matched ID(s): {string.Join(", ", subjectIds.Where(e => !found.Contains(e)))}.");
+        }
+
+        var unavailable = subjects.Where(e => e.IndexAvailability != Domain.Entities.SubjectIndexAvailability.Ready).OrderBy(e => e.Code).ToArray();
+        if (unavailable.Length > 0)
+            throw new EntityConflictException($"Chat generation is unavailable while subject indexes are not ready: {string.Join(", ", unavailable.Select(e => $"{e.Code} ({e.IndexAvailability})"))}.", nameof(Domain.Entities.Subject.IndexAvailability));
+    }
 
     private async Task<IReadOnlyList<ChunkRetrieval>> RetrieveChunksAsync(
         ChatGenerationRequest req,

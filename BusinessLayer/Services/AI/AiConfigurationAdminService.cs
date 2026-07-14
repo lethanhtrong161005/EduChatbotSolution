@@ -98,13 +98,7 @@ public sealed class AiConfigurationAdminService(
             var config = await _resolver.GetAiConfigurationAsync(subjectId, cxlTkn);
             ValidateIndexing(config.ChunkingStrategy, config.ChunkSize, config.ChunkOverlap, config.EmbeddingModel);
 
-            var count = await _unitOfWork.Documents.CountAsync(e =>
-                e.SubjectId == subjectId &&
-                (e.Status != DocumentStatus.Indexed
-                 || e.IndexedChunkingStrategy != config.ChunkingStrategy
-                 || e.IndexedChunkSize != config.ChunkSize
-                 || e.IndexedChunkOverlap != config.ChunkOverlap
-                 || e.IndexedEmbeddingModel != config.EmbeddingModel), cxlTkn);
+            var count = await _unitOfWork.ExperimentRuns.CountAffectedDocumentsAsync(subjectId, config.ChunkingStrategy, config.ChunkSize, config.ChunkOverlap, config.EmbeddingModel, cxlTkn);
 
             _reindexDispatcher.Enqueue(subjectId, config);
             return new SubjectReindexResponseDto { SubjectId = subjectId, QueuedDocumentCount = count, QueuedAt = DateTime.UtcNow };

@@ -47,6 +47,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
     GenericRepository<ExperimentConfigurationSnapshot>? _experimentConfigurationSnapshots;
+    ExperimentRunRepository? _experimentRuns;
     GenericRepository<TestResponse>? _testResponses;
     GenericRepository<TestResponseContext>? _testResponseContexts;
 
@@ -117,9 +118,13 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(_context);
     /// <inheritdoc/>
     public GenericRepository<Experiment> Experiments => _experiments ??= new GenericRepository<Experiment>(_context);
+    /// <inheritdoc/>
     public GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots => _experimentConfigurationSnapshots ??= new GenericRepository<ExperimentConfigurationSnapshot>(_context);
     /// <inheritdoc/>
+    public ExperimentRunRepository ExperimentRuns => _experimentRuns ??= new ExperimentRunRepository(_context);
+    /// <inheritdoc/>
     public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(_context);
+    /// <inheritdoc/>
     public GenericRepository<TestResponseContext> TestResponseContexts => _testResponseContexts ??= new GenericRepository<TestResponseContext>(_context);
 
     /// <inheritdoc/>

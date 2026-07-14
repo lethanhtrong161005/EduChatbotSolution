@@ -445,7 +445,7 @@ public class IndexModel(
                 VariantNavigation = _mapper.Map<ChatVariantNavigationDto>(resolvedMessage.VariantNavigation)
             };
 
-            return new AcceptedResult($"/chat?handler=Variant&sessionId=${sessionId}&messageId={resolvedMessage.Id}", response);
+            return new AcceptedResult($"/chat?handler=Variant&sessionId={sessionId}&messageId={resolvedMessage.Id}", response);
         }
         catch (UserClaimException)
         {
@@ -513,7 +513,7 @@ public class IndexModel(
                 VariantNavigation = variantNavigationDto
             };
 
-            return new AcceptedResult($"/chat?handler=Variant&sessionId=${sessionId}&messageId={newVariant.Id}", response);
+            return new AcceptedResult($"/chat?handler=Variant&sessionId={sessionId}&messageId={newVariant.Id}", response);
         }
         catch (UserClaimException)
         {

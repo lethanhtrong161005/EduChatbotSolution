@@ -1,15 +1,11 @@
-﻿using Domain.Common;
-
-namespace Domain.Contracts;
+﻿namespace Domain.Contracts;
 
 public interface IChatGenerationCoordinator
 {
-    [Retry(Retries = 2)]
     Task GenerateTitleAsync(
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
-    [Retry(Retries = 0)]
     Task GenerateAnswerAsync(
         Guid sessionId,
         Guid assistantMessageId,
