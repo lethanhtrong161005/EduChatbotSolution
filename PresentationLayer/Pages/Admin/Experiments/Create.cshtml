@@ -8,12 +8,17 @@
 @Html.AntiForgeryToken()
 
 <div class="sm-page">
+    <!-- Header -->
     <div class="page-header-row">
         <div class="header-left">
             <h1 class="page-title-text"><i class="fas fa-flask text-primary"></i> Create AI Experiment</h1>
             <p class="page-subtitle-text">Set up configuration, select test questions, and run RAG evaluation benchmark benchmarks.</p>
         </div>
-        <div class="header-right">
+    </div>
+
+    <!-- Toolbar aligned with native SubjectManage layout -->
+    <div class="sm-toolbar">
+        <div class="sm-filters">
             <div class="subject-select-wrapper">
                 <label for="subjectSelect" class="select-label">Select Subject:</label>
                 <select id="subjectSelect" class="form-control form-select">
