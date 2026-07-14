@@ -1,5 +1,4 @@
 using DataAccess.Data;
-using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,11 +11,11 @@ public class ChatAndExperimentDataModelTests
     {
         var configuration = new GlobalAiConfiguration();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(configuration.ChunkSize, Is.EqualTo(1000));
             Assert.That(configuration.ChunkOverlap, Is.EqualTo(200));
-        });
+        }
     }
 
     [Test]
@@ -25,14 +24,14 @@ public class ChatAndExperimentDataModelTests
         var subject = new Subject();
         var document = new Document();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(subject.IndexAvailability, Is.EqualTo(SubjectIndexAvailability.Ready));
             Assert.That(document.IndexedChunkingStrategy, Is.Null);
             Assert.That(document.IndexedChunkSize, Is.Null);
             Assert.That(document.IndexedChunkOverlap, Is.Null);
             Assert.That(document.IndexedEmbeddingModel, Is.Null);
-        });
+        }
     }
 
     [Test]
@@ -41,7 +40,7 @@ public class ChatAndExperimentDataModelTests
         var chatMetrics = new ChatMessageGenerationMetrics();
         var titleMetrics = new ChatSessionTitleGenerationMetrics();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(chatMetrics.PromptTokens, Is.Null);
             Assert.That(chatMetrics.CompletionTokens, Is.Null);
@@ -49,7 +48,7 @@ public class ChatAndExperimentDataModelTests
             Assert.That(chatMetrics.TokensPerSecond, Is.Null);
             Assert.That(titleMetrics.PromptTokens, Is.Null);
             Assert.That(titleMetrics.CompletionTokens, Is.Null);
-        });
+        }
     }
 
     [Test]
@@ -62,7 +61,7 @@ public class ChatAndExperimentDataModelTests
         var snapshot = model.FindEntityType(typeof(ExperimentConfigurationSnapshot));
         var contextEntity = model.FindEntityType(typeof(TestResponseContext));
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(experiment, Is.Not.Null);
             Assert.That(snapshot, Is.Not.Null);
@@ -70,7 +69,7 @@ public class ChatAndExperimentDataModelTests
             Assert.That(contextEntity!.GetIndexes().Any(index =>
                 index.IsUnique && index.Properties.Select(property => property.Name)
                     .SequenceEqual([nameof(TestResponseContext.TestResponseId), nameof(TestResponseContext.ContextIndex)])), Is.True);
-        });
+        }
     }
 
     private static EduChatAiDbContext CreateContext()

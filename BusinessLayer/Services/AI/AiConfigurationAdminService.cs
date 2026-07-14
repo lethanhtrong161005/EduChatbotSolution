@@ -82,11 +82,10 @@ public sealed class AiConfigurationAdminService(
 
         Validate(request, global);
 
-        var stored = await _unitOfWork.SubjectAiConfigurations.FindByIdAsync(subjectId, cxlTkn);
-        stored ??= _unitOfWork.SubjectAiConfigurations.Insert(new SubjectAiConfiguration { Id = subjectId });
+        var desired = new SubjectAiConfiguration { Id = subjectId };
+        Apply(desired, request);
 
-        Apply(stored, request);
-        await _unitOfWork.SaveAsync(cxlTkn);
+        var stored = await _unitOfWork.SubjectIndexes.SaveConfigurationAsync(desired, cxlTkn);
         return Map(subject, global, stored);
     }
 

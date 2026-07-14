@@ -3,6 +3,7 @@ using Domain.Contracts.DTOs;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Moq;
 using Presentation.Pages.Admin.Experiments;
@@ -159,12 +160,12 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task CompareOnGetAsync_SetsInitialIds()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
 
         await _compareModel.OnGetAsync(leftId, rightId, CancellationToken.None);
 
-        Assert.That(_compareModel.InitialLeftId,  Is.EqualTo(leftId));
+        Assert.That(_compareModel.InitialLeftId, Is.EqualTo(leftId));
         Assert.That(_compareModel.InitialRightId, Is.EqualTo(rightId));
         _serviceMock.VerifyNoOtherCalls();
     }
@@ -203,7 +204,7 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_ServiceReturnsNull_Returns404()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
                     .ReturnsAsync((ExperimentComparisonDto?)null);
@@ -216,7 +217,7 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_ValidPair_ReturnsComparisonDto()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         var dto = BuildComparison(leftId, rightId);
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
@@ -234,7 +235,7 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_ServiceThrowsNotFound_Returns404()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
                     .ThrowsAsync(new EntityNotFoundException("Experiment not found."));
@@ -248,15 +249,17 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_ServiceThrowsConstraint_Returns409()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
-                    .ThrowsAsync(new EntityConstraintException("Runs use different question sets."));
+                    .ThrowsAsync(new EntityConflictException("Runs use different question sets."));
 
         var result = await _compareModel.OnGetComparisonAsync(leftId, rightId, CancellationToken.None);
 
-        Assert.That(result, Is.InstanceOf<ConflictObjectResult>(),
-            "Incompatible runs must map EntityConstraintException to a JSON 409.");
+        Assert.That(result, Is.AssignableTo<IStatusCodeActionResult>(),
+            "Incompatible runs must map EntityConflictException to a JSON 409.");
+        Assert.That(((IStatusCodeActionResult)result).StatusCode, Is.EqualTo(StatusCodes.Status409Conflict),
+            "Incompatible runs must map EntityConflictException to a JSON 409.");
     }
 
     // ── Comparison compatibility requirements ─────────────────
@@ -264,7 +267,7 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_IncompatibleExperiments_ServiceReturnsNull_Returns404()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
                     .ReturnsAsync((ExperimentComparisonDto?)null);
@@ -277,7 +280,7 @@ public class AdminExperimentResultsPageTests
     [Test]
     public async Task OnGetComparisonAsync_BothIdsDistinct_CallsServiceExactlyOnce()
     {
-        var leftId  = Guid.NewGuid();
+        var leftId = Guid.NewGuid();
         var rightId = Guid.NewGuid();
         var dto = BuildComparison(leftId, rightId);
         _serviceMock.Setup(s => s.CompareAsync(leftId, rightId, It.IsAny<CancellationToken>()))
@@ -303,9 +306,12 @@ public class AdminExperimentResultsPageTests
 
         Assert.That(result, Is.InstanceOf<JsonResult>());
         var returned = (ExperimentResultDto)((JsonResult)result).Value!;
-        Assert.That(returned.Summary.IndexedDocumentCount, Is.EqualTo(2));
-        Assert.That(returned.Summary.AffectedDocumentCount, Is.EqualTo(4));
-        Assert.That(returned.Summary.CompletedQuestionCount, Is.EqualTo(0));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(returned.Summary.IndexedDocumentCount, Is.EqualTo(2));
+            Assert.That(returned.Summary.AffectedDocumentCount, Is.EqualTo(4));
+            Assert.That(returned.Summary.CompletedQuestionCount, Is.Zero);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────
@@ -361,7 +367,8 @@ public class AdminExperimentResultsPageTests
         return new ExperimentResultDto
         {
             Summary = BuildSummary(status, indexedDocs: indexedDocs, affectedDocs: affectedDocs,
-                completedQ: completedQ, totalQ: totalQ) with { ExperimentId = id },
+                completedQ: completedQ, totalQ: totalQ) with
+            { ExperimentId = id },
             Configuration = new ExperimentConfigurationSnapshotDto
             {
                 SubjectId = 3,
@@ -420,7 +427,7 @@ public class AdminExperimentResultsPageTests
     {
         return new ExperimentComparisonDto
         {
-            Left  = BuildSummary(ExperimentStatus.Completed) with { ExperimentId = leftId },
+            Left = BuildSummary(ExperimentStatus.Completed) with { ExperimentId = leftId },
             Right = BuildSummary(ExperimentStatus.Completed) with { ExperimentId = rightId },
             Metrics = new List<MetricComparisonDto>
             {
