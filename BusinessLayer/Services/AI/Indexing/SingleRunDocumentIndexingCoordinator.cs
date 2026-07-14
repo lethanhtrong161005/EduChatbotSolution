@@ -8,7 +8,7 @@ using Pgvector;
 
 namespace Business.Services.AI.Indexing;
 
-public sealed class DocumentIndexer(
+public sealed class SingleRunDocumentIndexingCoordinator(
     IDocumentParser parser,
     IDocumentChunkerSelector chunkerSelector,
     IEmbeddingService embedder,
@@ -16,7 +16,7 @@ public sealed class DocumentIndexer(
     IAiConfigurationResolver aiConfigResolver,
     IUnitOfWork unitOfWork,
     IDocumentStatusRealtimeNotifier notifier,
-    ILogger<DocumentIndexer> logger) : IDocumentIndexer
+    ILogger<SingleRunDocumentIndexingCoordinator> logger) : IDocumentIndexingCoordinator
 {
     private const int BatchSize = 50;
 
@@ -27,7 +27,7 @@ public sealed class DocumentIndexer(
     private readonly IAiConfigurationResolver _aiConfigResolver = aiConfigResolver;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IDocumentStatusRealtimeNotifier _notifier = notifier;
-    private readonly ILogger<DocumentIndexer> _logger = logger;
+    private readonly ILogger<SingleRunDocumentIndexingCoordinator> _logger = logger;
 
     public Task IndexAsync(Guid documentId, CancellationToken cxlTkn = default) => IndexCoreAsync(documentId, null, cxlTkn);
     public Task IndexAsync(Guid documentId, EffectiveAiConfiguration configuration, CancellationToken cxlTkn = default) => IndexCoreAsync(documentId, configuration, cxlTkn);

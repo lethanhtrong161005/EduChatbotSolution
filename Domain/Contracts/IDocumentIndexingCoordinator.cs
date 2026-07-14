@@ -3,7 +3,7 @@ using Domain.Contracts.DTOs;
 
 namespace Domain.Contracts;
 
-public interface IDocumentIndexer
+public interface IDocumentIndexingCoordinator
 {
     [Retry(Retries = 2)]
     Task IndexAsync(Guid documentId, CancellationToken cancellationToken = default);

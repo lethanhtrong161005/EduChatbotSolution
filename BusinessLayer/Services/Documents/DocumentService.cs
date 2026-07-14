@@ -36,7 +36,7 @@ public class DocumentService(
     {
         var doc = (await _unitOfWork.Documents.GetAsync(
             preFilter: e => e.Id == id,
-            projection: e => new DocumentDetails
+            projectionClass: e => new DocumentDetails
             {
                 Id = e.Id,
                 SubjectId = e.SubjectId,
@@ -92,10 +92,9 @@ public class DocumentService(
         {
             var chiefId = (await _unitOfWork.Memberships.GetAsync(
                 preFilter: e => e.SubjectId == doc.SubjectId && e.Role == MembershipRole.Chief,
-                projection: e => new { e.UserId },
+                projection: e => e.UserId,
                 cancellationToken: cxlTkn))
-                .FirstOrDefault()
-                ?.UserId;
+                .FirstOrDefault();
 
             userRoles.FirstOrDefault(e => e.UserId == chiefId)?.Role = nameof(MembershipRole.Chief);
         }
@@ -235,14 +234,14 @@ public class DocumentService(
         // 3. Verify the chapters exist and belong to the same subject as the document
         var chapterIdsToAdd = (await _unitOfWork.Chapters.GetAsync(
             preFilter: e => toAdd.Contains(e.Id) && e.SubjectId == doc.SubjectId,
-            projection: e => new { e.Id },
+            projection: e => e.Id,
             asNoTracking: true,
             cancellationToken: cxlTkn))
             .ToList();
 
         if (chapterIdsToAdd.Count != toAdd.Count)
         {
-            var missingChapterIds = toAdd.Except(chapterIdsToAdd.Select(x => x.Id));
+            var missingChapterIds = toAdd.Except(chapterIdsToAdd);
             throw new EntityNotFoundException(
                 $"One or more chapters do not exist or do not belong to the same subject as the target document: " +
                 $"{string.Join(", ", missingChapterIds.Select(x => x.ToString()))}");

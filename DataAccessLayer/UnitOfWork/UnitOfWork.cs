@@ -27,6 +27,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<SubjectStorageConfiguration>? _subjectStorageConfigurations;
     GenericRepository<SubjectAiConfiguration>? _subjectAiConfigurations;
     GenericRepository<GlobalAiConfiguration>? _globalAiConfigurations;
+    SubjectIndexRepository? _subjectIndexes;
     GenericRepository<Chapter>? _chapters;
     GenericRepository<Document>? _documents;
     GenericRepository<DocumentChapter>? _documentChapters;
@@ -79,6 +80,8 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<GlobalAiConfiguration> GlobalAiConfigurations => _globalAiConfigurations ??= new GenericRepository<GlobalAiConfiguration>(_context);
     /// <inheritdoc/>
+    public SubjectIndexRepository SubjectIndexes => _subjectIndexes ??= new SubjectIndexRepository(_context);
+    /// <inheritdoc/>
     public GenericRepository<Chapter> Chapters => _chapters ??= new GenericRepository<Chapter>(_context);
     /// <inheritdoc/>
     public GenericRepository<Document> Documents => _documents ??= new GenericRepository<Document>(_context);
@@ -98,6 +101,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<ChatSessionTitleGenerationMetrics> ChatSessionTitleGenerationMetrics => _chatSessionTitleGenerationMetrics ??= new GenericRepository<ChatSessionTitleGenerationMetrics>(_context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessage> ChatMessages => _chatMessages ??= new GenericRepository<ChatMessage>(_context);
+    /// <inheritdoc/>
     public ChatTurnRepository ChatTurns => _chatTurns ??= new ChatTurnRepository(_context);
     /// <inheritdoc/>
     public GenericRepository<ChatMessageGenerationSettings> ChatMessageGenerationSettings => _chatMessageGenerationSettings ??= new GenericRepository<ChatMessageGenerationSettings>(_context);

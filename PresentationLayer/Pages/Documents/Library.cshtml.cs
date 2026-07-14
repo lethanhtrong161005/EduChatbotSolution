@@ -301,14 +301,14 @@ public class LibraryModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            var uploadJobId = BackgroundJob.Enqueue<DocumentPersistenceJob>(
+            var persistJobId = BackgroundJob.Enqueue<DocumentPersistenceJob>(
                 HangfireConstants.LowPriorityQueue,
                 e => e.PersistAsync(doc.Id));
 
-            var parseJobId = BackgroundJob.ContinueJobWith<IDocumentIndexer>(
-                uploadJobId,
-                HangfireConstants.LowPriorityQueue,
-                e => e.IndexAsync(doc.Id));
+            BackgroundJob.ContinueJobWith<DocumentIndexingJob>(
+                     persistJobId,
+                     HangfireConstants.LowPriorityQueue,
+                     e => e.IndexAsync(doc.Id));
 
             var dtos = _mapper.Map<DocumentFileDto>(newDoc);
             return new JsonResult(dtos);
@@ -340,7 +340,7 @@ public class LibraryModel(
             HangfireHelper.CancelJobs(doc.Id,
             [
                 nameof(DocumentPersistenceJob.PersistAsync),
-                nameof(IDocumentIndexer.IndexAsync),
+                nameof(DocumentIndexingJob.IndexAsync),
             ]);
 
             var result = await _fileService.DeleteAsync(doc.Id, cxlTkn);

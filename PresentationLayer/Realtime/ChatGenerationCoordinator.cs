@@ -76,7 +76,7 @@ public class ChatGenerationCoordinator(
         await _notifier.PushUpdateAsync(update);
     }
 
-    public async Task GenerateChatAsync(
+    public async Task GenerateAnswerAsync(
         Guid sessionId,
         Guid assistantMessageId,
         Guid assistantMessageClientId,

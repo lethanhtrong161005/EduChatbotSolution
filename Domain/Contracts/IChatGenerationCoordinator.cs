@@ -10,7 +10,7 @@ public interface IChatGenerationCoordinator
         CancellationToken cancellationToken = default);
 
     [Retry(Retries = 0)]
-    Task GenerateChatAsync(
+    Task GenerateAnswerAsync(
         Guid sessionId,
         Guid assistantMessageId,
         Guid assistantMessageClientId,

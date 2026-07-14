@@ -79,8 +79,12 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 builder.Services.AddScoped<IAiConfigurationResolver, AiConfigurationResolver>();
+builder.Services.AddScoped<IAiConfigurationAdminService, AiConfigurationAdminService>();
 
-builder.Services.AddScoped<IDocumentIndexer, DocumentIndexer>();
+builder.Services.AddScoped<ISubjectReindexCoordinator, SubjectReindexCoordinator>();
+builder.Services.AddSingleton<ISubjectReindexDispatcher, HangfireSubjectReindexDispatcher>();
+
+builder.Services.AddScoped<IDocumentIndexingCoordinator, SingleRunDocumentIndexingCoordinator>();
 
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 

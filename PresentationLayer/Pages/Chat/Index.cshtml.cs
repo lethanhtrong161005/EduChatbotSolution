@@ -217,15 +217,13 @@ public class IndexModel(
                 .GroupExcept(HubGroups.Chat(session.Id), ChatConnectionId)
                 .ExchangeCreated(userMessage.Id, req.UserMessageClientId, assistantMessage.Id, req.AssistantMessageClientId);
 
-            var chatJob = BackgroundJob.Enqueue<IChatGenerationCoordinator>(
-                HangfireConstants.HighPriorityQueue,
-                e => e.GenerateChatAsync(session.Id, assistantMessage.Id, req.AssistantMessageClientId));
+            var answerJobId = BackgroundJob.Enqueue<ChatGenerationJob>(
+                e => e.GenerateAnswerAsync(session.Id, assistantMessage.Id, req.AssistantMessageClientId));
 
             if (session.MessageCount == 0)
             {
-                BackgroundJob.ContinueJobWith<IChatGenerationCoordinator>(
-                    chatJob,
-                    HangfireConstants.MediumPriorityQueue,
+                BackgroundJob.ContinueJobWith<ChatGenerationJob>(
+                    answerJobId,
                     e => e.GenerateTitleAsync(session.Id));
             }
 

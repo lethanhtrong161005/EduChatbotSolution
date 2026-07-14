@@ -57,6 +57,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     /// <summary>Gets the repository for <see cref="GlobalAiConfiguration"/> entities.</summary>
     GenericRepository<GlobalAiConfiguration> GlobalAiConfigurations { get; }
 
+    SubjectIndexRepository SubjectIndexes { get; }
+
     /// <summary>Gets the repository for <see cref="Chapter"/> entities.</summary>
     GenericRepository<Chapter> Chapters { get; }
 

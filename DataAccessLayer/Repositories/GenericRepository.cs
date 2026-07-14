@@ -11,19 +11,19 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
     internal readonly DbSet<TEntity> dbSet = context.Set<TEntity>();
 
     public virtual async Task<IEnumerable<TEntity>> GetAsync(
-    string[] includeProperties = null!,
-    Expression<Func<TEntity, bool>>? filter = null,
-    Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
-    (int pageSize, int pageIndex) paginationSettings = default,
-    bool asNoTracking = false,
-    bool asSplitQuery = false,
-    bool deferLoading = false,
-    CancellationToken cancellationToken = default)
+        string[] includeProperties = null!,
+        Expression<Func<TEntity, bool>>? filter = null,
+        Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
+        (int pageSize, int pageIndex) paginationSettings = default,
+        bool asNoTracking = false,
+        bool asSplitQuery = false,
+        bool deferLoading = false,
+        CancellationToken cancellationToken = default)
     {
         return await GetAsync(
             includeProperties,
             preFilter: filter,
-            projection: null,
+            projectionClass: null,
             postFilter: null,
             orderBy,
             paginationSettings,
@@ -41,10 +41,38 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
         Func<IQueryable<TResult>, IOrderedQueryable<TResult>>? orderBy = null,
         (int pageSize, int pageIndex) paginationSettings = default,
         bool asNoTracking = false,
+        bool deferLoading = false,
+        CancellationToken cancellationToken = default)
+    {
+        var query = await PrepareQuery(asNoTracking, includeProperties, preFilter, projection, postFilter, orderBy);
+        return await ExecuteQuery(query, paginationSettings.pageSize, paginationSettings.pageIndex, deferLoading, cancellationToken);
+    }
+
+    public virtual async Task<IEnumerable<TResult>> GetAsync<TResult>(
+        string[] includeProperties = null!,
+        Expression<Func<TEntity, bool>>? preFilter = null,
+        Expression<Func<TEntity, TResult>>? projectionClass = null,
+        Expression<Func<TResult, bool>>? postFilter = null,
+        Func<IQueryable<TResult>, IOrderedQueryable<TResult>>? orderBy = null,
+        (int pageSize, int pageIndex) paginationSettings = default,
+        bool asNoTracking = false,
         bool asSplitQuery = false,
         bool deferLoading = false,
         CancellationToken cancellationToken = default)
         where TResult : class
+    {
+        var query = await PrepareQuery(asNoTracking, includeProperties, preFilter, projectionClass, postFilter, orderBy);
+        if (asSplitQuery) query = query.AsSplitQuery();
+        return await ExecuteQuery(query, paginationSettings.pageSize, paginationSettings.pageIndex, deferLoading, cancellationToken);
+    }
+
+    private async Task<IQueryable<TResult>> PrepareQuery<TResult>(
+        bool asNoTracking = false,
+        string[] includeProperties = null!,
+        Expression<Func<TEntity, bool>>? preFilter = null,
+        Expression<Func<TEntity, TResult>>? projection = null,
+        Expression<Func<TResult, bool>>? postFilter = null,
+        Func<IQueryable<TResult>, IOrderedQueryable<TResult>>? orderBy = null)
     {
         IQueryable<TEntity> tables = dbSet;
 
@@ -84,15 +112,18 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
         if (orderBy != null)
             query = orderBy(query);
 
-        if (asSplitQuery)
-            query = query.AsSplitQuery();
+        return query;
+    }
 
-        var pageSize = paginationSettings.pageSize;
-        var pageIndex = paginationSettings.pageIndex;
-
+    private static async Task<IEnumerable<TResult>> ExecuteQuery<TResult>(
+        IQueryable<TResult> query,
+        int pageSize, int pageIndex,
+        bool deferLoading,
+        CancellationToken cxlTkn)
+    {
         if (pageSize > 0 && pageIndex > 0)
         {
-            var count = await query.CountAsync(cancellationToken);
+            var count = await query.CountAsync(cxlTkn);
 
             var skip = (pageIndex - 1) * pageSize;
             if (skip >= count)
@@ -107,13 +138,13 @@ public class GenericRepository<TEntity>(DbContext context) where TEntity : class
             if (deferLoading)
                 return new PaginatedEnumerable<TResult>(query.AsEnumerable(), count, pageSize, pageIndex);
             else
-                return new PaginatedEnumerable<TResult>(await query.ToListAsync(cancellationToken), count, pageSize, pageIndex);
+                return new PaginatedEnumerable<TResult>(await query.ToListAsync(cxlTkn), count, pageSize, pageIndex);
         }
 
         if (deferLoading)
             return query.AsEnumerable();
         else
-            return await query.ToListAsync(cancellationToken);
+            return await query.ToListAsync(cxlTkn);
     }
 
     public virtual async Task<TEntity?> FindByIdAsync(object id, CancellationToken cancellationToken = default)

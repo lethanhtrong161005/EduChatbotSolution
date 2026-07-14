@@ -17,8 +17,8 @@ public sealed class UserImportJob(
     IHubContext<ResourceHub, IResourceClient> hubContext,
     IBackgroundJobClient backgroundJobs)
 {
-    [Queue(HangfireConstants.MediumPriorityQueue)]
     [Retry(Retries = 1)]
+    [Queue(HangfireConstants.MediumPriorityQueue)]
     public async Task ParseAsync(Guid batchId, CancellationToken cxlTkn = default)
     {
         var batch = await dbContext.UserImportBatches.FindAsync([batchId], cxlTkn);
@@ -77,8 +77,8 @@ public sealed class UserImportJob(
         }
     }
 
-    [Queue(HangfireConstants.MediumPriorityQueue)]
     [Retry(Retries = 0)]
+    [Queue(HangfireConstants.MediumPriorityQueue)]
     public async Task ProcessRowsAsync(Guid batchId, CancellationToken cxlTkn = default)
     {
         var batch = await dbContext.UserImportBatches

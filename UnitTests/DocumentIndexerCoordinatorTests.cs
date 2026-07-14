@@ -139,7 +139,7 @@ public sealed class DocumentIndexerCoordinatorTests
         public Mock<IDocumentFileService> Files { get; } = new();
         public Mock<IAiConfigurationResolver> Resolver { get; } = new();
         public Mock<IDocumentStatusRealtimeNotifier> Notifier { get; } = new();
-        public Mock<ILogger<DocumentIndexer>> Logger { get; } = new();
+        public Mock<ILogger<SingleRunDocumentIndexingCoordinator>> Logger { get; } = new();
         public Mock<IUnitOfWork> UnitOfWork { get; } = new();
 
         private readonly Mock<GenericRepository<Document>> _documents = Repository<Document>();
@@ -186,7 +186,7 @@ public sealed class DocumentIndexerCoordinatorTests
             UnitOfWork.Setup(e => e.SaveAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         }
 
-        public DocumentIndexer Create() => new(Parser.Object, Selector.Object, Embedder.Object, Files.Object, Resolver.Object, UnitOfWork.Object, Notifier.Object, Logger.Object);
+        public SingleRunDocumentIndexingCoordinator Create() => new(Parser.Object, Selector.Object, Embedder.Object, Files.Object, Resolver.Object, UnitOfWork.Object, Notifier.Object, Logger.Object);
 
         private static Mock<GenericRepository<T>> Repository<T>() where T : class
         {

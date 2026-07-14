@@ -18,7 +18,7 @@ public class PaymentService(IUnitOfWork unitOfWork) : IPaymentService
         CancellationToken cxlTkn = default)
     {
         return await _unitOfWork.Payments.GetAsync(
-            preFilter: filter,
+            filter: filter,
             orderBy: orderBy,
             includeProperties: includeProperties,
             cancellationToken: cxlTkn);
