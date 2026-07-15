@@ -67,6 +67,7 @@ services:
       Redis__ConnectionString: redis:6379
       AI__Ollama__Endpoint: http://ollama:11434
       AppBaseUrl: http://localhost:8080
+      EDUCHATAI_DEMO_ADMIN_REPORTS_ENABLED: ${EDUCHATAI_DEMO_ADMIN_REPORTS_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy

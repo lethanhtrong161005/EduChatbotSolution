@@ -28,7 +28,7 @@ public class ReportsModel(IAdminReportService reportService) : PageModel
     /// <param name="role">User role filter: All (0), Student (1), Lecturer (2), or Admin (3).</param>
     /// <param name="trendSubjectId">
     /// Optional subject ID that filters only the three daily trend series.
-    /// Null means all subjects. The cross-subject chart and table are never filtered.
+    /// Null means all activity; zero means flexible-subject sessions. The cross-subject chart and table are never filtered.
     /// </param>
     /// <param name="cxlTkn">Cancellation token.</param>
     public async Task<IActionResult> OnGetDashboardAsync(

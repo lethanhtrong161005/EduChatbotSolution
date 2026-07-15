@@ -855,6 +855,7 @@ public static class HostExtensions
             var chunk5 = chunks[4];
 
             DateTime now = DateTime.UtcNow;
+            var nextMessageIndexBySession = new Dictionary<Guid, int>();
 
             /* =====================================================
              * SESSION 1 (1 exchange)
@@ -863,7 +864,7 @@ public static class HostExtensions
             var session1 = unitOfWork.ChatSessions.Insert(new ChatSession
             {
                 UserId = user.Id,
-                SubjectId = subjects[0].Id,
+                SubjectId = architectureSubject,
                 Title = "What is software architecture?",
                 CreatedAt = now.AddDays(-5)
             });
@@ -1002,13 +1003,17 @@ public static class HostExtensions
                 string userText,
                 string assistantText)
             {
-                unitOfWork.ChatMessages.Insert(new ChatMessage
+                var messageIndex = nextMessageIndexBySession.GetValueOrDefault(sessionId, 1);
+                var userMessage = unitOfWork.ChatMessages.Insert(new ChatMessage
                 {
                     ChatSessionId = sessionId,
                     ChatRole = ChatRole.User,
                     Content = userText,
+                    RawContent = userText,
                     SentAt = timestamp,
                     Status = MessageStatus.Completed,
+                    MessageIndex = messageIndex,
+                    IsSelectedVariant = false,
                 });
 
                 var assistant = unitOfWork.ChatMessages.Insert(new ChatMessage
@@ -1016,8 +1021,13 @@ public static class HostExtensions
                     ChatSessionId = sessionId,
                     ChatRole = ChatRole.Assistant,
                     Content = assistantText,
+                    RawContent = assistantText,
                     SentAt = timestamp.AddMinutes(1),
                     Status = MessageStatus.Completed,
+                    MessageIndex = messageIndex + 1,
+                    InReplyToMessage = userMessage,
+                    VariantIndex = 1,
+                    IsSelectedVariant = true,
 
                     GenerationSettings = new ChatMessageGenerationSettings
                     {
@@ -1045,6 +1055,8 @@ public static class HostExtensions
                         TokensPerSecond = 60,
                     },
                 });
+
+                nextMessageIndexBySession[sessionId] = messageIndex + 2;
 
                 return assistant;
             }

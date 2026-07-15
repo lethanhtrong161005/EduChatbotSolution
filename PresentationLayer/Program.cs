@@ -12,6 +12,7 @@ using Business.Services.Reports;
 using Business.Services.Subscriptions;
 using Business.Services.Subscriptions.ExternalPayment;
 using DataAccess.Data;
+using DataAccess.Seeding;
 using DataAccess.UnitOfWork;
 using Domain.Constants;
 using Domain.Contracts;
@@ -42,6 +43,10 @@ using System.Reflection;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var dockerDemoAdminReportsSetting = builder.Configuration["EDUCHATAI_DEMO_ADMIN_REPORTS_ENABLED"];
+if (!string.IsNullOrWhiteSpace(dockerDemoAdminReportsSetting))
+    builder.Configuration["DemoData:AdminReports:Enabled"] = dockerDemoAdminReportsSetting;
 
 // ── Database ──────────────────────────────────────────────────
 var connStr = builder.Configuration.GetConnectionString("Database")
@@ -107,6 +112,7 @@ builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 
 builder.Services.AddScoped<IAdminReportService, AdminReportService>();
+builder.Services.AddScoped<AdminReportDemoDataSeeder>();
 
 builder.Services.AddScoped<IExperimentDatasetProvider, EmbeddedExperimentDatasetProvider>();
 builder.Services.AddScoped<IExperimentService, ExperimentService>();
@@ -344,6 +350,7 @@ if (app.Environment.IsDevelopment())
 
     await app.MigrateDbAsync<EduChatAiDbContext>();
     await app.SeedDbAsync<EduChatAiDbContext>();
+    await app.SeedAdminReportDemoDataAsync();
 
     await app.MigrateDbAsync<DataProtectionDbContext>();
 }

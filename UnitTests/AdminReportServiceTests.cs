@@ -98,7 +98,22 @@ public sealed class AdminReportServiceTests
         var repository = new StubAdminReportRepository { SubjectExists = false, Data = EmptyData() };
 
         Assert.ThrowsAsync<EntityNotFoundException>(() => Create(repository).GetDashboardAsync(ReportRange.Last7Days, ReportRoleFilter.All, 999));
+        Assert.ThrowsAsync<EntityNotFoundException>(() => Create(repository).GetDashboardAsync(ReportRange.Last7Days, ReportRoleFilter.All, -1));
         Assert.That(repository.LastQuery, Is.Null);
+    }
+
+    [Test]
+    public async Task FlexibleTrendSentinel_SkipsSubjectLookupAndReachesRepository()
+    {
+        var repository = new StubAdminReportRepository { SubjectExists = false, Data = EmptyData() };
+
+        var result = await Create(repository).GetDashboardAsync(ReportRange.Last7Days, ReportRoleFilter.All, 0);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.TrendSubjectId, Is.Zero);
+            Assert.That(repository.LastQuery!.TrendSubjectId, Is.Zero);
+        }
     }
 
     [Test]

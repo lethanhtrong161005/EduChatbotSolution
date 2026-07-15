@@ -229,6 +229,7 @@ function renderTrendSubjectOptions(options, currentTrendSubjectId) {
     const sel = $('#trendSubjectSelect');
     const currentVal = sel.val(); // preserve current selection if already set
     sel.find('option:not(:first)').remove();
+    sel.append($('<option>').val(0).text('Flexible subjects'));
     options.forEach(opt => {
         sel.append($('<option>').val(opt.subjectId).text(`${opt.subjectCode} — ${opt.subjectName}`));
     });
@@ -239,7 +240,9 @@ function renderTrendSubjectOptions(options, currentTrendSubjectId) {
 
 function updateTrendSubtitle(trendSubjectId, options) {
     let subtitle = '(all subjects)';
-    if (trendSubjectId != null) {
+    if (trendSubjectId === 0) {
+        subtitle = '(flexible subjects)';
+    } else if (trendSubjectId != null) {
         const opt = options.find(o => o.subjectId === trendSubjectId);
         if (opt) subtitle = `(${opt.subjectCode} — ${opt.subjectName})`;
     }
@@ -366,7 +369,7 @@ function renderSubjectBarChart(subjectUsage, metric) {
     const ctx = document.getElementById('chartSubjectBar');
     if (!ctx || !ensureChart()) return;
 
-    // Filter null-subject bucket for per-subject bar comparison,
+    // Include the flexible-subject bucket in the cross-subject comparison;
     // include all entries as this chart always shows all subjects
     const labels = subjectUsage.map(s => s.subjectCode || s.subjectName);
     const values = subjectUsage.map(s => {

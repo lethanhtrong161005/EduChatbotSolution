@@ -187,7 +187,7 @@ public class AdminReportRepository(EduChatAiDbContext context)
                 {
                     SubjectId = subject.SubjectId,
                     SubjectCode = subject.SubjectCode,
-                    SubjectName = subject.SubjectName ?? "All subjects",
+                    SubjectName = subject.SubjectName ?? "Flexible subjects",
                     UniqueActiveUserCount = activityRow?.UniqueActiveUserCount ?? 0,
                     ActiveSessionCount = activityRow?.ActiveSessionCount ?? 0,
                     CompletedAssistantGenerationCount = generationRows?.Length ?? 0,

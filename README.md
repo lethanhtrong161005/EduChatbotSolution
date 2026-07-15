@@ -187,6 +187,26 @@ dotnet user-secrets remove --project PresentationLayer/Presentation.csproj "Conn
 
 Future deployments should inject the same configuration keys through the hosting environment or its secret manager.
 
+## Optional Admin Dashboard Demo History
+
+The historical admin-report dataset is disabled by default, runs only in Development, and refreshes only visibly prefixed demo rows on each enabled startup. Do not enable it against a shared database.
+
+Run the app directly from PowerShell with the demo history enabled:
+
+```powershell
+$env:DemoData__AdminReports__Enabled = "true"
+dotnet run --project PresentationLayer/Presentation.csproj
+```
+
+Or enable it for Docker Compose:
+
+```powershell
+$env:EDUCHATAI_DEMO_ADMIN_REPORTS_ENABLED = "true"
+docker compose up --build
+```
+
+Unset the environment variable or set it to `false` to return to normal startup. Refreshing the dataset preserves non-demo users, documents, chats, experiments, and report activity.
+
 ## EF Core Migrations
 
 With the database container running, create or apply migrations from the host:

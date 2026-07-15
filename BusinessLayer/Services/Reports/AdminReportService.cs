@@ -16,7 +16,10 @@ public sealed class AdminReportService(IUnitOfWork unitOfWork, TimeProvider time
     {
         if (!Enum.IsDefined(range)) throw new BadRequestException("Invalid report range.", nameof(range));
         if (!Enum.IsDefined(role)) throw new BadRequestException("Invalid report role.", nameof(role));
-        if (trendSubjectId.HasValue && !await _unitOfWork.AdminReports.SubjectExistsAsync(trendSubjectId.Value, cancellationToken)) throw new EntityNotFoundException(trendSubjectId.Value);
+
+        // trendSubjectId == 0 => Flexible-subject sessions
+        if (trendSubjectId.HasValue && trendSubjectId.Value != 0 && !await _unitOfWork.AdminReports.SubjectExistsAsync(trendSubjectId.Value, cancellationToken))
+            throw new EntityNotFoundException(trendSubjectId.Value);
 
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, BangkokTimeZone));

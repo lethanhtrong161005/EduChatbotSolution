@@ -63,7 +63,7 @@ public sealed class AdminReportRepositoryIntegrationTests
 
         var db201 = data.SubjectUsage.Single(e => e.SubjectId == Db201Id);
         var db202 = data.SubjectUsage.Single(e => e.SubjectId == Db202Id);
-        var subjectless = data.SubjectUsage.Single(e => e.SubjectId is null);
+        var flexible = data.SubjectUsage.Single(e => e.SubjectId is null);
         using (Assert.EnterMultipleScope())
         {
             Assert.That(data.Kpis.UniqueActiveUserCount, Is.EqualTo(1));
@@ -89,8 +89,8 @@ public sealed class AdminReportRepositoryIntegrationTests
             AssertToken(db201.TokenMeasurement, 30, 15, 45, 2, 2, 100);
             Assert.That(db202.CompletedAssistantGenerationCount, Is.EqualTo(1));
             AssertToken(db202.TokenMeasurement, null, null, null, 0, 1, 0);
-            Assert.That(subjectless.SubjectName, Is.EqualTo("All subjects"));
-            Assert.That(subjectless.CompletedAssistantGenerationCount, Is.EqualTo(1));
+            Assert.That(flexible.SubjectName, Is.EqualTo("Flexible subjects"));
+            Assert.That(flexible.CompletedAssistantGenerationCount, Is.EqualTo(1));
         }
     }
 

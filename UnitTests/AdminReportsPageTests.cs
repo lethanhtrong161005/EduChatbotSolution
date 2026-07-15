@@ -238,10 +238,10 @@ public class AdminReportsPageTests
         Assert.That(returned.Kpis.TokenMeasurement.CoveragePercent, Is.EqualTo(50.0));
     }
 
-    // ── Null subject bucket ───────────────────────────────────
+    // ── Flexible-subject bucket ───────────────────────────────
 
     [Test]
-    public async Task OnGetDashboardAsync_NullSubjectBucket_IncludedInSubjectUsage()
+    public async Task OnGetDashboardAsync_FlexibleSubjectBucket_IncludedInSubjectUsage()
     {
         var dto = BuildMinimalDashboard(ReportRange.Last7Days, ReportRoleFilter.All);
         var subjectUsageWithNull = dto.SubjectUsage.ToList();
@@ -249,7 +249,7 @@ public class AdminReportsPageTests
         {
             SubjectId = null,
             SubjectCode = null,
-            SubjectName = "All subjects",
+            SubjectName = "Flexible subjects",
             UniqueActiveUserCount = 5,
             ActiveSessionCount = 6,
             CompletedAssistantGenerationCount = 10,
@@ -265,8 +265,8 @@ public class AdminReportsPageTests
         Assert.That(result, Is.InstanceOf<JsonResult>());
         var returned = (AdminReportDashboardDto)((JsonResult)result).Value!;
         var nullBucket = returned.SubjectUsage.FirstOrDefault(s => s.SubjectId is null);
-        Assert.That(nullBucket, Is.Not.Null, "Null-subject bucket must be preserved in SubjectUsage.");
-        Assert.That(nullBucket!.SubjectName, Is.EqualTo("All subjects"));
+        Assert.That(nullBucket, Is.Not.Null, "Flexible-subject bucket must be preserved in SubjectUsage.");
+        Assert.That(nullBucket!.SubjectName, Is.EqualTo("Flexible subjects"));
     }
 
     // ── Zero-filled days ──────────────────────────────────────
