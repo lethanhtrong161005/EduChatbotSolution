@@ -24,7 +24,7 @@ public sealed class SupabaseDurableStorageStrategy(
         cxlTkn.ThrowIfCancellationRequested();
 
         if (string.IsNullOrWhiteSpace(locator)) return false;
-        
+
         try
         {
             var (directory, fileName) = SplitLocator(locator);
@@ -74,7 +74,7 @@ public sealed class SupabaseDurableStorageStrategy(
         cxlTkn.ThrowIfCancellationRequested();
 
         var lease = await _localFileBuffer.AllocateAsync(Path.GetExtension(locator), cxlTkn);
-        
+
         try
         {
             var actualPath = await _supabase.Storage.From(_supabaseOpts.DocumentBucket)
@@ -107,8 +107,8 @@ public sealed class SupabaseDurableStorageStrategy(
         {
             var (_, fileName) = SplitLocator(locator);
             var destination = Combine(GetStorageDirectory(directory), fileName);
-            
-            if (string.Equals(locator, destination, StringComparison.Ordinal)) 
+
+            if (string.Equals(locator, destination, StringComparison.Ordinal))
                 return Success(destination);
 
             var moved = await _supabase.Storage.From(_supabaseOpts.DocumentBucket).Move(locator, destination);

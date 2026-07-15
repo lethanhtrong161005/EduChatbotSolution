@@ -2,7 +2,6 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
-using static UglyToad.PdfPig.Content.Page;
 
 namespace Presentation.Mappings;
 

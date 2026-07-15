@@ -1,8 +1,6 @@
-using System.IO;
+using Domain.Contracts.DTOs;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Domain.Contracts.DTOs;
-using NUnit.Framework;
 
 namespace UnitTests;
 
@@ -18,7 +16,7 @@ public class VietnameseExperimentDatasetTests
         var baseDir = TestContext.CurrentContext.TestDirectory;
         // Search up for the solution folder if running from build artifact directory
         var solutionDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "BusinessLayer", "Services", "AI", "Experiments", "Data"));
-        
+
         _datasetPath = Path.Combine(solutionDir, "db201-vi-50.json");
 
         if (!File.Exists(_datasetPath))
@@ -64,7 +62,7 @@ public class VietnameseExperimentDatasetTests
             Assert.That(q.GroundTruth, Is.Not.Null.And.Not.Empty);
 
             // Assert that it contains Vietnamese diacritics/characters
-            bool containsVietnamese = Regex.IsMatch(q.Question, "[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]") || 
+            bool containsVietnamese = Regex.IsMatch(q.Question, "[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]") ||
                                      Regex.IsMatch(q.GroundTruth, "[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệđìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]");
             Assert.That(containsVietnamese, Is.True, $"Question {q.ExternalId} or its GroundTruth does not seem to contain Vietnamese characters.");
         }

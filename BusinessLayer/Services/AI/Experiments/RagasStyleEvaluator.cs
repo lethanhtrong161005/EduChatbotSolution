@@ -1,6 +1,4 @@
-﻿using Domain.Constants;
-using Domain.Contracts;
-using Domain.Exceptions;
+﻿using Domain.Contracts;
 using Microsoft.Extensions.AI;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -34,8 +32,6 @@ public sealed class RagasStyleEvaluator(IChatClientFactory chatClientFactory) : 
     public async Task<RagasStyleEvaluationResult> EvaluateAsync(RagasStyleEvaluationRequest request, CancellationToken cxlTkn = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-
-        //if (request.JudgeModel != ChatModelName.Gemini35Flash) throw new EntityValidationException($"The experiment judge must be '{ChatModelName.Gemini35Flash}'.", nameof(request.JudgeModel));
 
         var response = await _chatClientFactory.GetChatClient(request.JudgeModel).GetResponseAsync<RagasStyleJudgeOutput>(
             [new(ChatRole.System, SystemPrompt), new(ChatRole.User, BuildInput(request))],

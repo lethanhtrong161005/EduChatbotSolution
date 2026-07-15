@@ -46,7 +46,7 @@ public class ChatMappingProfile : Profile
 
         CreateMap<ResolvedChatVariantOption, ChatVariantOptionDto>();
         CreateMap<ResolvedChatVariantNavigation, ChatVariantNavigationDto>();
-        
+
         CreateMap<ResolvedCitation, ChatCitationDto>();
     }
 }

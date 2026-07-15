@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Presentation.Extensions;
-using System.Security.Claims;
 
 namespace Presentation.Pages.Account;
 

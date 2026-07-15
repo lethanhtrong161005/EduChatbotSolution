@@ -1,5 +1,4 @@
 using Domain.Contracts;
-using Domain.Contracts.DTOs;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

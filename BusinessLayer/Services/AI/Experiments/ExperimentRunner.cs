@@ -194,6 +194,8 @@ public sealed class ExperimentRunner(
         ChatPrompt = snapshot.ChatPrompt,
         ContextPrompt = snapshot.ContextPrompt,
         NoContextRetrievedPrompt = snapshot.NoContextRetrievedPrompt,
+        CitationExtractionPrompt = snapshot.CitationExtractionPrompt,
+        CitationExtractionTemperature = snapshot.CitationExtractionTemperature,
     };
 
     private static SubjectAiConfiguration BuildSubjectConfiguration(int subjectId, EffectiveAiConfiguration configuration) => new()

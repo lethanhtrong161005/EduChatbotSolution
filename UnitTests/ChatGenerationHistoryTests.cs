@@ -1,5 +1,5 @@
-using Domain.Entities;
 using Domain.Contracts.DTOs;
+using Domain.Entities;
 using Presentation.Realtime;
 
 namespace UnitTests;

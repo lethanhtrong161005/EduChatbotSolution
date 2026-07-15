@@ -1,8 +1,8 @@
-using System.Data;
 using DataAccess.Data;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace DataAccess.Repositories;
 

@@ -1,8 +1,12 @@
 using Business.Services.AI.Chat;
+using DataAccess.Repositories;
+using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Moq;
+using System.Linq.Expressions;
 
 namespace UnitTests;
 
@@ -99,15 +103,8 @@ public class ChatGenerationMetricsTests
     private static ChatGenerationService CreateService(IChatClient client)
     {
         var embedder = new Mock<IEmbeddingService>();
-        embedder.Setup(item => item.EmbedAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EmbedResult
-            {
-                Model = "embed",
-                Vectors = [new ReadOnlyMemory<float>([0.1f])],
-            });
+        embedder.Setup(item => item.EmbedAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EmbedResult { Model = "embed", Vectors = [new ReadOnlyMemory<float>([0.1f])] });
 
         var vectorSearch = new Mock<IVectorSearchService>();
         vectorSearch.Setup(item => item.SimilaritySearchCosineDistance(
@@ -121,7 +118,23 @@ public class ChatGenerationMetricsTests
         var factory = new Mock<IChatClientFactory>();
         factory.Setup(item => item.GetChatClient(It.IsAny<string>())).Returns(client);
 
-        return new ChatGenerationService(embedder.Object, vectorSearch.Object, factory.Object);
+        var dbContext = new Mock<DbContext>();
+        var subjectRepository = new Mock<GenericRepository<Domain.Entities.Subject>>(dbContext.Object);
+        subjectRepository.Setup(item => item.GetAsync(
+                It.IsAny<string[]>(),
+                It.IsAny<Expression<Func<Domain.Entities.Subject, bool>>>(),
+                It.IsAny<Func<IQueryable<Domain.Entities.Subject>, IOrderedQueryable<Domain.Entities.Subject>>>(),
+                It.IsAny<(int, int)>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Domain.Entities.Subject { Id = 1, Code = "DB201", Name = "Database Systems", IndexAvailability = Domain.Entities.SubjectIndexAvailability.Ready }]);
+
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(item => item.Subjects).Returns(subjectRepository.Object);
+
+        return new ChatGenerationService(embedder.Object, vectorSearch.Object, factory.Object, unitOfWork.Object);
     }
 
     private static TitleGenerationRequest TitleRequest() => new()

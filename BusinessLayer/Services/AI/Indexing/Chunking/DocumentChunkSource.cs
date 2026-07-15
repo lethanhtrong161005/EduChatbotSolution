@@ -1,5 +1,5 @@
-﻿using System.Text;
-using Domain.Entities;
+﻿using Domain.Entities;
+using System.Text;
 
 namespace Business.Services.AI.Indexing.Chunking;
 

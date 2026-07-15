@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Domain.Contracts.DTOs;
 using Presentation.DTOs;
+using System.Text.Json;
 
 namespace UnitTests;
 

@@ -1,4 +1,6 @@
 using DataAccess.UnitOfWork;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Domain.Common;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
@@ -7,8 +9,6 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Linq.Expressions;
 using System.Security.Claims;
 
@@ -487,7 +487,7 @@ public class UserManagementService(
     }
 
     // ── EXCEL IMPORT ────────────────────────────────────────────────
-    
+
     public async Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string storageLocator)
     {
         var batch = new UserImportBatch
@@ -546,7 +546,7 @@ public class UserManagementService(
                 errors.Add("Invalid Excel file format: missing worksheet.");
                 return new UserImportValidationResult(false, errors, validRows);
             }
-            
+
             var sheetData = worksheetPart.Worksheet.Elements<SheetData>().FirstOrDefault();
             if (sheetData == null)
             {
@@ -586,7 +586,7 @@ public class UserManagementService(
             {
                 var row = rows[i];
                 var cells = row.Elements<Cell>().ToList();
-                
+
                 string fullName = cells.Count > 0 ? GetCellValue(cells[0]).Trim() : string.Empty;
                 string email = cells.Count > 1 ? GetCellValue(cells[1]).Trim() : string.Empty;
                 string role = cells.Count > 2 ? GetCellValue(cells[2]).Trim() : string.Empty;
@@ -615,7 +615,7 @@ public class UserManagementService(
                     errors.Add($"Row {i + 1}: Invalid or missing role '{role}'. Expected roles: Admin, Student, Lecturer.");
                     isRowValid = false;
                 }
-                
+
                 if (isRowValid)
                 {
                     validRows.Add(new UserImportRowDto(i + 1, fullName, email, role));
@@ -700,9 +700,9 @@ public class UserManagementService(
             orderBy: q => q.OrderByDescending(b => b.CreatedAt),
             paginationSettings: (pageSize, pageIndex)
         );
-        
+
         var totalCount = await _unitOfWork.UserImportBatches.CountAsync(filter);
-        
+
         var summaryDtos = batches.Select(b => new UserImportBatchSummaryDto(
             b.Id,
             b.FileName,
@@ -715,7 +715,7 @@ public class UserManagementService(
             b.CreatedAt,
             b.CompletedAt
         )).ToList();
-            
+
         return new PaginatedList<UserImportBatchSummaryDto>(summaryDtos, totalCount, pageSize, pageIndex);
     }
 

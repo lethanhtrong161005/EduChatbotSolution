@@ -72,11 +72,11 @@ public class AdminReportRepository(EduChatAiDbContext context)
             .ToListAsync(cxlTkn);
 
         var userActivity = await userMessages.GroupBy(message => new
-            {
-                message.ChatSession.SubjectId,
-                SubjectCode = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Code,
-                SubjectName = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Name,
-            })
+        {
+            message.ChatSession.SubjectId,
+            SubjectCode = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Code,
+            SubjectName = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Name,
+        })
             .Select(group => new SubjectActivityRow
             {
                 SubjectId = group.Key.SubjectId,

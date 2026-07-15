@@ -1,10 +1,10 @@
 using Business.Services.Account;
+using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using DataAccess.UnitOfWork;
 
 namespace UnitTests;
 

@@ -1,7 +1,6 @@
 using AutoMapper;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
-using Domain.Utils;
 using Presentation.DTOs;
 using Presentation.ViewModels;
 

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace Business.Services.Documents.File;
 
 public sealed class LocalStagingFileStore(
-    IOptions<FileStorageOptions> storageOpts) 
+    IOptions<FileStorageOptions> storageOpts)
     : IStagingFileStore
 {
     private readonly FileStorageOptions _storageOpts = storageOpts.Value;
@@ -26,7 +26,7 @@ public sealed class LocalStagingFileStore(
             var root = GetStagingRoot();
             Directory.CreateDirectory(root);
             var locator = Path.Combine(root, $"{Guid.NewGuid()}{NormalizeExtension(requestedExtension)}");
-            
+
             await using var destination = new FileStream(
                 locator,
                 FileMode.CreateNew,
@@ -34,7 +34,7 @@ public sealed class LocalStagingFileStore(
                 FileShare.None,
                 bufferSize: 81920,
                 useAsync: true);
-            
+
             await content.CopyToAsync(destination, cxlTkn);
             return Success(locator);
         }

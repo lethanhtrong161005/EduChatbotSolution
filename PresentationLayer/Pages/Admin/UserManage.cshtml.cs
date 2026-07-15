@@ -1,13 +1,12 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Exceptions;
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Presentation.ViewModels;
-using Hangfire;
-using Supabase.Storage.Interfaces;
 using Presentation.Background;
-using Domain.Exceptions;
+using Presentation.ViewModels;
 
 namespace Presentation.Pages.Admin;
 
@@ -173,15 +172,15 @@ public class UserManageModel(
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
             memoryStream.Position = 0; // Reset position for reading
-            
+
             var storageStrategy = HttpContext.RequestServices.GetRequiredKeyedService<Domain.Contracts.IDurableStorageStrategy>(Domain.Entities.DocumentStorageMethod.Supabase);
             var storeResult = await storageStrategy.StoreAsync(memoryStream, $"{fileId}{extension}", Domain.Contracts.DocumentFileDirectory.Received, CancellationToken.None);
-            
+
             if (!storeResult.Success)
             {
                 return new JsonResult(new { success = false, message = $"Failed to upload file to storage: {string.Join(", ", storeResult.Errors ?? Array.Empty<string>())}" });
             }
-            
+
             storageLocator = storeResult.Locator;
         }
         catch (Exception ex)

@@ -55,13 +55,7 @@ public sealed class ExperimentService(
             SubjectCode = subject.Code,
             SubjectName = subject.Name,
             CurrentConfiguration = configuration,
-            AiOptions = new AiConfigurationOptionsDto
-            {
-                ChunkingStrategies = options.ChunkingStrategies,
-                EmbeddingModels = options.EmbeddingModels,
-                ChatModels = options.ChatModels,
-                JudgeModels = [.. options.JudgeModels],
-            },
+            AiOptions = options,
             TestQuestions = [.. questions],
         };
     }
@@ -252,9 +246,6 @@ public sealed class ExperimentService(
             ],
         };
     }
-
-    private Task<int> CountAffectedDocumentsAsync(int subjectId, string strategy, int size, int overlap, string embeddingModel, CancellationToken cxlTkn) =>
-        _unitOfWork.Documents.CountAsync(e => e.SubjectId == subjectId && (e.Status != DocumentStatus.Indexed || e.IndexedChunkingStrategy != strategy || e.IndexedChunkSize != size || e.IndexedChunkOverlap != overlap || e.IndexedEmbeddingModel != embeddingModel), cxlTkn);
 
     private static void ValidateCreateRequest(CreateExperimentRequest request)
     {

@@ -12,12 +12,14 @@ public class ExperimentConfigurationSnapshot : NaturalEntity
     public int TopK { get; set; }
     public double SimilarityThreshold { get; set; }
     public int MaxContextChunks { get; set; }
+    public int MaxHistoryMessages { get; set; }
     public string LlmModel { get; set; } = string.Empty;
     public float ChatTemperature { get; set; }
-    public int MaxHistoryMessages { get; set; }
     public string ChatPrompt { get; set; } = string.Empty;
     public string ContextPrompt { get; set; } = string.Empty;
     public string NoContextRetrievedPrompt { get; set; } = string.Empty;
+    public float CitationExtractionTemperature { get; set; }
+    public string CitationExtractionPrompt { get; set; } = string.Empty;
     public string JudgeModel { get; set; } = string.Empty;
     public string EvaluatorPromptVersion { get; set; } = string.Empty;
 

@@ -1,7 +1,7 @@
 using Domain.Common;
+using Domain.Contracts.DTOs;
 using Domain.Entities;
 using System.Linq.Expressions;
-using Domain.Contracts.DTOs;
 
 namespace Domain.Contracts;
 

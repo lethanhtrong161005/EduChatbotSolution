@@ -1,4 +1,5 @@
-﻿using Business.Services.AI.Experiments;
+﻿using AutoMapper;
+using Business.Services.AI.Experiments;
 using DataAccess.UnitOfWork;
 using Domain.Constants;
 using Domain.Contracts;
@@ -12,6 +13,7 @@ namespace UnitTests;
 [TestFixture]
 public class ExperimentServiceTests
 {
+    private Mock<IMapper> _mapper = null!;
     private Mock<IUnitOfWork> _uow = null!;
     private Mock<IAiConfigurationResolver> _resolver = null!;
     private Mock<IAiConfigurationAdminService> _admin = null!;
@@ -21,6 +23,7 @@ public class ExperimentServiceTests
     [SetUp]
     public void SetUp()
     {
+        _mapper = new Mock<IMapper>();
         _uow = new Mock<IUnitOfWork>();
         _resolver = new Mock<IAiConfigurationResolver>();
         _admin = new Mock<IAiConfigurationAdminService>();
@@ -54,7 +57,7 @@ public class ExperimentServiceTests
         Assert.That(async () => await sut.CompareStubAsync(), Throws.TypeOf<EntityConflictException>());
     }
 
-    private ExperimentService CreateService() => new(_uow.Object, _resolver.Object, _admin.Object, _dataset.Object, _dispatcher);
+    private ExperimentService CreateService() => new(_uow.Object, _resolver.Object, _admin.Object, _dataset.Object, _dispatcher, _mapper.Object);
 
     private static CreateExperimentRequest Request() => new()
     {

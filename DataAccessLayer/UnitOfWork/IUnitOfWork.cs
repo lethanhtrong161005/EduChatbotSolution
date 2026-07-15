@@ -1,6 +1,5 @@
 using DataAccess.Repositories;
 using Domain.Entities;
-using Microsoft.AspNetCore.Identity;
 
 namespace DataAccess.UnitOfWork;
 

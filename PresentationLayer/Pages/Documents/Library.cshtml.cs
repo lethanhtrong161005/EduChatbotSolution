@@ -1,5 +1,4 @@
 using AutoMapper;
-using Business.Services.AI.Indexing;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -13,7 +12,6 @@ using NuGet.Packaging;
 using Presentation.Background;
 using Presentation.DTOs;
 using Presentation.Extensions;
-using System.Linq.Expressions;
 
 namespace Presentation.Pages.Documents;
 

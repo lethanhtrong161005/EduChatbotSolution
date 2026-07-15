@@ -215,13 +215,13 @@ public class DocumentFileServiceTests
         string? storageLocator = null,
         DocumentStorageMethod storageMethod = DocumentStorageMethod.Unspecified,
         string? stagingLocator = null) => new()
-    {
-        Id = _documentId,
-        FileType = DocumentType.PDF,
-        StorageLocator = storageLocator,
-        StagingLocator = stagingLocator,
-        StorageMethod = storageMethod,
-    };
+        {
+            Id = _documentId,
+            FileType = DocumentType.PDF,
+            StorageLocator = storageLocator,
+            StagingLocator = stagingLocator,
+            StorageMethod = storageMethod,
+        };
 
     private void SetDocument(Document? document)
     {
