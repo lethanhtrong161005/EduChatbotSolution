@@ -43,6 +43,8 @@ public class ChatMessage : NaturalEntity
 
     public virtual ChatMessageGenerationMetrics? GenerationMetrics { get; set; }
 
+    public virtual ICollection<ChatMessageContext> RetrievedContexts { get; } = [];
+
     /// <summary>Gets or sets citations associated with this message.</summary>
     public virtual ICollection<Citation> Citations { get; } = [];
 }

@@ -22,17 +22,16 @@ public class ExperimentMappingProfile : Profile
         CreateMap<ExperimentConfigurationSnapshot, ExperimentConfigurationSnapshotDto>();
 
         CreateMap<TestResponse, ExperimentQuestionResultDto>()
-            .ForMember(d => d.TestQuestionId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.TestResponseId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.TestQuestionId, o => o.MapFrom(s => s.TestQuestionId))
             .ForMember(d => d.ExternalId, o => o.MapFrom(s => s.TestQuestion.ExternalId))
             .ForMember(d => d.Question, o => o.MapFrom(s => s.TestQuestion.Question))
             .ForMember(d => d.GroundTruth, o => o.MapFrom(s => s.TestQuestion.GroundTruth))
             .ForMember(d => d.RetrievedContexts, o => o.MapFrom(s => s.RetrievedContexts.OrderBy(e => e.ContextIndex).Select(e => e.ContextText)))
-            .ForMember(d => d.RetrievedContexts, o => o.MapFrom(s => s.RetrievedContexts.OrderBy(e => e.ContextIndex).Select(e => e.ContextText)))
             .ForMember(d => d.Scores, o => o.MapFrom(s => Scores(s.Faithfulness, s.AnswerRelevancy, s.ContextPrecision, s.ContextRecall)));
-        ;
 
-        CreateMap<ChatGenerationMetrics, TestResponse>();
-        CreateMap<RagasStyleEvaluationResult, TestResponse>();
+        CreateMap<ChatGenerationMetrics, TestResponse>(MemberList.None);
+        CreateMap<RagasStyleEvaluationResult, TestResponse>(MemberList.None);
     }
 
     private static RagasStyleScoresDto Scores(double? faithfulness, double? answerRelevancy, double? contextPrecision, double? contextRecall) =>

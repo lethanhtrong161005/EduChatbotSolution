@@ -84,9 +84,9 @@ public sealed class ExperimentRunner(
                 response.GeneratedAnswer = result.Answer;
                 _mapper.Map(result.Metrics, response);
 
-                foreach (var context in result.ChunkRetrievalsInContext.Select((value, index) => (value, index)))
+                foreach (var context in result.RetrievedContexts)
                 {
-                    response.RetrievedContexts.Add(new TestResponseContext { TestResponseId = response.Id, ContextIndex = context.index, ContextText = context.value.ChunkText });
+                    response.RetrievedContexts.Add(new TestResponseContext { TestResponseId = response.Id, ContextIndex = context.ContextIndex, ContextText = context.ContextText });
                 }
 
                 await _unitOfWork.SaveAsync(cxlTkn);

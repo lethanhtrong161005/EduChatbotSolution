@@ -57,7 +57,7 @@ public class ChatGenerationMetricsTests
     }
 
     [Test]
-    public async Task GenerateChat_UsesStreamingUsageAndMeasuredTimings()
+    public async Task GenerateAnswer_UsesStreamingUsageAndMeasuredTimings()
     {
         var client = new Mock<IChatClient>();
         client.Setup(item => item.GetStreamingResponseAsync(
@@ -81,7 +81,7 @@ public class ChatGenerationMetricsTests
     }
 
     [Test]
-    public async Task GenerateChat_LeavesThroughputNullWhenProviderReportsZeroCompletionTokens()
+    public async Task GenerateAnswer_LeavesThroughputNullWhenProviderReportsZeroCompletionTokens()
     {
         var client = new Mock<IChatClient>();
         client.Setup(item => item.GetStreamingResponseAsync(
@@ -100,7 +100,34 @@ public class ChatGenerationMetricsTests
         }
     }
 
-    private static ChatGenerationService CreateService(IChatClient client)
+    [Test]
+    public async Task GenerateAnswer_SnapshotsOnlyTheOrderedContextsAddedToThePrompt()
+    {
+        var client = new Mock<IChatClient>();
+        client.Setup(item => item.GetStreamingResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(StreamWithUsage());
+
+        IReadOnlyList<ChunkRetrieval> retrievals =
+        [
+            new() { ChunkId = Guid.NewGuid(), ChunkText = "First context", SimilarityScore = .9 },
+            new() { ChunkId = Guid.NewGuid(), ChunkText = "Second context", SimilarityScore = .8 },
+            new() { ChunkId = Guid.NewGuid(), ChunkText = "Excluded context", SimilarityScore = .7 },
+        ];
+        var service = CreateService(client.Object, retrievals);
+
+        var result = await service.GenerateAnswerAsync(ChatRequest(maxContextChunks: 2), _ => Task.CompletedTask);
+
+        Assert.That(result.RetrievedContexts, Is.EqualTo(new RetrievedContextSnapshot[]
+        {
+            new() { ContextIndex = 0, ContextText = "First context" },
+            new() { ContextIndex = 1, ContextText = "Second context" },
+        }));
+    }
+
+    private static ChatGenerationService CreateService(IChatClient client, IReadOnlyList<ChunkRetrieval>? retrievals = null)
     {
         var embedder = new Mock<IEmbeddingService>();
         embedder.Setup(item => item.EmbedAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -113,7 +140,7 @@ public class ChatGenerationMetricsTests
                 It.IsAny<double>(),
                 It.IsAny<IReadOnlyList<int>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync(retrievals ?? []);
 
         var factory = new Mock<IChatClientFactory>();
         factory.Setup(item => item.GetChatClient(It.IsAny<string>())).Returns(client);
@@ -150,7 +177,7 @@ public class ChatGenerationMetricsTests
         },
     };
 
-    private static ChatGenerationRequest ChatRequest() => new()
+    private static ChatGenerationRequest ChatRequest(int maxContextChunks = 3) => new()
     {
         UserMessage = "Question",
         AllowedSubjects = [1],
@@ -167,7 +194,7 @@ public class ChatGenerationMetricsTests
             NoContextRetrievedPrompt = "none",
             CitationExtractionTemperature = 0,
             CitationExtractionPrompt = "cite",
-            MaxContextChunks = 3,
+            MaxContextChunks = maxContextChunks,
             MaxHistoryMessages = 12,
         },
     };

@@ -95,6 +95,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     GenericRepository<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; }
 
+    GenericRepository<ChatMessageContext> ChatMessageContexts { get; }
+
     /// <summary>Gets the repository for <see cref="Citation"/> entities.</summary>
     GenericRepository<Citation> Citations { get; }
 

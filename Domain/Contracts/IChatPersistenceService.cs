@@ -70,7 +70,7 @@ public interface IChatPersistenceService
         string content,
         string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
-        IReadOnlyList<ChunkRetrieval> chunkRetrievalsInContext,
+        IReadOnlyList<RetrievedContextSnapshot> retrievedContexts,
         IReadOnlyList<ChunkUsage> chunkUsages,
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,

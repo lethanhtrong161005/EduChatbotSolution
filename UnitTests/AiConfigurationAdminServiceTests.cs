@@ -86,7 +86,7 @@ public sealed class AiConfigurationAdminServiceTests
     public async Task ReindexSubject_AcquiresGateAndQueuesResolvedSnapshot()
     {
         var f = new Fixture();
-        f.Documents.Setup(e => e.CountAsync(It.IsAny<Expression<Func<Document, bool>>>(), It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        f.ExperimentRuns.AffectedDocumentCount = 2;
 
         var result = await f.Create().ReindexSubjectAsync(f.Subject.Id);
 
@@ -116,7 +116,7 @@ public sealed class AiConfigurationAdminServiceTests
     {
         var f = new Fixture();
         f.SubjectIndexes.Previous = SubjectIndexAvailability.Failed;
-        f.Documents.Setup(e => e.CountAsync(It.IsAny<Expression<Func<Document, bool>>>(), It.IsAny<CancellationToken>())).ReturnsAsync(2);
+        f.ExperimentRuns.AffectedDocumentCount = 2;
         f.Dispatcher.Setup(e => e.Enqueue(f.Subject.Id, f.Effective)).Throws(new InvalidOperationException("Queue unavailable."));
 
         Assert.ThrowsAsync<InvalidOperationException>(() => f.Create().ReindexSubjectAsync(f.Subject.Id));
@@ -155,6 +155,16 @@ public sealed class AiConfigurationAdminServiceTests
         }
     }
 
+    private sealed class StubExperimentRunRepository : ExperimentRunRepository
+    {
+        public int AffectedDocumentCount { get; set; }
+
+        public StubExperimentRunRepository() : base(null!) { }
+
+        public override Task<int> CountAffectedDocumentsAsync(int subjectId, string chunkingStrategy, int chunkSize, int chunkOverlap, string embeddingModel, CancellationToken cxlTkn = default) =>
+            Task.FromResult(AffectedDocumentCount);
+    }
+
     private sealed class Fixture
     {
         public Subject Subject { get; } = new() { Id = 7, Code = "DB201", Name = "Database Systems" };
@@ -166,11 +176,11 @@ public sealed class AiConfigurationAdminServiceTests
         public Mock<IAiConfigurationResolver> Resolver { get; } = new();
         public Mock<ISubjectReindexDispatcher> Dispatcher { get; } = new();
         public StubSubjectIndexRepository SubjectIndexes { get; } = new();
+        public StubExperimentRunRepository ExperimentRuns { get; } = new();
 
         public Mock<GenericRepository<Subject>> Subjects { get; } = Repository<Subject>();
         public Mock<GenericRepository<GlobalAiConfiguration>> Globals { get; } = Repository<GlobalAiConfiguration>();
         public Mock<GenericRepository<SubjectAiConfiguration>> Configurations { get; } = Repository<SubjectAiConfiguration>();
-        public Mock<GenericRepository<Document>> Documents { get; } = Repository<Document>();
 
         public Fixture()
         {
@@ -187,8 +197,8 @@ public sealed class AiConfigurationAdminServiceTests
             UnitOfWork.SetupGet(e => e.Subjects).Returns(Subjects.Object);
             UnitOfWork.SetupGet(e => e.GlobalAiConfigurations).Returns(Globals.Object);
             UnitOfWork.SetupGet(e => e.SubjectAiConfigurations).Returns(Configurations.Object);
-            UnitOfWork.SetupGet(e => e.Documents).Returns(Documents.Object);
             UnitOfWork.SetupGet(e => e.SubjectIndexes).Returns(SubjectIndexes);
+            UnitOfWork.SetupGet(e => e.ExperimentRuns).Returns(ExperimentRuns);
             UnitOfWork.Setup(e => e.SaveAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             Resolver.Setup(e => e.GetAiConfigurationAsync(Subject.Id, It.IsAny<CancellationToken>())).ReturnsAsync(Effective);

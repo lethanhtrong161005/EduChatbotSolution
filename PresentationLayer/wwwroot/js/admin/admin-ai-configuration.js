@@ -82,7 +82,8 @@ function closeModal(id) {
 
 function showAlert(type, message) {
     alertContainer.className = `alert-container alert-${type}`;
-    alertContainer.innerHTML = escapeHtml(message);
+    // FIXME: Accept content + icon type (enum|string); Escape HTML in content
+    alertContainer.innerHTML = message;
     alertContainer.hidden = false;
     // Scroll to alert
     alertContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -334,7 +335,7 @@ async function saveConfiguration() {
     keys.forEach(k => {
         const toggle = document.getElementById(`override-toggle-${k.key}`);
         const input = document.getElementById(`input-${k.key}`);
-        
+
         if (toggle && toggle.checked) {
             let val = input.value;
             if (k.type === 'int') {

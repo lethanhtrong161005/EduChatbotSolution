@@ -93,6 +93,11 @@ public class ChatGenerationService(
         var chunkRetrievals = await RetrieveChunksAsync(req, cxlTkn);
         retrievalTimer.Stop();
         var chunkRetrievalsInContext = chunkRetrievals.Take(req.Settings.MaxContextChunks).ToList();
+        IReadOnlyList<RetrievedContextSnapshot> retrievedContexts = [.. chunkRetrievalsInContext.Select((chunk, index) => new RetrievedContextSnapshot
+        {
+            ContextIndex = index,
+            ContextText = chunk.ChunkText,
+        })];
 
         var chatMessages = GetChatMessages(
             req,
@@ -147,7 +152,7 @@ public class ChatGenerationService(
             Answer = processedAnswer,
             RawAnswer = rawAnswer,
             ChunkRetrievals = chunkRetrievals,
-            ChunkRetrievalsInContext = chunkRetrievalsInContext,
+            RetrievedContexts = retrievedContexts,
             ChunkUsages = chunkUsages,
             Metrics = new ChatGenerationMetrics
             {

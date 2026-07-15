@@ -387,6 +387,8 @@ public class AdminExperimentResultsPageTests
                 ChatPrompt = "You are EduChatAI.",
                 ContextPrompt = "Use retrieved material.",
                 NoContextRetrievedPrompt = "No material found.",
+                CitationExtractionTemperature = 0,
+                CitationExtractionPrompt = "Extract grounded citations.",
                 JudgeModel = "test-judge",
                 EvaluatorPromptVersion = "ragas-style-v1",
             },

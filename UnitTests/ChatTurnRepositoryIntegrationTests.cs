@@ -70,6 +70,12 @@ public class ChatTurnRepositoryIntegrationTests
         exchange.AssistantMessage.Content = "partial";
         exchange.AssistantMessage.RawContent = "partial";
         exchange.AssistantMessage.GenerationErrors = "failure";
+        exchange.AssistantMessage.RetrievedContexts.Add(new ChatMessageContext
+        {
+            ChatMessageId = exchange.AssistantMessage.Id,
+            ContextIndex = 0,
+            ContextText = "Stale context",
+        });
         await context.SaveChangesAsync();
 
         var reset = await repository.ResetFailedAssistantMessageAsync(sessionId, exchange.AssistantMessage.Id);
@@ -82,6 +88,7 @@ public class ChatTurnRepositoryIntegrationTests
             Assert.That(reset.RawContent, Is.Empty);
             Assert.That(reset.GenerationErrors, Is.Null);
         });
+        Assert.That(await context.ChatMessageContexts.CountAsync(item => item.ChatMessageId == reset.Id), Is.Zero);
     }
 
     [Test]

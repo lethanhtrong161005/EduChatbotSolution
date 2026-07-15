@@ -119,6 +119,8 @@ public class ExperimentRunRepositoryIntegrationTests
                 ChatPrompt = "Answer using context.",
                 ContextPrompt = "Context:",
                 NoContextRetrievedPrompt = "No context.",
+                CitationExtractionTemperature = 0,
+                CitationExtractionPrompt = "Extract citations.",
                 JudgeModel = ChatModelName.Gemini35Flash,
                 EvaluatorPromptVersion = "ragas-style-v1",
             },

@@ -101,7 +101,6 @@ public sealed class ExperimentService(
 
         var current = await _configurationResolver.GetAiConfigurationAsync(request.SubjectId, cxlTkn);
         var affected = await _unitOfWork.ExperimentRuns.CountAffectedDocumentsAsync(request.SubjectId, request.ChunkingStrategy, request.ChunkSize, request.ChunkOverlap, request.EmbeddingModel, cxlTkn);
-        var now = DateTime.UtcNow;
         var experiment = new Experiment
         {
             ExperimentName = request.ExperimentName.Trim(),
@@ -131,6 +130,8 @@ public sealed class ExperimentService(
                 ChatPrompt = current.ChatPrompt,
                 ContextPrompt = current.ContextPrompt,
                 NoContextRetrievedPrompt = current.NoContextRetrievedPrompt,
+                CitationExtractionTemperature = current.CitationExtractionTemperature,
+                CitationExtractionPrompt = current.CitationExtractionPrompt,
                 JudgeModel = request.JudgeModel,
                 EvaluatorPromptVersion = EvaluatorPromptVersion,
             },
@@ -260,7 +261,7 @@ public sealed class ExperimentService(
         if (request.MaxContextChunks <= 0) throw new EntityValidationException("Maximum context chunks must be positive.", nameof(request.MaxContextChunks));
         if (string.IsNullOrWhiteSpace(request.LlmModel)) throw new EntityValidationException("LLM model is required.", nameof(request.LlmModel));
         if (!float.IsFinite(request.ChatTemperature) || request.ChatTemperature is < 0 or > 2) throw new EntityValidationException("Chat temperature must be between 0 and 2.", nameof(request.ChatTemperature));
-        if (request.JudgeModel != ChatModelName.Gemini35Flash) throw new EntityValidationException($"Judge model must be '{ChatModelName.Gemini35Flash}'.", nameof(request.JudgeModel));
+        if (string.IsNullOrWhiteSpace(request.JudgeModel)) throw new EntityValidationException("Judge model is required.", nameof(request.JudgeModel));
     }
 
     private static void ValidateIndexing(int subjectId, string strategy, int size, int overlap, string embeddingModel)
@@ -277,76 +278,6 @@ public sealed class ExperimentService(
         var value = $"{DatasetKey}:{string.Join(',', questions.Select(e => e.ExternalId).Order(StringComparer.Ordinal))}";
         return $"{DatasetKey}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16]}";
     }
-
-    //// FIXME: Use AutoMapper mappings.
-
-    //private static ExperimentSummaryDto MapSummary(Experiment experiment) => new()
-    //{
-    //    ExperimentId = experiment.Id,
-    //    ExperimentName = experiment.ExperimentName,
-    //    SubjectId = experiment.SubjectId,
-    //    SubjectCode = experiment.Subject.Code,
-    //    Status = experiment.Status,
-    //    ChunkingStrategy = experiment.ConfigurationSnapshot.ChunkingStrategy,
-    //    ChunkSize = experiment.ConfigurationSnapshot.ChunkSize,
-    //    ChunkOverlap = experiment.ConfigurationSnapshot.ChunkOverlap,
-    //    EmbeddingModel = experiment.ConfigurationSnapshot.EmbeddingModel,
-    //    LlmModel = experiment.ConfigurationSnapshot.LlmModel,
-    //    QuestionSetKey = experiment.QuestionSetKey,
-    //    IndexedDocumentCount = experiment.IndexedDocumentCount,
-    //    AffectedDocumentCount = experiment.AffectedDocumentCount,
-    //    CompletedQuestionCount = experiment.CompletedQuestionCount,
-    //    TotalQuestionCount = experiment.TotalQuestionCount,
-    //    AggregateScores = Scores(experiment.Faithfulness, experiment.AnswerRelevancy, experiment.ContextPrecision, experiment.ContextRecall),
-    //    CreatedAt = experiment.CreatedAt,
-    //    CompletedAt = experiment.CompletedAt,
-    //    FailureReason = experiment.FailureReason,
-    //};
-
-    //private static ExperimentConfigurationSnapshotDto MapConfiguration(ExperimentConfigurationSnapshot snapshot) => new()
-    //{
-    //    SubjectId = snapshot.SubjectId,
-    //    SubjectCode = snapshot.SubjectCode,
-    //    SubjectName = snapshot.SubjectName,
-    //    ChunkingStrategy = snapshot.ChunkingStrategy,
-    //    ChunkSize = snapshot.ChunkSize,
-    //    ChunkOverlap = snapshot.ChunkOverlap,
-    //    EmbeddingModel = snapshot.EmbeddingModel,
-    //    TopK = snapshot.TopK,
-    //    SimilarityThreshold = snapshot.SimilarityThreshold,
-    //    MaxContextChunks = snapshot.MaxContextChunks,
-    //    LlmModel = snapshot.LlmModel,
-    //    ChatTemperature = snapshot.ChatTemperature,
-    //    MaxHistoryMessages = snapshot.MaxHistoryMessages,
-    //    ChatPrompt = snapshot.ChatPrompt,
-    //    ContextPrompt = snapshot.ContextPrompt,
-    //    NoContextRetrievedPrompt = snapshot.NoContextRetrievedPrompt,
-    //    JudgeModel = snapshot.JudgeModel,
-    //    EvaluatorPromptVersion = snapshot.EvaluatorPromptVersion,
-    //};
-
-    //private static ExperimentQuestionResultDto MapQuestion(TestResponse response) => new()
-    //{
-    //    TestResponseId = response.Id,
-    //    TestQuestionId = response.TestQuestionId,
-    //    ExternalId = response.TestQuestion.ExternalId,
-    //    Question = response.TestQuestion.Question,
-    //    GroundTruth = response.TestQuestion.GroundTruth,
-    //    Status = response.Status,
-    //    GeneratedAnswer = response.GeneratedAnswer,
-    //    RetrievedContexts = [.. response.RetrievedContexts.OrderBy(e => e.ContextIndex).Select(e => e.ContextText)],
-    //    Scores = Scores(response.Faithfulness, response.AnswerRelevancy, response.ContextPrecision, response.ContextRecall),
-    //    Explanation = response.Explanation,
-    //    FailureReason = response.FailureReason,
-    //    PromptTokens = response.PromptTokens,
-    //    CompletionTokens = response.CompletionTokens,
-    //    RetrievalTimeMs = response.RetrievalTimeMs,
-    //    TimeToFirstTokenMs = response.TimeToFirstTokenMs,
-    //    TotalResponseTimeMs = response.TotalResponseTimeMs,
-    //};
-
-    private static RagasStyleScoresDto Scores(double? faithfulness, double? answerRelevancy, double? contextPrecision, double? contextRecall) =>
-        new() { Faithfulness = faithfulness, AnswerRelevancy = answerRelevancy, ContextPrecision = contextPrecision, ContextRecall = contextRecall };
 
     private static MetricComparisonDto Metric(string name, double? left, double? right) =>
         new() { Metric = name, LeftScore = left, RightScore = right, Delta = left.HasValue && right.HasValue ? right.Value - left.Value : null };

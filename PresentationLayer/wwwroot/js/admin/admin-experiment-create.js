@@ -94,7 +94,8 @@ function closeModal(id) {
 
 function showAlert(type, message) {
     alertContainer.className = `alert-container alert-${type}`;
-    alertContainer.innerHTML = escapeHtml(message);
+    // FIXME: Accept content + icon type (enum|string); Escape HTML in content
+    alertContainer.innerHTML = message;
     alertContainer.hidden = false;
     alertContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -137,7 +138,7 @@ async function loadSubjectOptions(subjectId) {
         populateDropdown('chunkingStrategy', globalOptions.aiOptions.chunkingStrategies);
         populateDropdown('embeddingModel', globalOptions.aiOptions.embeddingModels);
         populateDropdown('llmModel', globalOptions.aiOptions.chatModels);
-        populateDropdown('judgeModel', globalOptions.aiOptions.judgeModels);
+        populateDropdown('judgeModel', globalOptions.aiOptions.judgeModels, '-- Choose Judge Model --');
 
         // Populate with current configuration values
         const current = globalOptions.currentConfiguration;
@@ -153,12 +154,8 @@ async function loadSubjectOptions(subjectId) {
         document.getElementById('llmModel').value = current.generation.llmModel.effectiveValue;
         document.getElementById('chatTemperature').value = current.generation.chatTemperature.effectiveValue;
 
-        // Select matching judge model or default to gemini-3.5-flash
-        const hasGeminiFlash = globalOptions.aiOptions.judgeModels.some(m => m.value === 'gemini-3.5-flash');
-        document.getElementById('judgeModel').value = hasGeminiFlash ? 'gemini-3.5-flash' : globalOptions.aiOptions.judgeModels[0]?.value ?? '';
-
         // Default name
-        document.getElementById('experimentName').value = `${globalOptions.subjectCode} recursive Gemini smoke run`;
+        document.getElementById('experimentName').value = `${globalOptions.subjectCode} smoke run`;
         document.getElementById('notes').value = 'Three questions to verify flow before running all 50.';
 
         // Populate test questions
@@ -174,10 +171,18 @@ async function loadSubjectOptions(subjectId) {
     }
 }
 
-function populateDropdown(selectId, options) {
+function populateDropdown(selectId, options, placeholder = null) {
     const select = document.getElementById(selectId);
     if (!select) return;
     select.innerHTML = '';
+    if (placeholder) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = placeholder;
+        option.disabled = true;
+        option.selected = true;
+        select.appendChild(option);
+    }
     options.forEach(opt => {
         const o = document.createElement('option');
         o.value = opt.value;

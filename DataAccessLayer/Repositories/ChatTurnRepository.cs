@@ -71,6 +71,7 @@ public class ChatTurnRepository(EduChatAiDbContext context)
         var message = await _context.ChatMessages
             .Include(item => item.GenerationSettings)
             .Include(item => item.GenerationMetrics)
+            .Include(item => item.RetrievedContexts)
             .Include(item => item.Citations)
                 .ThenInclude(citation => citation.CitationOccurrences)
             .SingleOrDefaultAsync(
@@ -85,6 +86,8 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             _context.ChatMessageGenerationSettings.Remove(message.GenerationSettings);
         if (message.GenerationMetrics is not null)
             _context.ChatMessageGenerationMetrics.Remove(message.GenerationMetrics);
+        if (message.RetrievedContexts.Count > 0)
+            _context.ChatMessageContexts.RemoveRange(message.RetrievedContexts);
         if (message.Citations.Count > 0)
             _context.Citations.RemoveRange(message.Citations);
 

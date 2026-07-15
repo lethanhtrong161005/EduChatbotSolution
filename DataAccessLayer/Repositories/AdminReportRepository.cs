@@ -22,7 +22,7 @@ public sealed record AdminReportRepositoryData
 
 public class AdminReportRepository(EduChatAiDbContext context)
 {
-    private const int BangkokUtcOffsetHours = 7;
+    private const int LocalUtcOffsetHours = 7;
     protected readonly EduChatAiDbContext Context = context;
 
     public virtual Task<bool> SubjectExistsAsync(int subjectId, CancellationToken cxlTkn = default) =>
@@ -51,19 +51,19 @@ public class AdminReportRepository(EduChatAiDbContext context)
         var activeSessionCount = await userMessages.Select(message => message.ChatSessionId).Distinct().LongCountAsync(cxlTkn);
         var completedCount = await completedMessages.LongCountAsync(cxlTkn);
         var terminalCount = await terminalMessages.LongCountAsync(cxlTkn);
-        var citationEligibleCount = await completedMessages.LongCountAsync(message => message.ChatSession.SubjectId != null, cxlTkn);
-        var citationCoveredCount = await completedMessages.LongCountAsync(message => message.ChatSession.SubjectId != null && message.Citations.Any(), cxlTkn);
+        var citationEligibleCount = await completedMessages.LongCountAsync(cxlTkn);
+        var citationCoveredCount = await completedMessages.LongCountAsync(message => message.Citations.Any(), cxlTkn);
 
         var completedRows = await completedMessages.Select(message => new CompletedGenerationRow
         {
             SentAt = message.SentAt,
             SubjectId = message.ChatSession.SubjectId,
-            SubjectCode = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Code,
-            SubjectName = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Name,
-            PromptTokens = message.GenerationMetrics == null ? null : message.GenerationMetrics.PromptTokens,
-            CompletionTokens = message.GenerationMetrics == null ? null : message.GenerationMetrics.CompletionTokens,
-            TotalResponseTimeMs = message.GenerationMetrics == null ? null : message.GenerationMetrics.TotalResponseTimeMs,
-            ContextChunkCount = message.GenerationMetrics == null ? null : message.GenerationMetrics.ContextChunkCount,
+            SubjectCode = message.ChatSession.Subject != null ? message.ChatSession.Subject.Code : null,
+            SubjectName = message.ChatSession.Subject != null ? message.ChatSession.Subject.Name : null,
+            PromptTokens = message.GenerationMetrics != null ? message.GenerationMetrics.PromptTokens : null,
+            CompletionTokens = message.GenerationMetrics != null ? message.GenerationMetrics.CompletionTokens : null,
+            TotalResponseTimeMs = message.GenerationMetrics != null ? message.GenerationMetrics.TotalResponseTimeMs : null,
+            ContextChunkCount = message.GenerationMetrics != null ? message.GenerationMetrics.ContextChunkCount : null,
         }).ToListAsync(cxlTkn);
 
         var failedRows = await assistantMessages
@@ -74,8 +74,8 @@ public class AdminReportRepository(EduChatAiDbContext context)
         var userActivity = await userMessages.GroupBy(message => new
         {
             message.ChatSession.SubjectId,
-            SubjectCode = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Code,
-            SubjectName = message.ChatSession.Subject == null ? null : message.ChatSession.Subject.Name,
+            SubjectCode = message.ChatSession.Subject != null ? message.ChatSession.Subject.Code : null,
+            SubjectName = message.ChatSession.Subject != null ? message.ChatSession.Subject.Name : null,
         })
             .Select(group => new SubjectActivityRow
             {
@@ -87,22 +87,18 @@ public class AdminReportRepository(EduChatAiDbContext context)
             })
             .ToListAsync(cxlTkn);
 
-        var trendCompletedMessages = query.TrendSubjectId.HasValue
-            ? completedMessages.Where(message => message.ChatSession.SubjectId == query.TrendSubjectId)
-            : completedMessages;
+        var trendCompletedMessages = ApplySubjectFilter(completedMessages, query.TrendSubjectId);
         var assistantGenerations = await trendCompletedMessages
-            .GroupBy(message => message.SentAt.AddHours(BangkokUtcOffsetHours).Date)
+            .GroupBy(message => message.SentAt.AddHours(LocalUtcOffsetHours).Date)
             .Select(group => new { Date = group.Key, Count = group.Count() })
             .OrderBy(group => group.Date)
             .ToListAsync(cxlTkn);
 
-        IReadOnlyList<CompletedGenerationRow> trendRows = query.TrendSubjectId.HasValue
-            ? completedRows.Where(row => row.SubjectId == query.TrendSubjectId.Value).ToArray()
-            : completedRows;
-        var tokenUsage = trendRows.GroupBy(row => BangkokDate(row.SentAt)).OrderBy(group => group.Key)
+        IReadOnlyList<CompletedGenerationRow> trendRows = [.. ApplySubjectFilter(completedRows, query.TrendSubjectId)];
+        var tokenUsage = trendRows.GroupBy(row => LocalDate(row.SentAt)).OrderBy(group => group.Key)
             .Select(group => new DailyTokenUsageDto { Date = group.Key, TokenMeasurement = BuildTokenMeasurement(group) })
             .ToArray();
-        var responseLatency = trendRows.GroupBy(row => BangkokDate(row.SentAt)).OrderBy(group => group.Key)
+        var responseLatency = trendRows.GroupBy(row => LocalDate(row.SentAt)).OrderBy(group => group.Key)
             .Select(group => new DailyResponseLatencyDto { Date = group.Key, P95TotalResponseTimeMs = NearestRankP95(group.Select(row => row.TotalResponseTimeMs)) })
             .ToArray();
 
@@ -118,7 +114,7 @@ public class AdminReportRepository(EduChatAiDbContext context)
             .SelectMany(message => message.Citations.Select(citation => new
             {
                 AnswerId = message.Id,
-                DocumentId = citation.Chunk.DocumentId,
+                citation.Chunk.DocumentId,
                 DocumentTitle = citation.Chunk.Document.Title,
                 citation.Chunk.Document.SubjectId,
                 SubjectCode = citation.Chunk.Document.Subject.Code,
@@ -148,16 +144,16 @@ public class AdminReportRepository(EduChatAiDbContext context)
                 ActiveSessionCount = activeSessionCount,
                 CompletedAssistantGenerationCount = completedCount,
                 TerminalGenerationCount = terminalCount,
-                GenerationSuccessRatePercent = terminalCount == 0 ? null : 100d * completedCount / terminalCount,
-                CitationCoveragePercent = citationEligibleCount == 0 ? null : 100d * citationCoveredCount / citationEligibleCount,
+                GenerationSuccessRatePercent = terminalCount > 0 ? 100d * completedCount / terminalCount : null,
+                CitationCoveragePercent = citationEligibleCount > 0 ? 100d * citationCoveredCount / citationEligibleCount : null,
                 P95TotalResponseTimeMs = NearestRankP95(completedRows.Select(row => row.TotalResponseTimeMs)),
                 TokenMeasurement = BuildTokenMeasurement(completedRows),
             },
-            AssistantGenerations = assistantGenerations.Select(group => new DailyAssistantGenerationDto
+            AssistantGenerations = [.. assistantGenerations.Select(group => new DailyAssistantGenerationDto
             {
                 Date = DateOnly.FromDateTime(group.Date),
                 CompletedAssistantGenerationCount = group.Count,
-            }).ToArray(),
+            })],
             TokenUsage = tokenUsage,
             ResponseLatency = responseLatency,
             SubjectUsage = subjectUsage,
@@ -166,6 +162,20 @@ public class AdminReportRepository(EduChatAiDbContext context)
             HotDocuments = hotDocuments,
         };
     }
+
+    private static IQueryable<ChatMessage> ApplySubjectFilter(IQueryable<ChatMessage> messages, int? subjectId) =>
+        subjectId.HasValue
+            ? subjectId == 0
+                ? messages.Where(message => message.ChatSession.SubjectId == null)
+                : messages.Where(message => message.ChatSession.SubjectId == subjectId)
+            : messages;
+
+    private static IEnumerable<CompletedGenerationRow> ApplySubjectFilter(IEnumerable<CompletedGenerationRow> rows, int? subjectId) =>
+        subjectId.HasValue
+            ? subjectId == 0
+                ? rows.Where(row => row.SubjectId == null)
+                : rows.Where(message => message.SubjectId == subjectId)
+            : rows;
 
     private static IQueryable<ChatMessage> ApplyRoleFilter(IQueryable<ChatMessage> messages, ReportRoleFilter role)
     {
@@ -179,7 +189,7 @@ public class AdminReportRepository(EduChatAiDbContext context)
         var activityBySubject = activity.ToDictionary(row => new SubjectKey(row.SubjectId, row.SubjectCode, row.SubjectName));
         var generationsBySubject = generations.GroupBy(row => new SubjectKey(row.SubjectId, row.SubjectCode, row.SubjectName)).ToDictionary(group => group.Key, group => group.ToArray());
         var subjects = activityBySubject.Keys.Concat(generationsBySubject.Keys).Distinct().ToArray();
-        return subjects.Select(subject =>
+        return [.. subjects.Select(subject =>
             {
                 activityBySubject.TryGetValue(subject, out var activityRow);
                 generationsBySubject.TryGetValue(subject, out var generationRows);
@@ -197,14 +207,13 @@ public class AdminReportRepository(EduChatAiDbContext context)
             .OrderByDescending(row => row.CompletedAssistantGenerationCount)
             .ThenByDescending(row => row.ActiveSessionCount)
             .ThenBy(row => row.SubjectCode)
-            .ThenBy(row => row.SubjectId)
-            .ToArray();
+            .ThenBy(row => row.SubjectId)];
     }
 
     private static IReadOnlyList<SubjectHealthDto> BuildSubjectHealth(IReadOnlyList<CompletedGenerationRow> completed, IReadOnlyList<FailedGenerationRow> failed)
     {
         var failedCounts = failed.GroupBy(row => row.SubjectId).ToDictionary(group => group.Key, group => group.Count());
-        return completed.Where(row => row.SubjectId.HasValue).GroupBy(row => row.SubjectId!.Value)
+        return [.. completed.Where(row => row.SubjectId.HasValue).GroupBy(row => row.SubjectId!.Value)
             .Where(group => group.Count() >= 10)
             .Select(group =>
             {
@@ -224,13 +233,12 @@ public class AdminReportRepository(EduChatAiDbContext context)
             .OrderByDescending(row => row.NoContextRatePercent)
             .ThenByDescending(row => row.GenerationFailureRatePercent)
             .ThenBy(row => row.SubjectCode)
-            .ThenBy(row => row.SubjectId)
-            .ToArray();
+            .ThenBy(row => row.SubjectId)];
     }
 
     private static TokenMeasurementDto BuildTokenMeasurement(IEnumerable<CompletedGenerationRow> source)
     {
-        var rows = source as IReadOnlyCollection<CompletedGenerationRow> ?? source.ToArray();
+        var rows = source as IReadOnlyCollection<CompletedGenerationRow> ?? [.. source];
         var measured = rows.Where(row => row.PromptTokens.HasValue && row.CompletionTokens.HasValue).ToArray();
         if (rows.Count == 0) return new TokenMeasurementDto
         {
@@ -271,7 +279,7 @@ public class AdminReportRepository(EduChatAiDbContext context)
         return measured[(int)Math.Ceiling(measured.Length * 0.95d) - 1];
     }
 
-    private static DateOnly BangkokDate(DateTime utc) => DateOnly.FromDateTime(utc.AddHours(BangkokUtcOffsetHours));
+    private static DateOnly LocalDate(DateTime utc) => DateOnly.FromDateTime(utc.AddHours(LocalUtcOffsetHours));
 
     private sealed class CompletedGenerationRow
     {

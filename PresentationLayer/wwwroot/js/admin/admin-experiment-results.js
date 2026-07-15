@@ -247,7 +247,7 @@ function stepIndex(status) {
     }
 }
 
-function renderProgressStepper(status, completedQ, totalQ, indexedDocs, affectedDocs) {
+function renderProgressStepper(status, completedQ, totalQ, indexedDocs, affectedDocs, failedQ) {
     const steps = ['erStepQueued', 'erStepPreparingIndex', 'erStepRunning', 'erStepEvaluating', 'erStepCompleted'];
     const current = stepIndex(status);
     const isFailed = status === ExperimentStatus.Failed;
@@ -278,8 +278,9 @@ function renderProgressStepper(status, completedQ, totalQ, indexedDocs, affected
         if (status === ExperimentStatus.PreparingIndex) {
             parts.push(`Documents indexed: ${indexedDocs}/${affectedDocs}`);
         }
-        if ([ExperimentStatus.Running, ExperimentStatus.Evaluating].includes(status)) {
-            parts.push(`Questions completed: ${completedQ}/${totalQ}`);
+        if ([ExperimentStatus.Running, ExperimentStatus.Evaluating, ExperimentStatus.Completed, ExperimentStatus.Failed].includes(status)) {
+            parts.push(`Questions processed: ${completedQ}/${totalQ}`);
+            parts.push(`Questions failed: ${failedQ}`);
         }
         if (parts.length > 0) {
             countEl.textContent = parts.join(' · ');
@@ -393,14 +394,15 @@ function renderExperimentDetail(normalized) {
     badgeEl.className = `er-badge er-badge--${statusCssKey(s.status)}`;
     badgeEl.innerHTML = `<i class="${statusIcon(s.status)}"></i> ${statusLabel(s.status)}`;
 
-    // Progress stepper (shown while not terminal)
+    // Progress stepper (shown while not terminal) and counts (shown whenever available)
     const stepperEl = document.getElementById('erProgressStepper');
+    const failedQ = normalized.questions.filter(question => question.status === QuestionStatus.Failed).length;
+    renderProgressStepper(s.status, normalized.summary.completedQ, normalized.summary.totalQ,
+        normalized.summary.indexedDocs, normalized.summary.affectedDocs, failedQ);
     if (isTerminal(s.status)) {
         stepperEl.setAttribute('hidden', true);
     } else {
         stepperEl.removeAttribute('hidden');
-        renderProgressStepper(s.status, normalized.summary.completedQ, normalized.summary.totalQ,
-            normalized.summary.indexedDocs, normalized.summary.affectedDocs);
     }
 
     // Config

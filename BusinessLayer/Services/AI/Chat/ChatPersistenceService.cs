@@ -251,7 +251,7 @@ public class ChatPersistenceService(
         string content,
         string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
-        IReadOnlyList<ChunkRetrieval> chunkRetrievalsInContext,
+        IReadOnlyList<RetrievedContextSnapshot> retrievedContexts,
         IReadOnlyList<ChunkUsage> chunkUsages,
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,
@@ -268,6 +268,16 @@ public class ChatPersistenceService(
         message.Content = content;
         message.RawContent = rawContent;
         message.Status = MessageStatus.Completed;
+
+        foreach (var context in retrievedContexts.OrderBy(item => item.ContextIndex))
+        {
+            message.RetrievedContexts.Add(new ChatMessageContext
+            {
+                ChatMessageId = message.Id,
+                ContextIndex = context.ContextIndex,
+                ContextText = context.ContextText,
+            });
+        }
 
         message.GenerationSettings = new ChatMessageGenerationSettings
         {
@@ -293,7 +303,7 @@ public class ChatPersistenceService(
         message.GenerationMetrics = new ChatMessageGenerationMetrics
         {
             RetrievedChunkCount = chunkRetrievals.Count,
-            ContextChunkCount = chunkRetrievalsInContext.Count,
+            ContextChunkCount = retrievedContexts.Count,
 
             PromptTokens = generationMetrics.PromptTokens,
             CompletionTokens = generationMetrics.CompletionTokens,

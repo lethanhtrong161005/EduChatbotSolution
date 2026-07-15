@@ -71,7 +71,7 @@ public sealed class AdminReportRepositoryIntegrationTests
             Assert.That(data.Kpis.CompletedAssistantGenerationCount, Is.EqualTo(4));
             Assert.That(data.Kpis.TerminalGenerationCount, Is.EqualTo(5));
             Assert.That(data.Kpis.GenerationSuccessRatePercent, Is.EqualTo(80));
-            Assert.That(data.Kpis.CitationCoveragePercent, Is.EqualTo(200d / 3).Within(0.0001));
+            Assert.That(data.Kpis.CitationCoveragePercent, Is.EqualTo(75));
             Assert.That(data.Kpis.P95TotalResponseTimeMs, Is.EqualTo(300));
             AssertToken(data.Kpis.TokenMeasurement, 35, 20, 55, 3, 4, 75);
 
@@ -91,6 +91,26 @@ public sealed class AdminReportRepositoryIntegrationTests
             AssertToken(db202.TokenMeasurement, null, null, null, 0, 1, 0);
             Assert.That(flexible.SubjectName, Is.EqualTo("Flexible subjects"));
             Assert.That(flexible.CompletedAssistantGenerationCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task Dashboard_FlexibleTrendIncludesOnlyFlexibleSessionsWhileGlobalCitationCoverageStillIncludesThem()
+    {
+        var repository = new AdminReportRepository(_context);
+
+        var data = await repository.GetDashboardDataAsync(new AdminReportQuery(
+            Utc(2026, 7, 8, 17, 0), Utc(2026, 7, 15, 17, 0), ReportRoleFilter.Student, 0));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(data.Kpis.CompletedAssistantGenerationCount, Is.EqualTo(4));
+            Assert.That(data.Kpis.CitationCoveragePercent, Is.EqualTo(75));
+            Assert.That(data.AssistantGenerations, Is.EqualTo(new[]
+            {
+                new DailyAssistantGenerationDto { Date = new DateOnly(2026, 7, 12), CompletedAssistantGenerationCount = 1 },
+            }));
+            Assert.That(data.SubjectUsage.Single(row => row.SubjectId is null).SubjectName, Is.EqualTo("Flexible subjects"));
         }
     }
 
@@ -116,7 +136,10 @@ public sealed class AdminReportRepositoryIntegrationTests
                 ProcessingDocumentCount = 2,
                 FailedDocumentCount = 1,
             }));
-            Assert.That(data.TrendSubjectOptions.Select(e => e.SubjectCode), Is.EqualTo(new[] { "DB201", "DB202" }));
+            Assert.That(data.TrendSubjectOptions
+                .Where(option => option.SubjectId is Db201Id or Db202Id)
+                .Select(option => option.SubjectCode),
+                Is.EqualTo(new[] { "DB201", "DB202" }));
         }
     }
 

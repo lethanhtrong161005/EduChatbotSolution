@@ -8,11 +8,18 @@ public record ChatGenerationResult
 
     public required IReadOnlyList<ChunkRetrieval> ChunkRetrievals { get; init; }
 
-    public required IReadOnlyList<ChunkRetrieval> ChunkRetrievalsInContext { get; init; }
+    public required IReadOnlyList<RetrievedContextSnapshot> RetrievedContexts { get; init; }
 
     public required IReadOnlyList<ChunkUsage> ChunkUsages { get; init; }
 
     public required ChatGenerationMetrics Metrics { get; init; }
+}
+
+public record RetrievedContextSnapshot
+{
+    public required int ContextIndex { get; init; }
+
+    public required string ContextText { get; init; }
 }
 
 public record ChunkRetrieval

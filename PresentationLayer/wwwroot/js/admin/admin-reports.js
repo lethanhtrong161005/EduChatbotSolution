@@ -173,14 +173,14 @@ function normalizeDashboard(dto) {
     const promptSeries = dto.tokenUsage.map(d => {
         const tm = d.tokenMeasurement;
         return tm.eligibleMessageCount === 0 ? 0 :
-               tm.measuredMessageCount === 0 ? null :
-               tm.measuredPromptTokens;
+            tm.measuredMessageCount === 0 ? null :
+                tm.measuredPromptTokens;
     });
     const completionSeries = dto.tokenUsage.map(d => {
         const tm = d.tokenMeasurement;
         return tm.eligibleMessageCount === 0 ? 0 :
-               tm.measuredMessageCount === 0 ? null :
-               tm.measuredCompletionTokens;
+            tm.measuredMessageCount === 0 ? null :
+                tm.measuredCompletionTokens;
     });
 
     const latencyLabels = dto.responseLatency.map(d => d.date);
@@ -514,45 +514,45 @@ function renderIndexingDonut(status) {
 
     // Guard chart rendering; the custom legend below still renders without Chart.js.
     if (ctx && ensureChart()) {
-    if (chartIndexingDonut) {
-        chartIndexingDonut.data.datasets[0].data = values;
-        chartIndexingDonut.update('none');
-    } else {
-        chartIndexingDonut = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 6,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '65%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            // Recompute total from the live dataset so percentages stay
-                            // correct after update() replaces the data (do not close over
-                            // a `total` captured at first construction).
-                            label: ctx => {
-                                const v = ctx.parsed;
-                                const data = ctx.dataset?.data ?? [];
-                                const total = data.reduce((sum, n) => sum + (Number(n) || 0), 0);
-                                const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0';
-                                return `${ctx.label}: ${v} (${pct}%)`;
+        if (chartIndexingDonut) {
+            chartIndexingDonut.data.datasets[0].data = values;
+            chartIndexingDonut.update('none');
+        } else {
+            chartIndexingDonut = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 6,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                // Recompute total from the live dataset so percentages stay
+                                // correct after update() replaces the data (do not close over
+                                // a `total` captured at first construction).
+                                label: ctx => {
+                                    const v = ctx.parsed;
+                                    const data = ctx.dataset?.data ?? [];
+                                    const total = data.reduce((sum, n) => sum + (Number(n) || 0), 0);
+                                    const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0';
+                                    return `${ctx.label}: ${v} (${pct}%)`;
+                                },
                             },
                         },
                     },
                 },
-            },
-        });
-    }
+            });
+        }
     }
 
     // Update custom legend

@@ -52,23 +52,28 @@ public class ChatAndExperimentDataModelTests
     }
 
     [Test]
-    public void ExperimentModel_HasSnapshotAndOrderedContexts()
+    public void ChatAndExperimentModels_HaveOrderedContextSnapshots()
     {
         using var context = CreateContext();
         var model = context.Model;
 
         var experiment = model.FindEntityType(typeof(Experiment));
         var snapshot = model.FindEntityType(typeof(ExperimentConfigurationSnapshot));
-        var contextEntity = model.FindEntityType(typeof(TestResponseContext));
+        var testResponseContext = model.FindEntityType(typeof(TestResponseContext));
+        var chatMessageContext = model.FindEntityType(typeof(ChatMessageContext));
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(experiment, Is.Not.Null);
             Assert.That(snapshot, Is.Not.Null);
-            Assert.That(contextEntity, Is.Not.Null);
-            Assert.That(contextEntity!.GetIndexes().Any(index =>
+            Assert.That(testResponseContext, Is.Not.Null);
+            Assert.That(chatMessageContext, Is.Not.Null);
+            Assert.That(testResponseContext!.GetIndexes().Any(index =>
                 index.IsUnique && index.Properties.Select(property => property.Name)
                     .SequenceEqual([nameof(TestResponseContext.TestResponseId), nameof(TestResponseContext.ContextIndex)])), Is.True);
+            Assert.That(chatMessageContext!.GetIndexes().Any(index =>
+                index.IsUnique && index.Properties.Select(property => property.Name)
+                    .SequenceEqual([nameof(ChatMessageContext.ChatMessageId), nameof(ChatMessageContext.ContextIndex)])), Is.True);
         }
     }
 

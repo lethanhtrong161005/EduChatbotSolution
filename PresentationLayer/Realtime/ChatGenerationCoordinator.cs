@@ -128,7 +128,7 @@ public class ChatGenerationCoordinator(
                    result.Answer,
                    result.RawAnswer,
                    result.ChunkRetrievals,
-                   result.ChunkRetrievalsInContext,
+                   result.RetrievedContexts,
                    result.ChunkUsages,
                    request.Settings,
                    result.Metrics,

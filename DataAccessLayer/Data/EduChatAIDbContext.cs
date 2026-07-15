@@ -72,6 +72,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     /// <summary>Gets or sets the messages set.</summary>
     public DbSet<ChatMessage> ChatMessages { get; set; }
 
+    public DbSet<ChatMessageContext> ChatMessageContexts { get; set; }
+
     public DbSet<ChatMessageGenerationSettings> ChatMessageGenerationSettings { get; set; }
 
     public DbSet<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; set; }
@@ -140,6 +142,7 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<ChatSessionTitleGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatSessionTitleGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessageContext>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Citation>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
@@ -301,6 +304,21 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
                 "(chat_role = 0 AND message_index IS NULL AND in_reply_to_message_id IS NULL AND variant_index IS NULL AND is_selected_variant = FALSE) OR " +
                 "(chat_role = 1 AND message_index > 0 AND message_index % 2 = 1 AND in_reply_to_message_id IS NULL AND variant_index IS NULL AND is_selected_variant = FALSE) OR " +
                 "(chat_role = 2 AND message_index > 0 AND message_index % 2 = 0 AND in_reply_to_message_id IS NOT NULL AND variant_index > 0)"));
+
+        modelBuilder.Entity<ChatMessageContext>()
+            .HasOne(e => e.ChatMessage)
+            .WithMany(e => e.RetrievedContexts)
+            .HasForeignKey(e => e.ChatMessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ChatMessageContext>()
+            .HasIndex(e => new { e.ChatMessageId, e.ContextIndex })
+            .IsUnique();
+
+        modelBuilder.Entity<ChatMessageContext>()
+            .ToTable(table => table.HasCheckConstraint(
+                "ck_chat_message_contexts_context_index",
+                "context_index >= 0"));
 
         modelBuilder.Entity<Experiment>()
             .HasOne(e => e.Subject)
