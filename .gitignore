@@ -62,4 +62,4 @@ yarn-error.log*
 **/wwwroot/css/styles.css
 
 # Personal agent workflow notes
-/.agents/
+/.agent-guidance/
