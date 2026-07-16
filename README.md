@@ -1,6 +1,6 @@
 # EduChatAI
 
-EduChatAI is a Vietnamese educational knowledge-base and retrieval-augmented chat application. It combines subject and membership management, document indexing, cited AI chat, experiment runs, adoption-and-health reports, authentication, subscriptions, and payment integration in one ASP.NET Core application.
+EduChatAI is a Vietnamese educational knowledge-base and retrieval-augmented chat application. It combines subject and membership management, document indexing, cited AI chat, experiment runs, adoption-and-health reports, authentication, and partial subscription/payment foundations in one ASP.NET Core application.
 
 The repository is under active development. Docker Compose is the primary local setup; host and Visual Studio workflows are also supported.
 
@@ -13,8 +13,8 @@ The repository is under active development. Docker Compose is the primary local 
 | AI configuration | Global defaults plus nullable per-subject overrides for chunking, retrieval, chat, title, and citation settings; subject re-indexing with availability state |
 | Chat | Fixed-subject and flexible sessions, streamed answers, selected response variants, retry/regeneration, citations, immutable retrieved-context snapshots, and nullable provider metrics |
 | Experiments | Admin-only DB201 experiment creation, 50-question Vietnamese dataset, compatibility preflight, optional re-indexing, progress/results, and comparison of two compatible completed runs |
-| Admin reports | Admin-only 7-day, 30-day, and all-time adoption/health dashboard with role and trend-subject filters, Bangkok-day trends, subject usage, indexing health, and hot documents |
-| Subscriptions and payments | Plans, purchases, subscriptions, and ZaloPay-facing flows are present; external callbacks and provider-backed paths require real integration configuration |
+| Admin reports | Admin-only 7-day, 30-day, and all-time adoption/health dashboard with role and trend-subject filters, UTC+7 reporting day trends, subject usage, indexing health, and hot documents |
+Subscription and payment foundations | Plan, plan-option, purchase, subscription, transaction, and partial ZaloPay-facing flows are present. Runtime quota metering and enforcement, complete entitlement lifecycle verification, and production VNPay, domestic-card, and international-card gateway integrations are not complete. |
 | Automated verification | NUnit unit, mapping, PageModel, service, and opt-in PostgreSQL integration tests; browser automation is not currently part of the suite |
 
 ## Architecture
@@ -212,7 +212,7 @@ $env:EDUCHATAI_DEMO_ADMIN_REPORTS_ENABLED = "true"
 docker compose up --build
 ```
 
-The generated history covers 60 Bangkok calendar days and is designed to populate every dashboard section. Unset the flag or set it to `false` for normal startup.
+The generated history covers 60 UTC+7 calendar days and is designed to populate every dashboard section. Unset the flag or set it to `false` for normal startup.
 
 ## Background jobs and realtime endpoints
 
@@ -283,7 +283,7 @@ The evaluator is an in-process C# **RAGAS-style** LLM judge that scores faithful
 
 ## Admin reports
 
-The Admin-only dashboard offers required timeframes (7 days, 30 days, all time), a role filter, and an optional trend-subject filter. Daily boundaries and zero-filled dates use the Asia/Bangkok calendar.
+The Admin-only dashboard offers required timeframes (7 days, 30 days, all time), a role filter, and an optional trend-subject filter. Daily boundaries and zero-filled dates use the Indochina Time calendar.
 
 - No trend subject means all chat activity.
 - A positive trend subject ID filters only the three daily trend series.
@@ -314,6 +314,8 @@ dotnet build EduChatAI.slnx --no-restore -p:SkipTailwindBuild=true
 dotnet test EduChatAI.slnx --no-build --no-restore
 ```
 
+The normal solution test result must be interpreted together with its skipped-test count. PostgreSQL integration tests are only meaningful when `EDUCHATAI_PHASE2_TEST_DATABASE` points to an explicitly disposable database, and browser/UI automation is not currently part of the suite.
+
 PostgreSQL integration fixtures are skipped unless `EDUCHATAI_PHASE2_TEST_DATABASE` points to an explicitly disposable PostgreSQL database. The fixtures create, migrate, and clean test state; never point this variable at development, shared, or production data.
 
 ```powershell
@@ -337,10 +339,15 @@ dotnet test UnitTests/UnitTests.csproj --no-build --no-restore
 ## Known limitations
 
 - **TXT and HTML upload defect:** the allow-list includes `text/plain` and `text/html`, but the current signature-based MIME inspector does not identify formats without a reliable byte signature. These uploads are rejected as unsupported. PDF, DOCX, and PPTX are the reliable demo formats.
-- Development startup automatically migrates and seeds. This convenience path is not a production deployment strategy and should not target a shared database casually.
-- Experiments are DB201-only, serial, use one live subject index, leave the selected configuration active, and have no restart/retry orchestration after a failed job.
-- The evaluator is RAGAS-style, not official Python RAGAS. Any future Python evaluator or subscription expansion remains undecided and is not current behavior.
-- Frontend behavior is covered by PageModel/unit tests and manual checks, not end-to-end browser automation.
+- Development startup automatically migrates and seeds. This is a local-development convenience, not a production deployment strategy, and it should not target a shared database casually.
+- Experiments are currently DB201-only, run serially per subject, use one live subject index, and leave the selected configuration active after completion.
+- Question-level generation or evaluation failures do not necessarily stop later questions. A run currently completes when at least one question evaluates successfully; failed questions are excluded from aggregate scores, while a run fails when every question fails.
+- Experiment configuration and retrieved contexts are snapshotted, but the associated `TestQuestion` question and ground-truth text remain mutable database data. Editing or reimporting the dataset can therefore change how an older run is displayed or reconstructed.
+- Experiment jobs do not currently provide complete stale-run detection, automatic restart, or idempotent resume after interruption in `PreparingIndex`, `Running`, or `Evaluating`.
+- The evaluator is an in-process C# RAGAS-style structured-output judge, not the official Python RAGAS package. A future Python evaluator remains an undecided extension until its process boundary, schemas, versions, recovery behavior, and deployment requirements are approved.
+- Flexible chat sessions are dynamically scoped to the owner’s current subject memberships for every generation. Membership changes can alter the retrieval scope of an existing session, including regeneration of an older turn. - Exact retrieved-context text is persisted for chat and experiment reproducibility. This duplicates source content and can outlive later source-document edits; a formal retention, deletion, and redaction policy has not yet been established.
+- Subscription and payment support is foundational rather than complete. Plan quota and capability fields describe intended benefits but are not proof of atomic usage accounting, runtime enforcement, or complete premium entitlement activation.
+- A passing default test run does not by itself prove PostgreSQL repository behavior or browser end-to-end behavior. Database-gated tests require an explicitly disposable PostgreSQL database, and browser automation is currently deferred.
 - Public EF Core contexts and remaining direct context consumers are layering technical debt; new code should prefer `IUnitOfWork` and focused repositories.
 - External email, Google, Supabase, AI-provider, and ZaloPay paths depend on valid third-party credentials and reachable endpoints.
 
