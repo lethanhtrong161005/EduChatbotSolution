@@ -57,20 +57,23 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             {
                 if (doc.Status != DocumentStatus.Indexed)
                 {
-                    await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
-                    await SaveAndUpdate(doc, DocumentStatus.Indexed, 100, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+                    await MoveToDir(doc, FileDirectoryCategory.Indexed, cxlTkn);
+                    await SaveAndPushUpdate(doc, DocumentStatus.Indexed, 100, chunkCount: chunks.Count, embeddingModel: doc.IndexedEmbeddingModel, cxlTkn: cxlTkn);
                 }
                 return;
             }
 
             doc.IndexingErrors = null;
-            await MoveToDir(doc, DocumentFileDirectory.Processing, cxlTkn);
+            await MoveToDir(doc, FileDirectoryCategory.Processing, cxlTkn);
 
             if (sections.Count == 0) sections = await ParseDocumentAsync(doc, cxlTkn);
-            chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
-            await EmbedChunksAsync(doc, chunks, config, cxlTkn);
 
-            await MoveToDir(doc, DocumentFileDirectory.Indexed, cxlTkn);
+            if (chunks.Count == 0 || chunks.Any(e => e.ChunkingStrategy != config.ChunkingStrategy)) chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
+
+            var chunksToEmbed = chunks.SkipWhile(e => e.Embedding != null && e.ChunkingStrategy == config.ChunkingStrategy && e.EmbeddingModel == config.EmbeddingModel).ToList();
+            if (chunksToEmbed.Count > 0) await EmbedChunksAsync(doc, chunksToEmbed, config, cxlTkn);
+
+            await MoveToDir(doc, FileDirectoryCategory.Indexed, cxlTkn);
 
             doc.IndexedChunkingStrategy = config.ChunkingStrategy;
             doc.IndexedChunkSize = config.ChunkSize;
@@ -78,7 +81,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             doc.IndexedEmbeddingModel = config.EmbeddingModel;
             doc.IndexingErrors = null;
 
-            await SaveAndUpdate(doc, DocumentStatus.Indexed, 100, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+            await SaveAndPushUpdate(doc, DocumentStatus.Indexed, 100, chunkingStrategy: doc.IndexedChunkingStrategy, chunkCount: chunks.Count, embeddingModel: doc.IndexedEmbeddingModel, cxlTkn: cxlTkn);
         }
         catch (OperationCanceledException) when (cxlTkn.IsCancellationRequested)
         {
@@ -94,7 +97,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
     private async Task<List<ParsedSection>> ParseDocumentAsync(Document doc, CancellationToken cxlTkn)
     {
         doc.ParserUsed = _parser.ParserName;
-        await SaveAndUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cancellationToken: cxlTkn);
+        await SaveAndPushUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cxlTkn: cxlTkn);
 
         var fileRead = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
         if (!fileRead.Success) throw new FileNotFoundException(string.Join(Environment.NewLine, fileRead.Errors));
@@ -111,7 +114,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             _unitOfWork.ParsedSections.Insert(section);
         }
 
-        await SaveAndUpdate(doc, DocumentStatus.Parsed, cancellationToken: cxlTkn);
+        await SaveAndPushUpdate(doc, DocumentStatus.Parsed, cxlTkn: cxlTkn);
         return sections;
     }
 
@@ -122,7 +125,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         EffectiveAiConfiguration config,
         CancellationToken cxlTkn)
     {
-        await SaveAndUpdate(doc, DocumentStatus.Chunking, chunkingStrategy: config.ChunkingStrategy, chunkCount: 0, cancellationToken: cxlTkn);
+        await SaveAndPushUpdate(doc, DocumentStatus.Chunking, chunkingStrategy: config.ChunkingStrategy, chunkCount: 0, cxlTkn: cxlTkn);
 
         var chunker = _chunkerSelector.Select(config.ChunkingStrategy);
         var results = chunker.Chunk(sections, new ChunkingOptions(config.ChunkSize, config.ChunkOverlap));
@@ -141,16 +144,16 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             EndPageNumber = result.EndPageNumber,
             StartSectionTitle = result.StartSectionTitle,
             EndSectionTitle = result.EndSectionTitle,
-            ChunkStrategy = chunker.StrategyName,
+            ChunkingStrategy = chunker.StrategyName,
         })).ToList();
 
-        await SaveAndUpdate(doc, DocumentStatus.Chunked, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, cancellationToken: cxlTkn);
+        await SaveAndPushUpdate(doc, DocumentStatus.Chunked, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, cxlTkn: cxlTkn);
         return chunks;
     }
 
     private async Task EmbedChunksAsync(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config, CancellationToken cxlTkn)
     {
-        await SaveAndUpdate(doc, DocumentStatus.Embedding, 0, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+        await SaveAndPushUpdate(doc, DocumentStatus.Embedding, 0, embeddingModel: config.EmbeddingModel, cxlTkn: cxlTkn);
 
         var completed = 0;
 
@@ -171,7 +174,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             }
 
             completed += batch.Length;
-            await SaveAndUpdate(doc, DocumentStatus.Embedding, 100d * completed / chunks.Count, chunkCount: chunks.Count, embeddingModel: config.EmbeddingModel, cancellationToken: cxlTkn);
+            await SaveAndPushUpdate(doc, DocumentStatus.Embedding, 100d * completed / chunks.Count, embeddingModel: config.EmbeddingModel, cxlTkn: cxlTkn);
         }
     }
 
@@ -182,16 +185,16 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         && doc.IndexedChunkOverlap == config.ChunkOverlap
         && doc.IndexedEmbeddingModel == config.EmbeddingModel
         && chunks.All(e => e.Embedding != null
-                           && e.ChunkStrategy == config.ChunkingStrategy
+                           && e.ChunkingStrategy == config.ChunkingStrategy
                            && e.EmbeddingModel == config.EmbeddingModel);
 
-    private async Task MoveToDir(Document doc, DocumentFileDirectory directory, CancellationToken cxlTkn)
+    private async Task MoveToDir(Document doc, FileDirectoryCategory directory, CancellationToken cxlTkn)
     {
         var result = await _fileService.MoveAsync(doc.Id, directory, cxlTkn);
         if (!result.Success) throw new IOException(string.Join(Environment.NewLine, result.Errors));
     }
 
-    private async Task SaveAndUpdate(
+    private async Task SaveAndPushUpdate(
         Document doc,
         DocumentStatus status,
         double? progress = null,
@@ -199,10 +202,10 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         string? chunkingStrategy = null,
         int? chunkCount = null,
         string? embeddingModel = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cxlTkn = default)
     {
         doc.Status = status;
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await _unitOfWork.SaveAsync(cxlTkn);
 
         try
         {
@@ -230,7 +233,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
 
         try
         {
-            await MoveToDir(doc, DocumentFileDirectory.Failed, CancellationToken.None);
+            await MoveToDir(doc, FileDirectoryCategory.Failed, CancellationToken.None);
         }
         catch (Exception moveException)
         {
@@ -240,7 +243,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
 
         try
         {
-            await SaveAndUpdate(doc, DocumentStatus.Failed, cancellationToken: CancellationToken.None);
+            await SaveAndPushUpdate(doc, DocumentStatus.Failed, cxlTkn: CancellationToken.None);
         }
         catch (Exception saveException)
         {

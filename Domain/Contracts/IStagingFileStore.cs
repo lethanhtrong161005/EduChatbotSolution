@@ -6,9 +6,9 @@ public interface IStagingFileStore
 {
     Task<bool> ExistsAsync(string locator, CancellationToken cancellationToken = default);
 
-    Task<FileLocatorResult> StageAsync(
+    Task<FileStorageResult> StageAsync(
         Stream content,
-        string canonicalExtension,
+        string requestedExtension,
         CancellationToken cancellationToken = default);
 
     Task<FileReadResult> OpenReadAsync(string locator, CancellationToken cancellationToken = default);

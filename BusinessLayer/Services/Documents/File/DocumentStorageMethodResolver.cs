@@ -1,12 +1,13 @@
 using DataAccess.UnitOfWork;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Utils;
 
 namespace Business.Services.Documents.File;
 
 public class DocumentStorageMethodResolver(IUnitOfWork unitOfWork) : IDocumentStorageMethodResolver
 {
-    public async Task<DocumentStorageMethod> ResolveForPersistenceAsync(
+    public async Task<FileStorageMethod> ResolveForPersistenceAsync(
         Document document,
         CancellationToken cxlTkn = default)
     {
@@ -17,9 +18,9 @@ public class DocumentStorageMethodResolver(IUnitOfWork unitOfWork) : IDocumentSt
 
         return config?.StorageMethod switch
         {
-            DocumentStorageMethod.LocalHardDrive => DocumentStorageMethod.LocalHardDrive,
-            DocumentStorageMethod.Supabase => DocumentStorageMethod.Supabase,
-            _ => DocumentStorageMethod.Supabase,
+            FileStorageMethod.LocalHardDrive => FileStorageMethod.LocalHardDrive,
+            FileStorageMethod.Supabase => FileStorageMethod.Supabase,
+            _ => FileStorageMethod.Supabase,
         };
     }
 }

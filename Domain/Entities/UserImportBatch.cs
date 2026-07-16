@@ -6,7 +6,9 @@ public class UserImportBatch : NaturalEntity
 {
     public string FileName { get; set; } = string.Empty;
 
-    public string StorageLocator { get; set; } = string.Empty;
+    public string? StagingLocator { get; set; }
+
+    public string? StorageLocator { get; set; }
 
     public int TotalRows { get; set; }
 
@@ -38,5 +40,5 @@ public enum ImportBatchStatus
     Processing,
     Completed,
     PartiallyCompleted,
-    Failed
+    Failed,
 }

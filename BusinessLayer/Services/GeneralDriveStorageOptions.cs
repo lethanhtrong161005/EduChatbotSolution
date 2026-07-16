@@ -1,6 +1,6 @@
-﻿namespace Business.Services.Documents.File;
+﻿namespace Business.Services;
 
-public sealed class FileStorageOptions
+public sealed class GeneralDriveStorageOptions
 {
     public string AppDirectory { get; set; } = string.Empty;
 

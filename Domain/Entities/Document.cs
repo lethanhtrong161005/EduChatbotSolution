@@ -1,4 +1,6 @@
-﻿namespace Domain.Entities;
+﻿using Domain.Utils;
+
+namespace Domain.Entities;
 
 /// <summary>
 /// Represents an uploaded document, mapped to the <c>documents</c> table.
@@ -20,7 +22,7 @@ public class Document : NaturalEntity
     public string OriginalFileName { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the file MIME type or extension (e.g., pdf).</summary>
-    public DocumentType FileType { get; set; }
+    public FileType FileType { get; set; }
 
     /// <summary>Gets or sets the file size in bytes.</summary>
     public long? FileSize { get; set; }
@@ -32,7 +34,7 @@ public class Document : NaturalEntity
     public string? StagingLocator { get; set; }
 
     /// <summary>Gets or sets the backend used to store the document file.</summary>
-    public DocumentStorageMethod StorageMethod { get; set; } = DocumentStorageMethod.Unspecified;
+    public FileStorageMethod StorageMethod { get; set; } = FileStorageMethod.Unspecified;
 
     /// <summary>Gets or sets whether the document has been indexed for vector search.</summary>
     public DocumentStatus Status { get; set; }
@@ -74,30 +76,13 @@ public class Document : NaturalEntity
 
     public string ContentType => FileType switch
     {
-        DocumentType.TXT => "text/plain",
-        DocumentType.DOCX => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        DocumentType.PDF => "application/pdf",
-        DocumentType.HTML => "text/html",
-        DocumentType.PPTX => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        FileType.TXT => "text/plain",
+        FileType.DOCX => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        FileType.PDF => "application/pdf",
+        FileType.HTML => "text/html",
+        FileType.PPTX => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         _ => "application/octet-stream",
     };
-}
-
-public enum DocumentType
-{
-    TXT,
-    DOCX,
-    PDF,
-    HTML,
-    PPTX,
-    Other,
-}
-
-public enum DocumentStorageMethod
-{
-    Unspecified = 0,
-    LocalHardDrive = 1,
-    Supabase = 2,
 }
 
 public enum DocumentStatus

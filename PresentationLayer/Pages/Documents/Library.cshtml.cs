@@ -3,6 +3,7 @@ using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -371,12 +372,8 @@ public class LibraryModel(
             }
 
             await using var fs = file.OpenReadStream();
-            var result = await _fileReceptionService.ReceiveAsync(fs, file.FileName, cxlTkn);
-
-            if (!result.Success)
-            {
-                return BadRequest($"Problem processing {file.FileName}: {string.Join(" • ", result.Errors)}");
-            }
+            var stagingResult = await _fileReceptionService.ReceiveAsync(fs, file.FileName, cxlTkn);
+            if (!stagingResult.Success) return StatusCode(StatusCodes.Status500InternalServerError, $"Problem processing {file.FileName}: {string.Join(" • ", stagingResult.Errors)}");
 
             var doc = new Document
             {
@@ -384,10 +381,10 @@ public class LibraryModel(
                 UploaderId = userId,
                 Title = Path.GetFileNameWithoutExtension(file.FileName),
                 OriginalFileName = file.FileName,
-                FileType = result.FileType.Value,
+                FileType = stagingResult.FileType.Value,
                 StorageLocator = null,
-                StagingLocator = result.StagingLocator,
-                StorageMethod = DocumentStorageMethod.Unspecified,
+                StagingLocator = stagingResult.Locator,
+                StorageMethod = FileStorageMethod.Unspecified,
                 FileSize = file.Length,
                 Status = DocumentStatus.Received,
                 UploadedAt = DateTime.UtcNow,
@@ -410,14 +407,8 @@ public class LibraryModel(
 
             await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
-            var persistJobId = BackgroundJob.Enqueue<DocumentPersistenceJob>(
-                HangfireConstants.LowPriorityQueue,
-                e => e.PersistAsync(doc.Id));
-
-            BackgroundJob.ContinueJobWith<DocumentIndexingJob>(
-                     persistJobId,
-                     HangfireConstants.LowPriorityQueue,
-                     e => e.IndexAsync(doc.Id));
+            var persistJobId = BackgroundJob.Enqueue<DocumentFilePersistenceJob>(e => e.PersistAsync(doc.Id));
+            BackgroundJob.ContinueJobWith<DocumentIndexingJob>(persistJobId, e => e.IndexAsync(doc.Id));
 
             var dtos = _mapper.Map<DocumentFileDto>(newDoc);
             return new JsonResult(dtos);
@@ -468,7 +459,7 @@ public class LibraryModel(
 
             HangfireHelper.CancelJobs(doc.Id,
             [
-                nameof(DocumentPersistenceJob.PersistAsync),
+                nameof(DocumentFilePersistenceJob.PersistAsync),
                 nameof(DocumentIndexingJob.IndexAsync),
             ]);
 

@@ -1,7 +1,9 @@
 using Business.Services.Documents.File;
+using Business.Services.Storage;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Utils;
 using Moq;
 using System.Text;
 
@@ -28,18 +30,18 @@ public class DocumentFileReceptionServiceTests
         input.Position = 7;
         _validator.Setup(x => x.ValidateAsync(input, "source.pdf", It.IsAny<CancellationToken>()))
             .Callback(() => input.Position = input.Length)
-            .ReturnsAsync(new FileValidationResult { Success = true, FileType = DocumentType.PDF });
+            .ReturnsAsync(new FileValidationResult { Success = true, FileType = FileType.PDF });
         _stagingStore.Setup(x => x.StageAsync(input, ".pdf", It.IsAny<CancellationToken>()))
             .Callback(() => Assert.That(input.Position, Is.EqualTo(7)))
-            .ReturnsAsync(new FileLocatorResult { Success = true, Locator = "opaque/staging" });
+            .ReturnsAsync(new FileStorageResult { Success = true, Locator = "opaque/staging" });
 
         var result = await CreateService().ReceiveAsync(input, "source.pdf");
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
-            Assert.That(result.StagingLocator, Is.EqualTo("opaque/staging"));
-            Assert.That(result.FileType, Is.EqualTo(DocumentType.PDF));
+            Assert.That(result.Locator, Is.EqualTo("opaque/staging"));
+            Assert.That(result.FileType, Is.EqualTo(FileType.PDF));
             Assert.That(input.Position, Is.EqualTo(7));
         }
         _buffer.VerifyNoOtherCalls();
@@ -72,10 +74,10 @@ public class DocumentFileReceptionServiceTests
             .ReturnsAsync(lease.Object);
         _validator.Setup(x => x.ValidateAsync(
                 It.IsAny<Stream>(), "source.pdf", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileValidationResult { Success = true, FileType = DocumentType.PDF });
+            .ReturnsAsync(new FileValidationResult { Success = true, FileType = FileType.PDF });
         _stagingStore.Setup(x => x.StageAsync(
                 It.IsAny<Stream>(), ".pdf", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileLocatorResult { Success = true, Locator = "opaque/staging" });
+            .ReturnsAsync(new FileStorageResult { Success = true, Locator = "opaque/staging" });
 
         var result = await CreateService().ReceiveAsync(input, "source.pdf");
 

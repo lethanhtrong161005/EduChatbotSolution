@@ -1,3 +1,4 @@
+using Domain.Utils;
 using System.Collections.Immutable;
 
 namespace Domain.Constants;
@@ -49,25 +50,23 @@ public static class AppConstants
 
     public const int UnlimitedQuota = -1;
 
-    public static readonly ImmutableHashSet<string> AllowedExtensions =
+    public static readonly ImmutableHashSet<string> AllowedDocumentExtensions =
     [
-        "pdf",
-        "docx",
-        "pptx",
-        "txt",
-        "html",
+        FileHelper.GetCanonicalExtension(FileType.TXT).TrimStart('.'),
+        FileHelper.GetCanonicalExtension(FileType.HTML).TrimStart('.'),
+        FileHelper.GetCanonicalExtension(FileType.PDF).TrimStart('.'),
+        FileHelper.GetCanonicalExtension(FileType.DOCX).TrimStart('.'),
+        FileHelper.GetCanonicalExtension(FileType.PPTX).TrimStart('.'),
     ];
 
-    public static readonly ImmutableHashSet<string> AllowedMimeTypes =
+    public static readonly ImmutableHashSet<string> AllowedUserImportExtensions =
     [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "text/plain",
-        "text/html",
+        FileHelper.GetCanonicalExtension(FileType.XLSX).TrimStart('.'),
     ];
 
     public const string AppDir = "educhatai";
+    public const string ResourceDirDocuments = "documents";
+    public const string ResourceDirUserImports = "user_imports";
     public const string FileDirBuffer = "buffer";
     public const string FileDirStaging = "staging";
     public const string FileDirReceived = "received";

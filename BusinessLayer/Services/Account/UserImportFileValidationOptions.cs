@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 
-namespace Business.Services.Documents.File;
+namespace Business.Services.Account;
 
-public sealed class FileValidationOptions
+public sealed class UserImportFileValidationOptions
 {
     public ImmutableHashSet<string> AllowedExtensions { get; set; } = [];
 

@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+﻿using Domain.Utils;
 
 namespace Domain.Contracts.DTOs;
 
@@ -16,7 +16,7 @@ public record DocumentDetails
 
     public required string OriginalFileName { get; init; } = string.Empty;
 
-    public required DocumentType FileType { get; init; }
+    public required FileType FileType { get; init; }
 
     public required long? FileSize { get; init; }
 

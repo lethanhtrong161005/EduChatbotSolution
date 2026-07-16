@@ -1,5 +1,5 @@
 using Business.Services.AI.Indexing.Parsing;
-using Domain.Entities;
+using Domain.Utils;
 using System.Text;
 
 namespace UnitTests;
@@ -12,7 +12,7 @@ public class LocationAnnotatedParserTests
         var parser = new LocationAnnotatedParser();
         await using var source = new MemoryStream(Encoding.UTF8.GetBytes("hello parser"));
 
-        var result = await parser.ParseAsync(source, DocumentType.TXT);
+        var result = await parser.ParseAsync(source, FileType.TXT);
 
         using (Assert.EnterMultipleScope())
         {
@@ -28,6 +28,6 @@ public class LocationAnnotatedParserTests
         using var source = new MemoryStream([1, 2, 3]);
         source.Position = 1;
 
-        Assert.ThrowsAsync<ArgumentException>(() => parser.ParseAsync(source, DocumentType.TXT));
+        Assert.ThrowsAsync<ArgumentException>(() => parser.ParseAsync(source, FileType.TXT));
     }
 }

@@ -488,16 +488,17 @@ public class UserManagementService(
 
     // ── EXCEL IMPORT ────────────────────────────────────────────────
 
-    public async Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string storageLocator)
+    public async Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string stagingLocator)
     {
         var batch = new UserImportBatch
         {
             FileName = fileName,
-            StorageLocator = storageLocator,
+            StagingLocator = stagingLocator,
+            StorageLocator = null,
             ImportedById = importedBy,
             TotalRows = 0,
             ProcessedRows = 0,
-            Status = ImportBatchStatus.Pending
+            Status = ImportBatchStatus.Pending,
         };
 
         await _unitOfWork.UserImportBatches.InsertAsync(batch);
@@ -505,17 +506,12 @@ public class UserManagementService(
         return batch;
     }
 
-    public async Task<UserImportValidationResult> ParseAndValidateImportBatchAsync(Guid batchId, Stream fileStream)
+    public async Task<UserImportValidationResult> ParseImportBatchAsync(Stream fileStream, CancellationToken cxlTkn = default)
     {
-        var batch = (await _unitOfWork.UserImportBatches.GetAsync(
-            filter: b => b.Id == batchId,
-            includeProperties: ["Rows"])).FirstOrDefault();
-
-        if (batch == null)
-            throw new EntityNotFoundException("Import batch not found.");
+        cxlTkn.ThrowIfCancellationRequested();
 
         var errors = new List<string>();
-        var validRows = new List<UserImportRowDto>();
+        var validRows = new List<UserImportRow>();
 
         try
         {
@@ -568,6 +564,7 @@ public class UserManagementService(
             }
 
             var sharedStringTable = workbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault()?.SharedStringTable;
+            var emailSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             string GetCellValue(Cell cell)
             {
@@ -580,10 +577,10 @@ public class UserManagementService(
                 return value;
             }
 
-            var emailSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
             for (int i = 1; i < rows.Count; i++)
             {
+                cxlTkn.ThrowIfCancellationRequested();
+
                 var row = rows[i];
                 var cells = row.Elements<Cell>().ToList();
 
@@ -618,70 +615,27 @@ public class UserManagementService(
 
                 if (isRowValid)
                 {
-                    validRows.Add(new UserImportRowDto(i + 1, fullName, email, role));
-                }
-            }
-
-            if (validRows.Any())
-            {
-                foreach (var row in validRows)
-                {
-                    var entityRow = new UserImportRow
+                    validRows.Add(new UserImportRow
                     {
-                        BatchId = batch.Id,
-                        RowNumber = row.RowNumber,
-                        FullName = row.FullName,
-                        Email = row.Email,
-                        Role = row.Role,
-                        Status = ImportRowStatus.Pending
-                    };
-                    batch.Rows.Add(entityRow);
+                        RowNumber = i + 1,
+                        FullName = fullName,
+                        Email = email,
+                        Role = role,
+                        Status = ImportRowStatus.Pending,
+                    });
                 }
-                batch.TotalRows = validRows.Count;
             }
+        }
+        catch (OperationCanceledException) when (cxlTkn.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             errors.Add($"Failed to process Excel file: {ex.Message}");
         }
 
-        await _unitOfWork.SaveAsync();
         return new UserImportValidationResult(errors.Count == 0, errors, validRows);
-    }
-
-    public async Task ProcessImportBatchRowAsync(Guid batchId, Guid rowId)
-    {
-        var row = await _unitOfWork.UserImportRows.FindByIdAsync(rowId);
-        if (row == null || row.BatchId != batchId || row.Status != ImportRowStatus.Pending)
-        {
-            return;
-        }
-
-        try
-        {
-            var dto = new CreateUserDto(row.FullName, row.Email, row.Role);
-            var result = await CreateUserAsync(dto);
-
-            if (result.Success)
-            {
-                row.Status = ImportRowStatus.Success;
-                row.CreatedUserId = result.user?.Id;
-            }
-            else
-            {
-                row.Status = ImportRowStatus.Failed;
-                row.ErrorMessage = result.Error;
-            }
-        }
-        catch (Exception ex)
-        {
-            row.Status = ImportRowStatus.Failed;
-            row.ErrorMessage = ex.Message;
-        }
-
-        row.ProcessedAt = DateTimeOffset.UtcNow;
-        _unitOfWork.UserImportRows.Update(row);
-        await _unitOfWork.SaveAsync();
     }
 
     public async Task<PaginatedList<UserImportBatchSummaryDto>> GetImportHistoryAsync(int limit, int offset, string? fileName = null)
@@ -752,7 +706,7 @@ public class UserManagementService(
         var pageSize = limit > 0 ? limit : 10;
         var pageIndex = (offset / pageSize) + 1;
 
-        System.Linq.Expressions.Expression<Func<UserImportRow, bool>> filter;
+        Expression<Func<UserImportRow, bool>> filter;
         if (!string.IsNullOrWhiteSpace(email))
         {
             filter = r => r.BatchId == batchId && r.Email.Contains(email);

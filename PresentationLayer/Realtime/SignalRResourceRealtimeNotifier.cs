@@ -14,7 +14,7 @@ public class SignalRResourceRealtimeNotifier(
 
     public async Task PushUpdateAsync(ResourceUpdate update, string? callerConnectionId = null)
     {
-        // 1. Calculate cascading event chain (e.g., change principal in a 1:1 relationship -> eject old dependent)
+        // 1. Calculate cascading event chain (e.g., change principal in a 1:1 relationship -> eject old dependent entity)
 
         // 2. Generate JSON payload for cascaded events.
 
@@ -72,7 +72,7 @@ public class SignalRResourceRealtimeNotifier(
 
     private static IEnumerable<string> GetCollectionGroups(ResourceUpdate update)
     {
-        // 1. Switch by resouce tpe
+        // 1. Switch by resouce type
 
         // 2. Check for FK changes
 

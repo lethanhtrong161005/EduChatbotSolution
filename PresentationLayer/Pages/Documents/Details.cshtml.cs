@@ -3,6 +3,7 @@ using Domain.Common;
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -95,7 +96,7 @@ public class DetailsModel(
             {
                 try
                 {
-                    if (doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+                    if (doc.FileType == FileType.TXT || doc.FileType == FileType.HTML)
                     {
                         var result = await _fileService.OpenReadAsync(doc.Id, cxlTkn);
                         if (result.Success)

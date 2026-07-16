@@ -1,4 +1,5 @@
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -133,7 +134,7 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<GlobalAiConfiguration>().Property(e => e.ChunkOverlap).HasDefaultValue(200);
         modelBuilder.Entity<Chapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Document>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<Document>().Property(e => e.StorageMethod).HasDefaultValue(DocumentStorageMethod.Unspecified);
+        modelBuilder.Entity<Document>().Property(e => e.StorageMethod).HasDefaultValue(FileStorageMethod.Unspecified);
         modelBuilder.Entity<DocumentChapter>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<DocumentComment>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ParsedSection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");

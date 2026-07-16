@@ -1,25 +1,26 @@
 using Domain.Contracts.DTOs;
-using Domain.Entities;
+using Domain.Utils;
 
 namespace Domain.Contracts;
 
 public interface IDurableStorageStrategy
 {
-    DocumentStorageMethod Method { get; }
+    FileStorageMethod Method { get; }
 
     Task<bool> ExistsAsync(string locator, CancellationToken cancellationToken = default);
 
-    Task<FileLocatorResult> StoreAsync(
+    Task<FileStorageResult> StoreAsync(
         Stream content,
+        FileResourceType resourceType,
         string storageName,
-        DocumentFileDirectory directory,
+        FileDirectoryCategory directoryCategory,
         CancellationToken cancellationToken = default);
 
     Task<FileReadResult> OpenReadAsync(string locator, CancellationToken cancellationToken = default);
 
-    Task<FileLocatorResult> MoveAsync(
+    Task<FileStorageResult> MoveAsync(
         string locator,
-        DocumentFileDirectory directory,
+        FileDirectoryCategory directoryCategory,
         CancellationToken cancellationToken = default);
 
     Task<FileDeletionResult> DeleteAsync(string locator, CancellationToken cancellationToken = default);

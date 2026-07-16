@@ -1,6 +1,7 @@
 using Domain.Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +46,7 @@ public class ProfileModel(
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string OriginalFileName { get; set; } = string.Empty;
-        public DocumentType FileType { get; set; }
+        public FileType FileType { get; set; }
         public long? FileSize { get; set; }
         public DocumentStatus Status { get; set; }
         public DateTime UploadedAt { get; set; }

@@ -2,6 +2,7 @@ using Business.Services.Documents.File;
 using DataAccess.Repositories;
 using DataAccess.UnitOfWork;
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Linq.Expressions;
@@ -32,18 +33,18 @@ public class DocumentStorageMethodResolverTests
         SetConfigurations(new SubjectStorageConfiguration
         {
             Id = 42,
-            StorageMethod = DocumentStorageMethod.LocalHardDrive,
+            StorageMethod = FileStorageMethod.LocalHardDrive,
         });
 
         var result = await _resolver.ResolveForPersistenceAsync(new Document { SubjectId = 42 });
 
-        Assert.That(result, Is.EqualTo(DocumentStorageMethod.LocalHardDrive));
+        Assert.That(result, Is.EqualTo(FileStorageMethod.LocalHardDrive));
     }
 
     [TestCase(null)]
-    [TestCase(DocumentStorageMethod.Unspecified)]
+    [TestCase(FileStorageMethod.Unspecified)]
     public async Task ResolveForPersistenceAsync_DefaultsToSupabase_WhenPolicyDoesNotSelectStorage(
-        DocumentStorageMethod? configuredMethod)
+        FileStorageMethod? configuredMethod)
     {
         SetConfigurations(configuredMethod.HasValue
             ? new SubjectStorageConfiguration { Id = 42, StorageMethod = configuredMethod }
@@ -51,7 +52,7 @@ public class DocumentStorageMethodResolverTests
 
         var result = await _resolver.ResolveForPersistenceAsync(new Document { SubjectId = 42 });
 
-        Assert.That(result, Is.EqualTo(DocumentStorageMethod.Supabase));
+        Assert.That(result, Is.EqualTo(FileStorageMethod.Supabase));
     }
 
     private void SetConfigurations(SubjectStorageConfiguration? configuration)

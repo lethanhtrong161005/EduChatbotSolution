@@ -2,6 +2,7 @@ using Business.Services.Documents.File;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Utils;
 using Moq;
 
 namespace UnitTests;
@@ -21,8 +22,8 @@ public class DocumentFileServiceTests
         _documentService = new Mock<IDocumentService>();
         _resolver = new Mock<IDocumentStorageMethodResolver>();
         _stagingStore = new Mock<IStagingFileStore>();
-        _localStrategy = CreateStrategy(DocumentStorageMethod.LocalHardDrive);
-        _supabaseStrategy = CreateStrategy(DocumentStorageMethod.Supabase);
+        _localStrategy = CreateStrategy(FileStorageMethod.LocalHardDrive);
+        _supabaseStrategy = CreateStrategy(FileStorageMethod.Supabase);
     }
 
     [Test]
@@ -31,15 +32,16 @@ public class DocumentFileServiceTests
         var document = NewDocument(stagingLocator: "staging/source");
         SetDocument(document);
         _resolver.Setup(x => x.ResolveForPersistenceAsync(document, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DocumentStorageMethod.Supabase);
+            .ReturnsAsync(FileStorageMethod.Supabase);
         _stagingStore.Setup(x => x.OpenReadAsync("staging/source", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => ReadSuccess("content"));
         _supabaseStrategy.Setup(x => x.StoreAsync(
                 It.IsAny<Stream>(),
+                FileResourceType.Document,
                 $"{_documentId}.pdf",
-                DocumentFileDirectory.Received,
+                FileDirectoryCategory.Received,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileLocatorResult { Success = true, Locator = "uploaded/document.pdf" });
+            .ReturnsAsync(new FileStorageResult { Success = true, Locator = "uploaded/document.pdf" });
         _stagingStore.Setup(x => x.DeleteAsync("staging/source", CancellationToken.None))
             .ReturnsAsync(new FileDeletionResult { Success = true });
 
@@ -50,7 +52,7 @@ public class DocumentFileServiceTests
             Assert.That(result.Success, Is.True);
             Assert.That(document.StorageLocator, Is.EqualTo("uploaded/document.pdf"));
             Assert.That(document.StagingLocator, Is.Null);
-            Assert.That(document.StorageMethod, Is.EqualTo(DocumentStorageMethod.Supabase));
+            Assert.That(document.StorageMethod, Is.EqualTo(FileStorageMethod.Supabase));
         }
         _documentService.Verify(x => x.GetByIdAsync(
             _documentId, It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -64,13 +66,16 @@ public class DocumentFileServiceTests
         var document = NewDocument(stagingLocator: "staging/source");
         SetDocument(document);
         _resolver.Setup(x => x.ResolveForPersistenceAsync(document, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DocumentStorageMethod.LocalHardDrive);
+            .ReturnsAsync(FileStorageMethod.LocalHardDrive);
         _stagingStore.Setup(x => x.OpenReadAsync("staging/source", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => ReadSuccess("content"));
         _localStrategy.Setup(x => x.StoreAsync(
-                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<DocumentFileDirectory>(),
+                It.IsAny<Stream>(),
+                It.IsAny<FileResourceType>(),
+                It.IsAny<string>(),
+                It.IsAny<FileDirectoryCategory>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileLocatorResult { Success = false, Errors = ["store failed"] });
+            .ReturnsAsync(new FileStorageResult { Success = false, Errors = ["store failed"] });
 
         var result = await CreateService().PersistAsync(_documentId);
 
@@ -79,7 +84,7 @@ public class DocumentFileServiceTests
             Assert.That(result.Success, Is.False);
             Assert.That(document.StorageLocator, Is.Null);
             Assert.That(document.StagingLocator, Is.EqualTo("staging/source"));
-            Assert.That(document.StorageMethod, Is.EqualTo(DocumentStorageMethod.Unspecified));
+            Assert.That(document.StorageMethod, Is.EqualTo(FileStorageMethod.Unspecified));
         }
         _documentService.Verify(x => x.UpdateAsync(It.IsAny<Document>(), It.IsAny<CancellationToken>()), Times.Never);
         _stagingStore.Verify(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -91,13 +96,16 @@ public class DocumentFileServiceTests
         var document = NewDocument(stagingLocator: "staging/source");
         SetDocument(document);
         _resolver.Setup(x => x.ResolveForPersistenceAsync(document, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DocumentStorageMethod.Supabase);
+            .ReturnsAsync(FileStorageMethod.Supabase);
         _stagingStore.Setup(x => x.OpenReadAsync("staging/source", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => ReadSuccess("content"));
         _supabaseStrategy.Setup(x => x.StoreAsync(
-                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<DocumentFileDirectory>(),
+                It.IsAny<Stream>(),
+                It.IsAny<FileResourceType>(),
+                It.IsAny<string>(),
+                It.IsAny<FileDirectoryCategory>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileLocatorResult { Success = true, Locator = "uploaded/document.pdf" });
+            .ReturnsAsync(new FileStorageResult { Success = true, Locator = "uploaded/document.pdf" });
         _stagingStore.Setup(x => x.DeleteAsync("staging/source", CancellationToken.None))
             .ThrowsAsync(new IOException("cleanup failed"));
 
@@ -125,7 +133,7 @@ public class DocumentFileServiceTests
     [Test]
     public async Task OpenReadAsync_RoutesPersistedDocumentByStoredMethod()
     {
-        SetDocument(NewDocument("durable/source", DocumentStorageMethod.LocalHardDrive));
+        SetDocument(NewDocument("durable/source", FileStorageMethod.LocalHardDrive));
         _localStrategy.Setup(x => x.OpenReadAsync("durable/source", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => ReadSuccess("durable"));
 
@@ -140,7 +148,7 @@ public class DocumentFileServiceTests
     [Test]
     public async Task OpenReadAsync_FailsForUnknownStorageMethod()
     {
-        SetDocument(NewDocument("durable/source", (DocumentStorageMethod)999));
+        SetDocument(NewDocument("durable/source", (FileStorageMethod)999));
 
         var result = await CreateService().OpenReadAsync(_documentId);
 
@@ -153,7 +161,7 @@ public class DocumentFileServiceTests
     {
         SetDocument(NewDocument(stagingLocator: "staging/source"));
 
-        var result = await CreateService().MoveAsync(_documentId, DocumentFileDirectory.Processing);
+        var result = await CreateService().MoveAsync(_documentId, FileDirectoryCategory.Processing);
 
         Assert.That(result.Success, Is.False);
         _documentService.Verify(x => x.UpdateAsync(It.IsAny<Document>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -162,7 +170,7 @@ public class DocumentFileServiceTests
     [Test]
     public async Task DeleteAsync_ClearsDurableStateAfterStrategySucceeds()
     {
-        var document = NewDocument("uploaded/document.pdf", DocumentStorageMethod.Supabase);
+        var document = NewDocument("uploaded/document.pdf", FileStorageMethod.Supabase);
         SetDocument(document);
         _supabaseStrategy.Setup(x => x.DeleteAsync("uploaded/document.pdf", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FileDeletionResult { Success = true });
@@ -173,7 +181,7 @@ public class DocumentFileServiceTests
         {
             Assert.That(result.Success, Is.True);
             Assert.That(document.StorageLocator, Is.Null);
-            Assert.That(document.StorageMethod, Is.EqualTo(DocumentStorageMethod.Unspecified));
+            Assert.That(document.StorageMethod, Is.EqualTo(FileStorageMethod.Unspecified));
         }
         _documentService.Verify(x => x.UpdateAsync(document, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -181,7 +189,7 @@ public class DocumentFileServiceTests
     [Test]
     public async Task DeleteAsync_PreservesDurableStateWhenStrategyFails()
     {
-        var document = NewDocument("uploaded/document.pdf", DocumentStorageMethod.Supabase);
+        var document = NewDocument("uploaded/document.pdf", FileStorageMethod.Supabase);
         SetDocument(document);
         _supabaseStrategy.Setup(x => x.DeleteAsync("uploaded/document.pdf", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FileDeletionResult { Success = false, Errors = ["delete failed"] });
@@ -192,7 +200,7 @@ public class DocumentFileServiceTests
         {
             Assert.That(result.Success, Is.False);
             Assert.That(document.StorageLocator, Is.EqualTo("uploaded/document.pdf"));
-            Assert.That(document.StorageMethod, Is.EqualTo(DocumentStorageMethod.Supabase));
+            Assert.That(document.StorageMethod, Is.EqualTo(FileStorageMethod.Supabase));
         }
         _documentService.Verify(x => x.UpdateAsync(It.IsAny<Document>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -204,7 +212,7 @@ public class DocumentFileServiceTests
         _localStrategy.Object,
         _supabaseStrategy.Object);
 
-    private static Mock<IDurableStorageStrategy> CreateStrategy(DocumentStorageMethod method)
+    private static Mock<IDurableStorageStrategy> CreateStrategy(FileStorageMethod method)
     {
         var strategy = new Mock<IDurableStorageStrategy>();
         strategy.SetupGet(x => x.Method).Returns(method);
@@ -213,11 +221,11 @@ public class DocumentFileServiceTests
 
     private Document NewDocument(
         string? storageLocator = null,
-        DocumentStorageMethod storageMethod = DocumentStorageMethod.Unspecified,
+        FileStorageMethod storageMethod = FileStorageMethod.Unspecified,
         string? stagingLocator = null) => new()
         {
             Id = _documentId,
-            FileType = DocumentType.PDF,
+            FileType = FileType.PDF,
             StorageLocator = storageLocator,
             StagingLocator = stagingLocator,
             StorageMethod = storageMethod,

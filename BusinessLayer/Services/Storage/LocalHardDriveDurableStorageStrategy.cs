@@ -1,16 +1,23 @@
+using Business.Services.Account;
+using Business.Services.Documents.File;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
-using Domain.Entities;
+using Domain.Utils;
 using Microsoft.Extensions.Options;
 
-namespace Business.Services.Documents.File;
+namespace Business.Services.Storage;
 
 public sealed class LocalHardDriveDurableStorageStrategy(
-    IOptions<FileStorageOptions> storageOpts) : IDurableStorageStrategy
+    IOptions<GeneralDriveStorageOptions> generalStorageOpts,
+    IOptions<DocumentFileStorageOptions> documentStorageOpts,
+    IOptions<UserImportFileStorageOptions> userImportStorageOpts)
+    : IDurableStorageStrategy
 {
-    private readonly FileStorageOptions _storageOpts = storageOpts.Value;
+    private readonly GeneralDriveStorageOptions _generalStorageOpts = generalStorageOpts.Value;
+    private readonly DocumentFileStorageOptions _documentStorageOpts = documentStorageOpts.Value;
+    private readonly UserImportFileStorageOptions _userImportStorageOpts = userImportStorageOpts.Value;
 
-    public DocumentStorageMethod Method => DocumentStorageMethod.LocalHardDrive;
+    public FileStorageMethod Method => FileStorageMethod.LocalHardDrive;
 
     public Task<bool> ExistsAsync(string locator, CancellationToken cxlTkn = default)
     {
@@ -18,15 +25,16 @@ public sealed class LocalHardDriveDurableStorageStrategy(
         return Task.FromResult(IsOwnedLocator(locator) && System.IO.File.Exists(locator));
     }
 
-    public async Task<FileLocatorResult> StoreAsync(
+    public async Task<FileStorageResult> StoreAsync(
         Stream content,
+        FileResourceType resourceType,
         string storageName,
-        DocumentFileDirectory directory,
+        FileDirectoryCategory directoryCategory,
         CancellationToken cxlTkn = default)
     {
         try
         {
-            var destinationDirectory = GetPhysicalDirectory(directory);
+            var destinationDirectory = Path.Combine(GetStorageRoot(), GetResourceDirectory(resourceType), GetPhysicalSubDirectory(directoryCategory));
             Directory.CreateDirectory(destinationDirectory);
             var locator = Path.Combine(destinationDirectory, storageName);
 
@@ -68,9 +76,9 @@ public sealed class LocalHardDriveDurableStorageStrategy(
         }
     }
 
-    public Task<FileLocatorResult> MoveAsync(
+    public Task<FileStorageResult> MoveAsync(
         string locator,
-        DocumentFileDirectory directory,
+        FileDirectoryCategory directoryCategory,
         CancellationToken cxlTkn = default)
     {
         cxlTkn.ThrowIfCancellationRequested();
@@ -80,7 +88,8 @@ public sealed class LocalHardDriveDurableStorageStrategy(
 
         try
         {
-            var destinationDirectory = GetPhysicalDirectory(directory);
+            var (root, resource, _) = SplitLocator(locator);
+            var destinationDirectory = Path.Combine(root, resource, GetPhysicalSubDirectory(directoryCategory));
             Directory.CreateDirectory(destinationDirectory);
             var destination = Path.Combine(destinationDirectory, Path.GetFileName(locator));
 
@@ -117,16 +126,14 @@ public sealed class LocalHardDriveDurableStorageStrategy(
         Environment.SpecialFolder.LocalApplicationData,
         Environment.SpecialFolderOption.DoNotVerify);
 
-    private string GetStorageRoot() => Path.GetFullPath(Path.Combine(AppData, _storageOpts.AppDirectory));
+    private string GetStorageRoot() => Path.GetFullPath(Path.Combine(AppData, _generalStorageOpts.AppDirectory));
 
     private bool IsOwnedLocator(string locator)
     {
         if (string.IsNullOrWhiteSpace(locator)) return false;
         try
         {
-            var rootPrefix = GetStorageRoot().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                             + Path.DirectorySeparatorChar;
-
+            var rootPrefix = GetStorageRoot().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             return Path.GetFullPath(locator).StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
@@ -135,17 +142,36 @@ public sealed class LocalHardDriveDurableStorageStrategy(
         }
     }
 
-    private string GetPhysicalDirectory(DocumentFileDirectory directory) => directory switch
+    private string GetResourceDirectory(FileResourceType resourceType) => resourceType switch
     {
-        DocumentFileDirectory.Received => Path.Combine(GetStorageRoot(), _storageOpts.FileDirectoryReceived),
-        DocumentFileDirectory.Processing => Path.Combine(GetStorageRoot(), _storageOpts.FileDirectoryProcessing),
-        DocumentFileDirectory.Indexed => Path.Combine(GetStorageRoot(), _storageOpts.FileDirectoryIndexed),
-        DocumentFileDirectory.Failed => Path.Combine(GetStorageRoot(), _storageOpts.FileDirectoryFailed),
+        FileResourceType.Document => _documentStorageOpts.ResourceDirectory,
+        FileResourceType.UserImportBatch => _userImportStorageOpts.ResourceDirectory,
+        _ => throw new ArgumentOutOfRangeException(nameof(resourceType)),
+    };
+
+    private string GetPhysicalSubDirectory(FileDirectoryCategory directory) => directory switch
+    {
+        FileDirectoryCategory.Received => _generalStorageOpts.FileDirectoryReceived,
+        FileDirectoryCategory.Processing => _generalStorageOpts.FileDirectoryProcessing,
+        FileDirectoryCategory.Indexed => _generalStorageOpts.FileDirectoryIndexed,
+        FileDirectoryCategory.Failed => _generalStorageOpts.FileDirectoryFailed,
         _ => throw new ArgumentOutOfRangeException(nameof(directory)),
     };
 
-    private static FileLocatorResult Success(string locator) => new() { Success = true, Locator = locator };
-    private static FileLocatorResult Failure(string error) => new() { Success = false, Errors = [error] };
+    private (string Root, string Resource, string Path) SplitLocator(string locator)
+    {
+        if (!IsOwnedLocator(locator)) throw new ArgumentException("Invalid durable locator: Outside the configured storage root.");
+
+        var root = GetStorageRoot();
+        var rest = locator[(root.Length + 1)..];
+        var resourceSeparatorIndex = rest.IndexOf(Path.DirectorySeparatorChar);
+        if (resourceSeparatorIndex < 0) throw new ArgumentException("Invalid durable locator: Missing resource type directory.");
+
+        return (root, rest[..resourceSeparatorIndex], rest[(resourceSeparatorIndex + 1)..]);
+    }
+
+    private static FileStorageResult Success(string locator) => new() { Success = true, Locator = locator };
+    private static FileStorageResult Failure(string error) => new() { Success = false, Errors = [error] };
     private static FileReadResult ReadFailure(string error) => new() { Success = false, Errors = [error] };
     private static FileDeletionResult DeleteFailure(string error) => new() { Success = false, Errors = [error] };
 }

@@ -5,6 +5,7 @@ using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,7 +15,7 @@ using System.Linq.Expressions;
 namespace UnitTests;
 
 [TestFixture]
-public sealed class DocumentIndexerCoordinatorTests
+public sealed class DocumentIndexingCoordinatorTests
 {
     [Test]
     public async Task IndexAsync_NewDocument_UsesOneConfigurationAndPersistsSuccessfulIdentity()
@@ -57,17 +58,17 @@ public sealed class DocumentIndexerCoordinatorTests
             DocumentId = f.Document.Id,
             ChunkIndex = 0,
             ChunkText = "chunk",
-            ChunkStrategy = f.Config.ChunkingStrategy,
+            ChunkingStrategy = f.Config.ChunkingStrategy,
             EmbeddingModel = f.Config.EmbeddingModel,
             Embedding = new Vector(new float[1024]),
         });
 
         await f.Create().IndexAsync(f.Document.Id);
 
-        f.Parser.Verify(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<DocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
+        f.Parser.Verify(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<FileType>(), It.IsAny<CancellationToken>()), Times.Never);
         f.Selector.Verify(e => e.Select(It.IsAny<string>()), Times.Never);
         f.Embedder.Verify(e => e.EmbedAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        f.Files.Verify(e => e.MoveAsync(It.IsAny<Guid>(), It.IsAny<DocumentFileDirectory>(), It.IsAny<CancellationToken>()), Times.Never);
+        f.Files.Verify(e => e.MoveAsync(It.IsAny<Guid>(), It.IsAny<FileDirectoryCategory>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -102,8 +103,8 @@ public sealed class DocumentIndexerCoordinatorTests
         {
             Id = Guid.NewGuid(),
             SubjectId = 1,
-            FileType = DocumentType.PDF,
-            StorageMethod = DocumentStorageMethod.LocalHardDrive,
+            FileType = FileType.PDF,
+            StorageMethod = FileStorageMethod.LocalHardDrive,
             StorageLocator = "received/document.pdf",
             Status = DocumentStatus.Received,
         };
@@ -149,7 +150,7 @@ public sealed class DocumentIndexerCoordinatorTests
         public Fixture()
         {
             Parser.SetupGet(e => e.ParserName).Returns("Test parser");
-            Parser.Setup(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<DocumentType>(), It.IsAny<CancellationToken>()))
+            Parser.Setup(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<FileType>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ParsedDocument { Sections = [new ParsedSection { SectionIndex = 0, PageNumber = 1, Text = "source" }] });
 
             Chunker.SetupGet(e => e.StrategyName).Returns(ChunkingStrategy.FixedLength);
@@ -167,8 +168,8 @@ public sealed class DocumentIndexerCoordinatorTests
 
             Files.Setup(e => e.OpenReadAsync(Document.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new FileReadResult { Success = true, FileStream = new MemoryStream([1]) });
-            Files.Setup(e => e.MoveAsync(Document.Id, It.IsAny<DocumentFileDirectory>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new FileLocatorResult { Success = true, Locator = "moved/document.pdf" });
+            Files.Setup(e => e.MoveAsync(Document.Id, It.IsAny<FileDirectoryCategory>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new FileStorageResult { Success = true, Locator = "moved/document.pdf" });
 
             Notifier.Setup(e => e.PushUpdateAsync(It.IsAny<DocumentStatusUpdate>())).Returns(Task.CompletedTask);
 

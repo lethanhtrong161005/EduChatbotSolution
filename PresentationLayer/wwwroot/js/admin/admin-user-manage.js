@@ -721,7 +721,7 @@ function handleImportProgress(update) {
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
             progressBar.style.width = '0%';
         }
-        else if (props.status === 'Failed' && update.action === "progress-updated") {
+        else if (props.status === 'Failed' && update.action === ResourceAction.ProgressUpdated) {
             statusTxt.textContent = 'Failed';
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
             const log = document.getElementById('importErrorLog');
@@ -731,7 +731,7 @@ function handleImportProgress(update) {
         }
     }
 
-    if (update.action === "progress-updated" && props.processedRows !== undefined) {
+    if (update.action === ResourceAction.ProgressUpdated && props.processedRows !== undefined) {
         if (isCurrentUI) {
             statsDiv.style.display = 'flex';
             document.getElementById('importSuccessCount').textContent = props.successRows;
@@ -754,7 +754,7 @@ function handleImportProgress(update) {
         if (props.lastRowStatus === 'Success') {
             debouncedLoadUsers();
         }
-    } else if (update.action === "updated" && (props.status === "Completed" || props.status === "PartiallyCompleted" || props.status === "Failed")) {
+    } else if (update.action === ResourceAction.Updated && (props.status === "Completed" || props.status === "PartiallyCompleted" || props.status === "Failed")) {
         if (isCurrentUI) {
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
             progressBar.style.width = '100%';
@@ -768,9 +768,11 @@ function handleImportProgress(update) {
 }
 
 function resetImportForm() {
+    const fileInput = document.getElementById('importFile');
     const btnSubmit = document.getElementById('btnImportSubmit');
     const btnCancel = document.getElementById('btnImportCancel');
 
+    fileInput.value = null;
     btnSubmit.disabled = false;
     btnCancel.disabled = false;
     btnSubmit.innerHTML = '<i class="fas fa-upload"></i> Upload & Import';
@@ -1088,7 +1090,6 @@ resConn.on(
                 await loadUsers();
                 break;
             case ResourceType.ImportBatch:
-            case "import-batch":
                 handleImportProgress(resUpd);
                 break;
         }

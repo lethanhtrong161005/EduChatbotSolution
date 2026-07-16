@@ -1,12 +1,16 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
+using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Presentation.Background;
+using Presentation.Extensions;
 using Presentation.ViewModels;
+using System.Security.Claims;
 
 namespace Presentation.Pages.Admin;
 
@@ -17,10 +21,12 @@ namespace Presentation.Pages.Admin;
 [Authorize(Roles = "Admin")]
 public class UserManageModel(
     IUserManagementService userManagementService,
+    IUserImportFileReceptionService importReceptionService,
     IResourceRealtimeNotifier notifier)
     : PageModel
 {
     private readonly IUserManagementService _userManagementService = userManagementService;
+    private readonly IUserImportFileReceptionService _importReceptionService = importReceptionService;
     private readonly IResourceRealtimeNotifier _notifier = notifier;
 
     /// <summary>
@@ -78,7 +84,7 @@ public class UserManageModel(
     public async Task<IActionResult> OnPostCreateUserAsync([FromBody] AdminCreateUserVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid form data." });
+            return BadRequest(new { Success = false, Error = "Invalid form data." });
 
         var (success, user, error) = await _userManagementService.CreateUserAsync(
             new CreateUserDto(vm.FullName, vm.Email, vm.Role));
@@ -107,10 +113,10 @@ public class UserManageModel(
     public async Task<IActionResult> OnPutUpdateUserAsync([FromQuery] Guid id, [FromBody] AdminUpdateUserVm vm)
     {
         if (!ModelState.IsValid)
-            return BadRequest(new { success = false, error = "Invalid form data." });
+            return BadRequest(new { Success = false, Error = "Invalid form data." });
 
         if (id != vm.UserId)
-            return BadRequest(new { success = false, error = "User ID mismatch." });
+            return BadRequest(new { Success = false, Error = "User ID mismatch." });
 
         var (success, user, error) = await _userManagementService.UpdateUserAsync(
             new UpdateUserDto(vm.UserId, vm.FullName, vm.Email, vm.Role, vm.UpdatedAt));
@@ -133,153 +139,6 @@ public class UserManageModel(
         await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, message });
-    }
-
-    // ── Excel Import ──────────────────────────────────────────────
-
-    /// <summary>
-    /// Uploads an Excel file, validates it, stores it, and enqueues a background job.
-    /// </summary>
-    public async Task<IActionResult> OnPostImportUsersAsync(
-        IFormFile file,
-        [FromServices] IBackgroundJobClient backgroundJobs,
-        [FromServices] Supabase.Client supabase)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return new JsonResult(new { success = false, message = "Please select a valid Excel file." });
-        }
-
-        if (file.Length > 5 * 1024 * 1024)
-        {
-            return new JsonResult(new { success = false, message = "File size must not exceed 5MB." });
-        }
-
-        var allowedExtensions = new[] { ".xlsx" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!allowedExtensions.Contains(extension))
-        {
-            return new JsonResult(new { success = false, message = "Invalid file type. Only .xlsx files are supported." });
-        }
-
-        // Store file in Supabase
-        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        var fileId = Guid.NewGuid();
-        var storageLocator = "";
-
-        try
-        {
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            memoryStream.Position = 0; // Reset position for reading
-
-            var storageStrategy = HttpContext.RequestServices.GetRequiredKeyedService<Domain.Contracts.IDurableStorageStrategy>(Domain.Entities.DocumentStorageMethod.Supabase);
-            var storeResult = await storageStrategy.StoreAsync(memoryStream, $"{fileId}{extension}", Domain.Contracts.DocumentFileDirectory.Received, CancellationToken.None);
-
-            if (!storeResult.Success)
-            {
-                return new JsonResult(new { success = false, message = $"Failed to upload file to storage: {string.Join(", ", storeResult.Errors ?? Array.Empty<string>())}" });
-            }
-
-            storageLocator = storeResult.Locator;
-        }
-        catch (Exception ex)
-        {
-            return new JsonResult(new { success = false, message = $"Failed to upload file to storage: {ex.Message}" });
-        }
-
-        var batch = await _userManagementService.CreateImportBatchAsync(userId, file.FileName, storageLocator!);
-
-        backgroundJobs.Enqueue<UserImportJob>(job => job.ParseAsync(batch.Id, CancellationToken.None));
-
-        return new JsonResult(new { success = true, batchId = batch.Id });
-    }
-
-    /// <summary>
-    /// Downloads an Excel template for user import.
-    /// </summary>
-    public IActionResult OnGetDownloadTemplate()
-    {
-        using var stream = new MemoryStream();
-        using (var document = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Create(stream, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook))
-        {
-            var workbookPart = document.AddWorkbookPart();
-            workbookPart.Workbook = new DocumentFormat.OpenXml.Spreadsheet.Workbook();
-
-            var worksheetPart = workbookPart.AddNewPart<DocumentFormat.OpenXml.Packaging.WorksheetPart>();
-            var sheetData = new DocumentFormat.OpenXml.Spreadsheet.SheetData();
-            worksheetPart.Worksheet = new DocumentFormat.OpenXml.Spreadsheet.Worksheet(sheetData);
-
-            var sheets = document.WorkbookPart!.Workbook!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
-            var sheet = new DocumentFormat.OpenXml.Spreadsheet.Sheet() { Id = document.WorkbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Users" };
-            sheets.Append(sheet);
-
-            var headerRow = new DocumentFormat.OpenXml.Spreadsheet.Row();
-            headerRow.Append(
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Full Name"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Email"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Role"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String }
-            );
-            sheetData.Append(headerRow);
-
-            var sampleRow = new DocumentFormat.OpenXml.Spreadsheet.Row();
-            sampleRow.Append(
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("John Doe"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("john.doe@example.com"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
-                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Student"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String }
-            );
-            sheetData.Append(sampleRow);
-
-            workbookPart.Workbook.Save();
-        }
-
-        return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "UserImportTemplate.xlsx");
-    }
-
-    /// <summary>
-    /// Gets the import history for display in the UI.
-    /// </summary>
-    public async Task<IActionResult> OnGetImportHistoryAsync(int limit = 10, int offset = 0, string? fileName = null)
-    {
-        var history = await _userManagementService.GetImportHistoryAsync(limit, offset, fileName);
-        return new JsonResult(new
-        {
-            items = history,
-            totalCount = history.TotalCount,
-            pageSize = history.PageSize,
-            pageIndex = history.PageIndex
-        });
-    }
-
-    /// <summary>
-    /// Gets the details of a specific import batch.
-    /// </summary>
-    public async Task<IActionResult> OnGetImportBatchDetailAsync(Guid batchId)
-    {
-        try
-        {
-            var detail = await _userManagementService.GetImportBatchDetailAsync(batchId);
-            return new JsonResult(detail, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
-        }
-        catch (EntityNotFoundException)
-        {
-            return NotFound();
-        }
-    }
-
-    /// <summary>
-    /// Gets a paginated list of rows for a specific import batch.
-    /// </summary>
-    public async Task<IActionResult> OnGetImportBatchRowsAsync(Guid batchId, int limit = 10, int offset = 0, string? email = null)
-    {
-        var rows = await _userManagementService.GetImportBatchRowsAsync(batchId, limit, offset, email);
-        return new JsonResult(new
-        {
-            items = rows,
-            totalCount = rows.TotalCount,
-            pageSize = rows.PageSize,
-            pageIndex = rows.PageIndex
-        }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
     }
 
     /// <summary>
@@ -345,5 +204,137 @@ public class UserManageModel(
         await _notifier.PushUpdateAsync(update, CallerConnectionId);
 
         return new JsonResult(new { success, error });
+    }
+
+    // ── Excel Import ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Uploads an Excel file, validates it, stores it, and enqueues a background job.
+    /// </summary>
+    public async Task<IActionResult> OnPostImportUsersAsync(IFormFile file, CancellationToken cxlTkn)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+                return new JsonResult(new { Success = false, message = "Please select a valid Excel file." });
+            if (file.Length > 5L * 1024 * 1024)
+                return new JsonResult(new { Success = false, message = "File size must not exceed 5MB." });
+
+            // Store file in Supabase
+            var userId = User.GetUserId();
+            var fileId = Guid.NewGuid();
+            var stagingLocator = string.Empty;
+
+            try
+            {
+                var stagingResult = await _importReceptionService.ReceiveAsync(file.OpenReadStream(), file.FileName, cxlTkn);
+                if (!stagingResult.Success)
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, message = $"Failed to upload file to storage: {string.Join(", ", stagingResult.Errors)}" });
+
+                stagingLocator = stagingResult.Locator;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, message = $"Failed to upload file to storage: {ex.Message}" });
+            }
+
+            var batch = await _userManagementService.CreateImportBatchAsync(userId, file.FileName, stagingLocator);
+
+            var persistJobId = BackgroundJob.Enqueue<UserImportFilePersistenceJob>(job => job.PersistAsync(batch.Id, CancellationToken.None));
+            BackgroundJob.ContinueJobWith<UserImportJob>(persistJobId, job => job.ImportAsync(batch.Id, CancellationToken.None));
+
+            return new JsonResult(new { Success = true, batchId = batch.Id });
+        }
+        catch (UserClaimException)
+        {
+            return Unauthorized();
+        }
+    }
+
+    /// <summary>
+    /// Downloads an Excel template for user import.
+    /// </summary>
+    public IActionResult OnGetDownloadTemplate()
+    {
+        using var stream = new MemoryStream();
+        using (var document = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Create(stream, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook))
+        {
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new DocumentFormat.OpenXml.Spreadsheet.Workbook();
+
+            var worksheetPart = workbookPart.AddNewPart<DocumentFormat.OpenXml.Packaging.WorksheetPart>();
+            var sheetData = new DocumentFormat.OpenXml.Spreadsheet.SheetData();
+            worksheetPart.Worksheet = new DocumentFormat.OpenXml.Spreadsheet.Worksheet(sheetData);
+
+            var sheets = document.WorkbookPart!.Workbook!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
+            var sheet = new DocumentFormat.OpenXml.Spreadsheet.Sheet() { Id = document.WorkbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Users" };
+            sheets.Append(sheet);
+
+            var headerRow = new DocumentFormat.OpenXml.Spreadsheet.Row();
+            headerRow.Append(
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Full Name"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Email"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Role"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String }
+            );
+            sheetData.Append(headerRow);
+
+            var sampleRow = new DocumentFormat.OpenXml.Spreadsheet.Row();
+            sampleRow.Append(
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("John Doe"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("john.doe@example.com"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String },
+                new DocumentFormat.OpenXml.Spreadsheet.Cell { CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("Student"), DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String }
+            );
+            sheetData.Append(sampleRow);
+
+            workbookPart.Workbook.Save();
+        }
+
+        return File(stream.ToArray(), FileHelper.GetMimeType(FileType.XLSX), "UserImportTemplate.xlsx");
+    }
+
+    /// <summary>
+    /// Gets the import history for display in the UI.
+    /// </summary>
+    public async Task<IActionResult> OnGetImportHistoryAsync(int limit = 10, int offset = 0, string? fileName = null)
+    {
+        var history = await _userManagementService.GetImportHistoryAsync(limit, offset, fileName);
+        return new JsonResult(new
+        {
+            items = history,
+            totalCount = history.TotalCount,
+            pageSize = history.PageSize,
+            pageIndex = history.PageIndex
+        });
+    }
+
+    /// <summary>
+    /// Gets the details of a specific import batch.
+    /// </summary>
+    public async Task<IActionResult> OnGetImportBatchDetailAsync(Guid batchId)
+    {
+        try
+        {
+            var detail = await _userManagementService.GetImportBatchDetailAsync(batchId);
+            return new JsonResult(detail, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        }
+        catch (EntityNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>
+    /// Gets a paginated list of rows for a specific import batch.
+    /// </summary>
+    public async Task<IActionResult> OnGetImportBatchRowsAsync(Guid batchId, int limit = 10, int offset = 0, string? email = null)
+    {
+        var rows = await _userManagementService.GetImportBatchRowsAsync(batchId, limit, offset, email);
+        return new JsonResult(new
+        {
+            items = rows,
+            totalCount = rows.TotalCount,
+            pageSize = rows.PageSize,
+            pageIndex = rows.PageIndex
+        }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
     }
 }

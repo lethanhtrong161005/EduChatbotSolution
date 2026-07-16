@@ -88,17 +88,12 @@ public interface IUserManagementService
     /// <summary>
     /// Parses and validates an uploaded Excel file in the background (Phase 1).
     /// </summary>
-    Task<UserImportValidationResult> ParseAndValidateImportBatchAsync(Guid batchId, Stream fileStream);
+    Task<UserImportValidationResult> ParseImportBatchAsync(Stream fileStream, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new pending user import batch in the database.
     /// </summary>
     Task<UserImportBatch> CreateImportBatchAsync(Guid importedBy, string fileName, string storageLocator);
-
-    /// <summary>
-    /// Processes a single row of an import batch (Phase 2).
-    /// </summary>
-    Task ProcessImportBatchRowAsync(Guid batchId, Guid rowId);
 
     /// <summary>
     /// Gets the import history for display in the UI with pagination and search.

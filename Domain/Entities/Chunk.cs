@@ -26,7 +26,7 @@ public class Chunk : NaturalEntity
     public string? EndSectionTitle { get; set; }
 
     /// <summary>Gets or sets the chunking strategy used (e.g., fixed-size, semantic).</summary>
-    public string ChunkStrategy { get; set; } = string.Empty;
+    public string ChunkingStrategy { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the embedding model used to vectorize this chunk.</summary>
     public string? EmbeddingModel { get; set; }

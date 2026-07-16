@@ -1,5 +1,6 @@
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,7 +11,7 @@ namespace Presentation.Pages.Documents;
 /// <summary>
 /// Handles document display requests (inline or download).
 /// </summary>
-[Authorize(Roles = $"{nameof(UserRole.Student)},{nameof(UserRole.Lecturer)},{nameof(UserRole.Admin)}")]
+[Authorize]
 public class DisplayModel(
     IDocumentService documentService,
     IDocumentFileService fileService)
@@ -36,7 +37,7 @@ public class DisplayModel(
         if (!result.Success)
             return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve document file.");
 
-        if (doc.FileType == DocumentType.PDF || doc.FileType == DocumentType.DOCX || doc.FileType == DocumentType.TXT || doc.FileType == DocumentType.HTML)
+        if (doc.FileType == FileType.PDF || doc.FileType == FileType.DOCX || doc.FileType == FileType.TXT || doc.FileType == FileType.HTML)
         {
             var contentDisposition = ContentDispositionHeaderValue.Parse($"inline; filename=\"{doc.OriginalFileName}\"");
             Response.Headers.ContentDisposition = contentDisposition.ToString();

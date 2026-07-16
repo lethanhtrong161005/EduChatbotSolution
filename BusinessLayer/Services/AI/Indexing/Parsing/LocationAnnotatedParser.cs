@@ -5,7 +5,7 @@ using Domain.Contracts.DTOs;
 using Domain.Entities;
 using System.Text;
 using UglyToad.PdfPig;
-using DomainDocumentType = Domain.Entities.DocumentType;
+using DomainDocumentType = Domain.Utils.FileType;
 
 namespace Business.Services.AI.Indexing.Parsing;
 

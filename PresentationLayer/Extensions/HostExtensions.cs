@@ -2,6 +2,7 @@ using DataAccess.UnitOfWork;
 using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -716,15 +717,15 @@ public static class HostExtensions
             unitOfWork.Documents.Insert(document);
         }
 
-        static DocumentType RandomFileType(Random rnd)
+        static FileType RandomFileType(Random rnd)
         {
             return rnd.Next(5) switch
             {
-                0 => DocumentType.PDF,
-                1 => DocumentType.DOCX,
-                2 => DocumentType.PPTX,
-                3 => DocumentType.TXT,
-                _ => DocumentType.HTML
+                0 => FileType.PDF,
+                1 => FileType.DOCX,
+                2 => FileType.PPTX,
+                3 => FileType.TXT,
+                _ => FileType.HTML
             };
         }
 

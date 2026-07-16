@@ -2,13 +2,13 @@ using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Microsoft.Extensions.Options;
 
-namespace Business.Services.Documents.File;
+namespace Business.Services.Storage;
 
 public sealed class LocalStagingFileStore(
-    IOptions<FileStorageOptions> storageOpts)
+    IOptions<GeneralDriveStorageOptions> storageOpts)
     : IStagingFileStore
 {
-    private readonly FileStorageOptions _storageOpts = storageOpts.Value;
+    private readonly GeneralDriveStorageOptions _storageOpts = storageOpts.Value;
 
     public Task<bool> ExistsAsync(string locator, CancellationToken cxlTkn = default)
     {
@@ -16,7 +16,7 @@ public sealed class LocalStagingFileStore(
         return Task.FromResult(IsOwnedLocator(locator) && System.IO.File.Exists(locator));
     }
 
-    public async Task<FileLocatorResult> StageAsync(
+    public async Task<FileStorageResult> StageAsync(
         Stream content,
         string requestedExtension,
         CancellationToken cxlTkn = default)
@@ -83,10 +83,7 @@ public sealed class LocalStagingFileStore(
         }
     }
 
-    private string GetStagingRoot() => Path.GetFullPath(Path.Combine(
-        Path.GetTempPath(),
-        _storageOpts.AppDirectory,
-        _storageOpts.FileDirectoryStaging));
+    private string GetStagingRoot() => Path.GetFullPath(Path.Combine(Path.GetTempPath(), _storageOpts.AppDirectory, _storageOpts.FileDirectoryStaging));
 
     private bool IsOwnedLocator(string locator)
     {
@@ -107,8 +104,8 @@ public sealed class LocalStagingFileStore(
     private static string NormalizeExtension(string extension) =>
         string.IsNullOrWhiteSpace(extension) ? string.Empty : "." + extension.Trim().TrimStart('.');
 
-    private static FileLocatorResult Success(string locator) => new() { Success = true, Locator = locator };
-    private static FileLocatorResult Failure(string error) => new() { Success = false, Errors = [error] };
+    private static FileStorageResult Success(string locator) => new() { Success = true, Locator = locator };
+    private static FileStorageResult Failure(string error) => new() { Success = false, Errors = [error] };
     private static FileReadResult ReadFailure(string error) => new() { Success = false, Errors = [error] };
     private static FileDeletionResult DeleteFailure(string error) => new() { Success = false, Errors = [error] };
 }

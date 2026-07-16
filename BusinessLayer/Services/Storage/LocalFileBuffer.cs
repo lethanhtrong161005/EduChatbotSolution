@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
 
-namespace Business.Services.Documents.File;
+namespace Business.Services.Storage;
 
 public sealed class LocalFileBuffer(
-    IOptions<FileStorageOptions> storageOpts) : ILocalFileBuffer
+    IOptions<GeneralDriveStorageOptions> storageOpts) : ILocalFileBuffer
 {
-    private readonly FileStorageOptions _storageOpts = storageOpts.Value;
+    private readonly GeneralDriveStorageOptions _storageOpts = storageOpts.Value;
 
     public Task<ILocalFileLease> AllocateAsync(
         string requestedExtension,
@@ -13,11 +13,7 @@ public sealed class LocalFileBuffer(
     {
         cxlTkn.ThrowIfCancellationRequested();
 
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            _storageOpts.AppDirectory,
-            _storageOpts.FileDirectoryBuffer);
-
+        var directory = Path.Combine(Path.GetTempPath(), _storageOpts.AppDirectory, _storageOpts.FileDirectoryBuffer);
         Directory.CreateDirectory(directory);
 
         var filePath = Path.Combine(directory, $"{Guid.NewGuid()}{NormalizeExtension(requestedExtension)}");
@@ -27,10 +23,10 @@ public sealed class LocalFileBuffer(
 
     public async Task<ILocalFileLease> CopyFromAsync(
         Stream source,
-        string canonicalExtension,
+        string requestedExtension,
         CancellationToken cxlTkn = default)
     {
-        var lease = await AllocateAsync(canonicalExtension, cxlTkn);
+        var lease = await AllocateAsync(requestedExtension, cxlTkn);
 
         try
         {

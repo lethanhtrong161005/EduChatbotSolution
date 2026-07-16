@@ -1,3 +1,4 @@
+using Business.Services;
 using Business.Services.Account;
 using Business.Services.AI;
 using Business.Services.AI.Chat;
@@ -9,6 +10,7 @@ using Business.Services.AI.Indexing.Parsing;
 using Business.Services.Documents;
 using Business.Services.Documents.File;
 using Business.Services.Reports;
+using Business.Services.Storage;
 using Business.Services.Subscriptions;
 using Business.Services.Subscriptions.ExternalPayment;
 using DataAccess.Data;
@@ -17,6 +19,7 @@ using DataAccess.UnitOfWork;
 using Domain.Constants;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Utils;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.DataProtection;
@@ -90,8 +93,10 @@ builder.Services.AddScoped<IAiConfigurationAdminService, AiConfigurationAdminSer
 
 builder.Services.AddScoped<ISubjectReindexCoordinator, SubjectReindexCoordinator>();
 builder.Services.AddSingleton<ISubjectReindexDispatcher, HangfireSubjectReindexDispatcher>();
+builder.Services.AddScoped<SubjectReindexJob>();
 
 builder.Services.AddScoped<IDocumentIndexingCoordinator, SingleRunDocumentIndexingCoordinator>();
+builder.Services.AddScoped<DocumentIndexingJob>();
 
 builder.Services.AddSingleton<IDocumentParser, LocationAnnotatedParser>();
 
@@ -108,6 +113,7 @@ builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
 builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
 builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
+builder.Services.AddScoped<ChatGenerationJob>();
 
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 
@@ -130,7 +136,7 @@ builder.Services.AddSingleton(_ => new Supabase.Client(supabaseOpts.ApiUrl, supa
     AutoRefreshToken = true,
 }));
 
-builder.Services.Configure<FileStorageOptions>(opts =>
+builder.Services.Configure<GeneralDriveStorageOptions>(opts =>
 {
     opts.AppDirectory = AppConstants.AppDir;
     opts.FileDirectoryBuffer = AppConstants.FileDirBuffer;
@@ -141,23 +147,40 @@ builder.Services.Configure<FileStorageOptions>(opts =>
     opts.FileDirectoryFailed = AppConstants.FileDirFailed;
 });
 
-builder.Services.AddKeyedScoped<IDurableStorageStrategy, LocalHardDriveDurableStorageStrategy>(DocumentStorageMethod.LocalHardDrive);
-builder.Services.AddKeyedScoped<IDurableStorageStrategy, SupabaseDurableStorageStrategy>(DocumentStorageMethod.Supabase);
+builder.Services.Configure<DocumentFileStorageOptions>(opts =>
+{
+    opts.ResourceDirectory = AppConstants.ResourceDirDocuments;
+});
+
+builder.Services.Configure<UserImportFileStorageOptions>(opts =>
+{
+    opts.ResourceDirectory = AppConstants.ResourceDirUserImports;
+});
+
+builder.Services.AddKeyedScoped<IDurableStorageStrategy, LocalHardDriveDurableStorageStrategy>(FileStorageMethod.LocalHardDrive);
+builder.Services.AddKeyedScoped<IDurableStorageStrategy, SupabaseDurableStorageStrategy>(FileStorageMethod.Supabase);
+builder.Services.AddSingleton<IStagingFileStore, LocalStagingFileStore>();
+builder.Services.AddSingleton<ILocalFileBuffer, LocalFileBuffer>();
+
 builder.Services.AddScoped<IDocumentStorageMethodResolver, DocumentStorageMethodResolver>();
 builder.Services.AddScoped<IDocumentFileService, DocumentFileService>();
 builder.Services.AddScoped<IDocumentFileReceptionService, DocumentFileReceptionService>();
-builder.Services.AddScoped<DocumentPersistenceJob>();
-builder.Services.AddSingleton<IStagingFileStore, LocalStagingFileStore>();
-builder.Services.AddSingleton<ILocalFileBuffer, LocalFileBuffer>();
+builder.Services.AddScoped<DocumentFilePersistenceJob>();
+
+builder.Services.AddScoped<IUserImportFileReceptionService, UserImportFileReceptionService>();
+builder.Services.AddScoped<IUserImportFileService, UserImportFileService>();
+builder.Services.AddScoped<IUserImportCoordinator, UserImportCoordinator>();
+builder.Services.AddScoped<UserImportJob>();
 
 // ── File Validation ──────────────────────────────────────
 
 var allDefinitions = MimeDetective.Definitions.DefaultDefinitions.All();
 
-var extensions = AppConstants.AllowedExtensions.WithComparer(StringComparer.InvariantCultureIgnoreCase);
+var docExtensions = AppConstants.AllowedDocumentExtensions.WithComparer(StringComparer.InvariantCultureIgnoreCase);
+var userImportExtensions = AppConstants.AllowedUserImportExtensions.WithComparer(StringComparer.InvariantCultureIgnoreCase);
 
 var scopedDefinitions = allDefinitions
-    .ScopeExtensions(extensions)
+    .ScopeExtensions(docExtensions.Union(userImportExtensions))
     .TrimMeta()
     .TrimCategories()
     .TrimDescription()
@@ -169,24 +192,34 @@ var inspector = new ContentInspectorBuilder
 }.Build();
 
 builder.Services.AddSingleton(inspector);
+builder.Services.AddSingleton<IDocumentFileValidator, DocumentFileValidator>();
 
 var fileExtensionToMimeTypes = new FileExtensionToMimeTypeLookupBuilder()
 {
     Definitions = scopedDefinitions,
 }.Build();
 
-var mimeTypes = extensions
+var docMimeTypes = docExtensions
     .Select(e => fileExtensionToMimeTypes.TryGetValue(e) ?? string.Empty)
     .Where(e => !string.IsNullOrEmpty(e))
     .ToImmutableHashSet(StringComparer.InvariantCultureIgnoreCase);
 
-builder.Services.Configure<FileValidationOptions>(opts =>
+builder.Services.Configure<DocumentFileValidationOptions>(opts =>
 {
-    opts.AllowedExtensions = extensions;
-    opts.AllowedMimeType = mimeTypes;
+    opts.AllowedExtensions = docExtensions;
+    opts.AllowedMimeType = docMimeTypes;
 });
 
-builder.Services.AddSingleton<IDocumentFileValidator, DocumentFileValidator>();
+var userImportMimeTypes = userImportExtensions
+    .Select(e => fileExtensionToMimeTypes.TryGetValue(e) ?? string.Empty)
+    .Where(e => !string.IsNullOrEmpty(e))
+    .ToImmutableHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+builder.Services.Configure<UserImportFileValidationOptions>(opts =>
+{
+    opts.AllowedExtensions = userImportExtensions;
+    opts.AllowedMimeType = userImportMimeTypes;
+});
 
 // ── AI Model Providers ──────────────────────────────────────
 var ollamaOpts = builder.Configuration.GetSection("AI:Ollama").Get<OllamaOptions>()

@@ -1,4 +1,4 @@
-﻿namespace Business.Services.Documents.File;
+﻿namespace Business.Services.Storage;
 
 public sealed class SupabaseOptions
 {
@@ -9,4 +9,6 @@ public sealed class SupabaseOptions
     public string ApiSecretKey { get; set; } = string.Empty;
 
     public string DocumentBucket { get; set; } = string.Empty;
+
+    public string UserImportBucket { get; set; } = string.Empty;
 }

@@ -13,8 +13,8 @@ public class DocumentPersistenceJobTests
         var documentId = Guid.NewGuid();
         var fileService = new Mock<IDocumentFileService>();
         fileService.Setup(x => x.PersistAsync(documentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FileLocatorResult { Success = false, Errors = ["store failed"] });
-        var job = new DocumentPersistenceJob(fileService.Object);
+            .ReturnsAsync(new FileStorageResult { Success = false, Errors = ["store failed"] });
+        var job = new DocumentFilePersistenceJob(fileService.Object);
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(() => job.PersistAsync(documentId));
 

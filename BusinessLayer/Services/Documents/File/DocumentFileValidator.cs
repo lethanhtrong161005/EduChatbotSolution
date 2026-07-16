@@ -9,11 +9,11 @@ namespace Business.Services.Documents.File;
 
 public sealed class DocumentFileValidator(
     IContentInspector inspector,
-    IOptions<FileValidationOptions> validationOpts)
+    IOptions<DocumentFileValidationOptions> validationOpts)
     : IDocumentFileValidator
 {
     private readonly IContentInspector _inspector = inspector;
-    private readonly FileValidationOptions _validationOpts = validationOpts.Value;
+    private readonly DocumentFileValidationOptions _validationOpts = validationOpts.Value;
 
     public Task<FileValidationResult> ValidateAsync(
         Stream content,

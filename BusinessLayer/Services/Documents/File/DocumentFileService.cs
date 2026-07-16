@@ -10,8 +10,8 @@ public sealed class DocumentFileService(
     IDocumentService documentService,
     IDocumentStorageMethodResolver storageMethodResolver,
     IStagingFileStore stagingStore,
-    [FromKeyedServices(DocumentStorageMethod.LocalHardDrive)] IDurableStorageStrategy localHardDriveStrategy,
-    [FromKeyedServices(DocumentStorageMethod.Supabase)] IDurableStorageStrategy supabaseStrategy)
+    [FromKeyedServices(FileStorageMethod.LocalHardDrive)] IDurableStorageStrategy localHardDriveStrategy,
+    [FromKeyedServices(FileStorageMethod.Supabase)] IDurableStorageStrategy supabaseStrategy)
     : IDocumentFileService
 {
     public async Task<bool> ExistsAsync(Guid documentId, CancellationToken cxlTkn = default)
@@ -19,7 +19,7 @@ public sealed class DocumentFileService(
         var document = await GetDocumentAsync(documentId, cxlTkn);
         if (document == null) return false;
 
-        if (document.StorageMethod == DocumentStorageMethod.Unspecified)
+        if (document.StorageMethod == FileStorageMethod.Unspecified)
             return !string.IsNullOrWhiteSpace(document.StagingLocator)
                    && await stagingStore.ExistsAsync(document.StagingLocator, cxlTkn);
 
@@ -29,36 +29,37 @@ public sealed class DocumentFileService(
                && await strategy.ExistsAsync(document.StorageLocator, cxlTkn);
     }
 
-    public async Task<FileLocatorResult> PersistAsync(
+    public async Task<FileStorageResult> PersistAsync(
         Guid documentId,
         CancellationToken cxlTkn = default)
     {
         var document = await GetDocumentAsync(documentId, cxlTkn);
-        if (document == null) return Failure("No document matched the provided ID.");
+        if (document == null) return StoreFailure("No document matched the provided ID.");
 
         if (string.IsNullOrWhiteSpace(document.StagingLocator))
-            return Failure("Document has no staged file.");
+            return StoreFailure("Document has no staged file.");
 
         var storageMethod = await storageMethodResolver.ResolveForPersistenceAsync(document, cxlTkn);
 
         var strategy = GetStrategy(storageMethod);
         if (strategy == null)
-            return Failure($"Unsupported document storage method '{storageMethod}'.");
+            return StoreFailure($"Unsupported document storage method '{storageMethod}'.");
 
         var readResult = await stagingStore.OpenReadAsync(document.StagingLocator, cxlTkn);
-        if (!readResult.Success) return Failure(readResult.Errors);
+        if (!readResult.Success) return StoreFailure(readResult.Errors);
 
-        FileLocatorResult storeResult;
+        FileStorageResult storeResult;
         await using (readResult.FileStream)
         {
             storeResult = await strategy.StoreAsync(
                 readResult.FileStream,
+                FileResourceType.Document,
                 GetStorageFileName(document),
-                DocumentFileDirectory.Received,
+                FileDirectoryCategory.Received,
                 cxlTkn);
         }
 
-        if (!storeResult.Success) return Failure(storeResult.Errors);
+        if (!storeResult.Success) return StoreFailure(storeResult.Errors);
 
         var stagingLocator = document.StagingLocator;
         document.StorageLocator = storeResult.Locator;
@@ -68,7 +69,7 @@ public sealed class DocumentFileService(
 
         await TryDeleteStagingAsync(stagingLocator);
 
-        return new FileLocatorResult
+        return new FileStorageResult
         {
             Success = true,
             Locator = document.StorageLocator,
@@ -82,7 +83,7 @@ public sealed class DocumentFileService(
         var document = await GetDocumentAsync(documentId, cxlTkn);
         if (document == null) return ReadFailure("No document matched the provided ID.");
 
-        if (document.StorageMethod == DocumentStorageMethod.Unspecified)
+        if (document.StorageMethod == FileStorageMethod.Unspecified)
         {
             return string.IsNullOrWhiteSpace(document.StagingLocator)
                 ? ReadFailure("Document has no staged file.")
@@ -99,31 +100,31 @@ public sealed class DocumentFileService(
         return await strategy.OpenReadAsync(document.StorageLocator, cxlTkn);
     }
 
-    public async Task<FileLocatorResult> MoveAsync(
+    public async Task<FileStorageResult> MoveAsync(
         Guid documentId,
-        DocumentFileDirectory newDirectory,
+        FileDirectoryCategory newDirectory,
         CancellationToken cxlTkn = default)
     {
         var document = await GetDocumentAsync(documentId, cxlTkn);
-        if (document == null) return Failure("No document matched the provided ID.");
+        if (document == null) return StoreFailure("No document matched the provided ID.");
 
-        if (document.StorageMethod == DocumentStorageMethod.Unspecified)
-            return Failure("Cannot move a document that has not been persisted to durable storage.");
+        if (document.StorageMethod == FileStorageMethod.Unspecified)
+            return StoreFailure("Cannot move a document that has not been persisted to durable storage.");
 
         if (string.IsNullOrWhiteSpace(document.StorageLocator))
-            return Failure("Document has no durable storage locator.");
+            return StoreFailure("Document has no durable storage locator.");
 
         var strategy = GetStrategy(document.StorageMethod);
         if (strategy == null)
-            return Failure($"Unsupported document storage method '{document.StorageMethod}'.");
+            return StoreFailure($"Unsupported document storage method '{document.StorageMethod}'.");
 
         var result = await strategy.MoveAsync(document.StorageLocator, newDirectory, cxlTkn);
-        if (!result.Success) return Failure(result.Errors);
+        if (!result.Success) return StoreFailure(result.Errors);
 
         document.StorageLocator = result.Locator;
         await documentService.UpdateAsync(document, cxlTkn);
 
-        return new FileLocatorResult
+        return new FileStorageResult
         {
             Success = true,
             Locator = document.StorageLocator,
@@ -137,7 +138,7 @@ public sealed class DocumentFileService(
         var document = await GetDocumentAsync(documentId, cxlTkn);
         if (document == null) return DeleteFailure("No document matched the provided ID.");
 
-        if (document.StorageMethod == DocumentStorageMethod.Unspecified)
+        if (document.StorageMethod == FileStorageMethod.Unspecified)
             return DeleteFailure("Cannot delete a document that has not been persisted to durable storage.");
 
         if (string.IsNullOrWhiteSpace(document.StorageLocator))
@@ -151,7 +152,7 @@ public sealed class DocumentFileService(
         if (!result.Success) return result;
 
         document.StorageLocator = null;
-        document.StorageMethod = DocumentStorageMethod.Unspecified;
+        document.StorageMethod = FileStorageMethod.Unspecified;
         await documentService.UpdateAsync(document, cxlTkn);
         return result;
     }
@@ -159,10 +160,10 @@ public sealed class DocumentFileService(
     private Task<Document?> GetDocumentAsync(Guid documentId, CancellationToken cxlTkn) =>
         documentService.GetByIdAsync(documentId, cancellationToken: cxlTkn);
 
-    private IDurableStorageStrategy? GetStrategy(DocumentStorageMethod storageMethod) => storageMethod switch
+    private IDurableStorageStrategy? GetStrategy(FileStorageMethod storageMethod) => storageMethod switch
     {
-        DocumentStorageMethod.LocalHardDrive => localHardDriveStrategy,
-        DocumentStorageMethod.Supabase => supabaseStrategy,
+        FileStorageMethod.LocalHardDrive => localHardDriveStrategy,
+        FileStorageMethod.Supabase => supabaseStrategy,
         _ => null,
     };
 
@@ -183,8 +184,8 @@ public sealed class DocumentFileService(
         }
     }
 
-    private static FileLocatorResult Failure(string error) => new() { Success = false, Errors = [error] };
-    private static FileLocatorResult Failure(string[] errors) => new() { Success = false, Errors = errors };
+    private static FileStorageResult StoreFailure(string[] errors) => new() { Success = false, Errors = errors };
+    private static FileStorageResult StoreFailure(string error) => new() { Success = false, Errors = [error] };
     private static FileReadResult ReadFailure(string error) => new() { Success = false, Errors = [error] };
     private static FileDeletionResult DeleteFailure(string error) => new() { Success = false, Errors = [error] };
 }

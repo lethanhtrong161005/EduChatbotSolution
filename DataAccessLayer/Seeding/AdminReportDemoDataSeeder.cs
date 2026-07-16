@@ -1,9 +1,10 @@
-using System.Security.Cryptography;
-using System.Text;
 using DataAccess.Data;
 using Domain.Entities;
+using Domain.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DataAccess.Seeding;
 
@@ -243,9 +244,9 @@ public sealed class AdminReportDemoDataSeeder(EduChatAiDbContext context, TimePr
                 Title = $"{DemoDocumentTitlePrefix} {definition.SubjectCode} source {index + 1:D2}",
                 Description = "Synthetic source used only for the development admin dashboard demonstration.",
                 OriginalFileName = $"admin-report-demo-{definition.SubjectCode.ToLowerInvariant()}-{index + 1:D2}.pdf",
-                FileType = DocumentType.PDF,
+                FileType = FileType.PDF,
                 FileSize = 50_000 + index * 1_000,
-                StorageMethod = DocumentStorageMethod.Unspecified,
+                StorageMethod = FileStorageMethod.Unspecified,
                 Status = definition.Status,
                 ParserUsed = isIndexed ? "DemoParser" : null,
                 IndexingErrors = definition.Status == DocumentStatus.Failed ? "Synthetic indexing failure for dashboard demonstration." : null,
@@ -271,7 +272,7 @@ public sealed class AdminReportDemoDataSeeder(EduChatAiDbContext context, TimePr
                     EndPageNumber = chunkIndex + 1,
                     StartSectionTitle = "Demo section",
                     EndSectionTitle = "Demo section",
-                    ChunkStrategy = "FixedLength",
+                    ChunkingStrategy = "FixedLength",
                     EmbeddingModel = "demo-embedding-1024",
                     TokenCount = 24,
                 });

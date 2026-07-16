@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Domain.Contracts.DTOs;
 
-public record FileLocatorResult
+public record FileStorageResult
 {
     [MemberNotNullWhen(true, nameof(Locator))]
     public required bool Success { get; init; }

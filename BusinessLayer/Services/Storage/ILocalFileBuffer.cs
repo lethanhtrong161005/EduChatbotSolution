@@ -1,14 +1,14 @@
-namespace Business.Services.Documents.File;
+namespace Business.Services.Storage;
 
 public interface ILocalFileBuffer
 {
     Task<ILocalFileLease> AllocateAsync(
-        string canonicalExtension,
+        string requestedExtension,
         CancellationToken cxlTkn = default);
 
     Task<ILocalFileLease> CopyFromAsync(
         Stream source,
-        string canonicalExtension,
+        string requestedExtension,
         CancellationToken cxlTkn = default);
 }
 

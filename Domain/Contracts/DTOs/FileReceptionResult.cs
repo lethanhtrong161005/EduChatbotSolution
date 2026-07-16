@@ -1,16 +1,16 @@
-using Domain.Entities;
+using Domain.Utils;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Domain.Contracts.DTOs;
 
 public record FileReceptionResult
 {
-    [MemberNotNullWhen(true, nameof(StagingLocator), nameof(FileType))]
+    [MemberNotNullWhen(true, nameof(Locator), nameof(FileType))]
     public required bool Success { get; init; }
 
-    public string? StagingLocator { get; init; }
+    public string? Locator { get; init; }
 
-    public DocumentType? FileType { get; init; }
+    public FileType? FileType { get; init; }
 
     public string[] Errors { get; init; } = [];
 }

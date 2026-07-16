@@ -2,17 +2,10 @@ using Domain.Entities;
 
 namespace Domain.Contracts.DTOs;
 
-public record UserImportRowDto(
-    int RowNumber,
-    string FullName,
-    string Email,
-    string Role
-);
-
 public record UserImportValidationResult(
     bool IsValid,
     List<string> Errors,
-    List<UserImportRowDto> ValidRows
+    List<UserImportRow> ValidRows
 );
 
 public record UserImportBatchSummaryDto(
