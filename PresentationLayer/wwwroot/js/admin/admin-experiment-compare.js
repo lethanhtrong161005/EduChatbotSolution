@@ -32,14 +32,14 @@ function fmtScore(v) {
 function scoreColorClass(v) {
     if (v == null) return 'er-score-val--null';
     return v >= 0.8 ? 'er-score-val--high' :
-           v >= 0.6 ? 'er-score-val--medium' : 'er-score-val--low';
+        v >= 0.6 ? 'er-score-val--medium' : 'er-score-val--low';
 }
 
 function fmtDelta(delta) {
     if (delta == null) return '';
     const sign = delta >= 0 ? '+' : '';
     const cls = delta > 0.005 ? 'ec-delta--pos' :
-                delta < -0.005 ? 'ec-delta--neg' : 'ec-delta--zero';
+        delta < -0.005 ? 'ec-delta--neg' : 'ec-delta--zero';
     return `<span class="ec-delta ${cls}">${sign}${delta.toFixed(2)}</span>`;
 }
 
@@ -93,9 +93,9 @@ function renderMetricComparison(metrics) {
     if (!grid) return;
 
     grid.innerHTML = metrics.map(m => {
-        const leftPct  = m.leftScore  != null ? (m.leftScore  * 100).toFixed(0) : 0;
+        const leftPct = m.leftScore != null ? (m.leftScore * 100).toFixed(0) : 0;
         const rightPct = m.rightScore != null ? (m.rightScore * 100).toFixed(0) : 0;
-        const leftCls  = scoreColorClass(m.leftScore);
+        const leftCls = scoreColorClass(m.leftScore);
         const rightCls = scoreColorClass(m.rightScore);
 
         return `<div class="ec-metric-card">
@@ -161,16 +161,15 @@ function renderQuestionComparison(questions) {
 }
 
 function showError(msg) {
-    document.getElementById('ecLoading').setAttribute('hidden', true);
-    const errEl = document.getElementById('ecError');
+    document.getElementById('ecLoading').style.display = 'none';
+    const errEl = document.getElementById('ecError').style.removeProperty('display');
     document.getElementById('ecErrorText').textContent = msg;
-    errEl.removeAttribute('hidden');
 }
 
 // ── Controller ────────────────────────────────────────────────
 
 $(function () {
-    const leftId  = window.ecLeftId  || '';
+    const leftId = window.ecLeftId || '';
     const rightId = window.ecRightId || '';
 
     if (!leftId || !rightId) {
@@ -185,8 +184,8 @@ $(function () {
             renderMetricComparison(norm.metrics);
             renderQuestionComparison(norm.questions);
 
-            document.getElementById('ecLoading').setAttribute('hidden', true);
-            document.getElementById('ecContent').removeAttribute('hidden');
+            document.getElementById('ecLoading').style.display = 'none';
+            document.getElementById('ecContent').style.removeProperty('display');
         })
         .fail((xhr) => {
             const status = xhr.status;
