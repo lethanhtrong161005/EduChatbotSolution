@@ -1,0 +1,69 @@
+{
+  "range": 0,
+  "role": 0,
+  "trendSubjectId": null,
+  "fromUtc": "2026-07-06T17:00:00Z",
+  "toUtc": "2026-07-13T16:59:59.9999999Z",
+  "trendSubjectOptions": [
+    { "subjectId": 3, "subjectCode": "DB201", "subjectName": "Database Systems" },
+    { "subjectId": 2, "subjectCode": "AI301", "subjectName": "Artificial Intelligence" }
+  ],
+  "kpis": {
+    "uniqueActiveUserCount": 74,
+    "activeSessionCount": 83,
+    "completedAssistantGenerationCount": 216,
+    "terminalGenerationCount": 220,
+    "generationSuccessRatePercent": 98.18,
+    "citationCoveragePercent": 82.14,
+    "p95TotalResponseTimeMs": 2380,
+    "tokenMeasurement": {
+      "measuredPromptTokens": 42160,
+      "measuredCompletionTokens": 6059,
+      "measuredTotalTokens": 48219,
+      "measuredMessageCount": 190,
+      "eligibleMessageCount": 216,
+      "coveragePercent": 87.96
+    }
+  },
+  "assistantGenerations": [
+    { "date": "2026-07-07", "completedAssistantGenerationCount": 21 },
+    { "date": "2026-07-08", "completedAssistantGenerationCount": 0 },
+    { "date": "2026-07-09", "completedAssistantGenerationCount": 35 },
+    { "date": "2026-07-10", "completedAssistantGenerationCount": 42 },
+    { "date": "2026-07-11", "completedAssistantGenerationCount": 31 },
+    { "date": "2026-07-12", "completedAssistantGenerationCount": 39 },
+    { "date": "2026-07-13", "completedAssistantGenerationCount": 48 }
+  ],
+  "tokenUsage": [
+    { "date": "2026-07-07", "tokenMeasurement": { "measuredPromptTokens": 3540, "measuredCompletionTokens": 560, "measuredTotalTokens": 4100, "measuredMessageCount": 18, "eligibleMessageCount": 21, "coveragePercent": 85.71 } },
+    { "date": "2026-07-08", "tokenMeasurement": { "measuredPromptTokens": 0, "measuredCompletionTokens": 0, "measuredTotalTokens": 0, "measuredMessageCount": 0, "eligibleMessageCount": 0, "coveragePercent": 100.0 } },
+    { "date": "2026-07-09", "tokenMeasurement": { "measuredPromptTokens": 6610, "measuredCompletionTokens": 940, "measuredTotalTokens": 7550, "measuredMessageCount": 31, "eligibleMessageCount": 35, "coveragePercent": 88.57 } },
+    { "date": "2026-07-10", "tokenMeasurement": { "measuredPromptTokens": 7900, "measuredCompletionTokens": 1110, "measuredTotalTokens": 9010, "measuredMessageCount": 37, "eligibleMessageCount": 42, "coveragePercent": 88.1 } },
+    { "date": "2026-07-11", "tokenMeasurement": { "measuredPromptTokens": 5970, "measuredCompletionTokens": 860, "measuredTotalTokens": 6830, "measuredMessageCount": 27, "eligibleMessageCount": 31, "coveragePercent": 87.1 } },
+    { "date": "2026-07-12", "tokenMeasurement": { "measuredPromptTokens": 7780, "measuredCompletionTokens": 1100, "measuredTotalTokens": 8880, "measuredMessageCount": 34, "eligibleMessageCount": 39, "coveragePercent": 87.18 } },
+    { "date": "2026-07-13", "tokenMeasurement": { "measuredPromptTokens": 10360, "measuredCompletionTokens": 1489, "measuredTotalTokens": 11849, "measuredMessageCount": 43, "eligibleMessageCount": 48, "coveragePercent": 89.58 } }
+  ],
+  "responseLatency": [
+    { "date": "2026-07-07", "p95TotalResponseTimeMs": 2190 },
+    { "date": "2026-07-08", "p95TotalResponseTimeMs": null },
+    { "date": "2026-07-09", "p95TotalResponseTimeMs": 2260 },
+    { "date": "2026-07-10", "p95TotalResponseTimeMs": 2310 },
+    { "date": "2026-07-11", "p95TotalResponseTimeMs": 2380 },
+    { "date": "2026-07-12", "p95TotalResponseTimeMs": 2240 },
+    { "date": "2026-07-13", "p95TotalResponseTimeMs": 2350 }
+  ],
+  "subjectUsage": [
+    { "subjectId": 3, "subjectCode": "DB201", "subjectName": "Database Systems", "uniqueActiveUserCount": 51, "activeSessionCount": 57, "completedAssistantGenerationCount": 126, "tokenMeasurement": { "measuredPromptTokens": 25510, "measuredCompletionTokens": 3680, "measuredTotalTokens": 29190, "measuredMessageCount": 113, "eligibleMessageCount": 126, "coveragePercent": 89.68 } },
+    { "subjectId": 2, "subjectCode": "AI301", "subjectName": "Artificial Intelligence", "uniqueActiveUserCount": 31, "activeSessionCount": 34, "completedAssistantGenerationCount": 70, "tokenMeasurement": { "measuredPromptTokens": 14020, "measuredCompletionTokens": 2009, "measuredTotalTokens": 16029, "measuredMessageCount": 62, "eligibleMessageCount": 70, "coveragePercent": 88.57 } },
+    { "subjectId": null, "subjectCode": null, "subjectName": "All subjects", "uniqueActiveUserCount": 12, "activeSessionCount": 13, "completedAssistantGenerationCount": 20, "tokenMeasurement": { "measuredPromptTokens": 2630, "measuredCompletionTokens": 370, "measuredTotalTokens": 3000, "measuredMessageCount": 15, "eligibleMessageCount": 20, "coveragePercent": 75.0 } }
+  ],
+  "subjectsNeedingAttention": [
+    { "subjectId": 2, "subjectCode": "AI301", "subjectName": "Artificial Intelligence", "completedAssistantGenerationCount": 70, "noContextRatePercent": 15.71, "generationFailureRatePercent": 4.11, "p95TotalResponseTimeMs": 2460 },
+    { "subjectId": 3, "subjectCode": "DB201", "subjectName": "Database Systems", "completedAssistantGenerationCount": 126, "noContextRatePercent": 7.94, "generationFailureRatePercent": 0.79, "p95TotalResponseTimeMs": 2290 }
+  ],
+  "indexingStatus": { "indexedDocumentCount": 42, "processingDocumentCount": 3, "failedDocumentCount": 2 },
+  "hotDocuments": [
+    { "documentId": "10000000-0000-0000-0000-000000000001", "documentTitle": "First Normal Form", "subjectId": 3, "subjectCode": "DB201", "citedAnswerCount": 61 },
+    { "documentId": "10000000-0000-0000-0000-000000000002", "documentTitle": "Database Indexes", "subjectId": 3, "subjectCode": "DB201", "citedAnswerCount": 54 }
+  ]
+}

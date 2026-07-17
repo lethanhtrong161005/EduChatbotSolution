@@ -63,3 +63,4 @@ yarn-error.log*
 
 # Personal agent workflow notes
 /.agent-guidance/
+.agent

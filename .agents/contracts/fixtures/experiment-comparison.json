@@ -1,0 +1,73 @@
+{
+  "left": {
+    "experimentId": "20000000-0000-0000-0000-000000000002",
+    "experimentName": "DB201 fixed Gemini smoke run",
+    "subjectId": 3,
+    "subjectCode": "DB201",
+    "status": 4,
+    "chunkingStrategy": "FixedLength",
+    "chunkSize": 1000,
+    "chunkOverlap": 200,
+    "embeddingModel": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "llmModel": "gemini-3.5-flash",
+    "questionSetKey": "DB201-VI-001|DB201-VI-002|DB201-VI-003",
+    "indexedDocumentCount": 4,
+    "affectedDocumentCount": 4,
+    "completedQuestionCount": 3,
+    "totalQuestionCount": 3,
+    "aggregateScores": { "faithfulness": 0.81, "answerRelevancy": 0.8, "contextPrecision": 0.72, "contextRecall": 0.76 },
+    "createdAt": "2026-07-13T02:20:00Z",
+    "completedAt": "2026-07-13T02:31:00Z",
+    "failureReason": null
+  },
+  "right": {
+    "experimentId": "20000000-0000-0000-0000-000000000001",
+    "experimentName": "DB201 recursive Gemini smoke run",
+    "subjectId": 3,
+    "subjectCode": "DB201",
+    "status": 4,
+    "chunkingStrategy": "RecursiveSeparator",
+    "chunkSize": 1200,
+    "chunkOverlap": 180,
+    "embeddingModel": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "llmModel": "gemini-3.5-flash",
+    "questionSetKey": "DB201-VI-001|DB201-VI-002|DB201-VI-003",
+    "indexedDocumentCount": 4,
+    "affectedDocumentCount": 4,
+    "completedQuestionCount": 3,
+    "totalQuestionCount": 3,
+    "aggregateScores": { "faithfulness": 0.87, "answerRelevancy": 0.84, "contextPrecision": 0.79, "contextRecall": 0.82 },
+    "createdAt": "2026-07-13T03:10:00Z",
+    "completedAt": "2026-07-13T03:22:00Z",
+    "failureReason": null
+  },
+  "metrics": [
+    { "metric": "Faithfulness", "leftScore": 0.81, "rightScore": 0.87, "delta": 0.06 },
+    { "metric": "AnswerRelevancy", "leftScore": 0.8, "rightScore": 0.84, "delta": 0.04 },
+    { "metric": "ContextPrecision", "leftScore": 0.72, "rightScore": 0.79, "delta": 0.07 },
+    { "metric": "ContextRecall", "leftScore": 0.76, "rightScore": 0.82, "delta": 0.06 }
+  ],
+  "questions": [
+    {
+      "testQuestionId": 1,
+      "externalId": "DB201-VI-001",
+      "question": "Chuẩn hóa cơ sở dữ liệu là gì?",
+      "leftScores": { "faithfulness": 0.84, "answerRelevancy": 0.82, "contextPrecision": 0.75, "contextRecall": 0.78 },
+      "rightScores": { "faithfulness": 0.9, "answerRelevancy": 0.88, "contextPrecision": 0.83, "contextRecall": 0.86 }
+    },
+    {
+      "testQuestionId": 2,
+      "externalId": "DB201-VI-002",
+      "question": "Dạng chuẩn thứ nhất yêu cầu điều gì?",
+      "leftScores": { "faithfulness": 0.8, "answerRelevancy": 0.8, "contextPrecision": 0.71, "contextRecall": 0.76 },
+      "rightScores": { "faithfulness": 0.86, "answerRelevancy": 0.83, "contextPrecision": 0.78, "contextRecall": 0.81 }
+    },
+    {
+      "testQuestionId": 3,
+      "externalId": "DB201-VI-003",
+      "question": "Chỉ mục B-tree giúp truy vấn như thế nào?",
+      "leftScores": { "faithfulness": 0.79, "answerRelevancy": 0.78, "contextPrecision": 0.7, "contextRecall": 0.74 },
+      "rightScores": { "faithfulness": 0.85, "answerRelevancy": 0.81, "contextPrecision": 0.76, "contextRecall": 0.79 }
+    }
+  ]
+}

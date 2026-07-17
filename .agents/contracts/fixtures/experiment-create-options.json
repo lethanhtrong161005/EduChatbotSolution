@@ -1,0 +1,61 @@
+{
+  "subjectId": 3,
+  "subjectCode": "DB201",
+  "subjectName": "Database Systems",
+  "currentConfiguration": {
+    "subjectId": 3,
+    "subjectCode": "DB201",
+    "subjectName": "Database Systems",
+    "indexing": {
+      "chunkingStrategy": { "globalDefault": "FixedLength", "storedOverride": "RecursiveSeparator", "effectiveValue": "RecursiveSeparator" },
+      "chunkSize": { "globalDefault": 1000, "storedOverride": 1200, "effectiveValue": 1200 },
+      "chunkOverlap": { "globalDefault": 200, "storedOverride": 180, "effectiveValue": 180 },
+      "embeddingModel": { "globalDefault": "nvidia/llama-nemotron-embed-vl-1b-v2:free", "storedOverride": null, "effectiveValue": "nvidia/llama-nemotron-embed-vl-1b-v2:free" }
+    },
+    "retrieval": {
+      "topK": { "globalDefault": 15, "storedOverride": 12, "effectiveValue": 12 },
+      "similarityThreshold": { "globalDefault": 0.6, "storedOverride": 0.55, "effectiveValue": 0.55 },
+      "maxContextChunks": { "globalDefault": 8, "storedOverride": null, "effectiveValue": 8 }
+    },
+    "generation": {
+      "llmModel": { "globalDefault": "openrouter/free", "storedOverride": "gemini-3.5-flash", "effectiveValue": "gemini-3.5-flash" },
+      "chatTemperature": { "globalDefault": 0.3, "storedOverride": 0.2, "effectiveValue": 0.2 },
+      "maxHistoryMessages": { "globalDefault": 12, "storedOverride": null, "effectiveValue": 12 },
+      "titleTemperature": { "globalDefault": 0.0, "storedOverride": null, "effectiveValue": 0.0 },
+      "citationExtractionTemperature": { "globalDefault": 0.0, "storedOverride": null, "effectiveValue": 0.0 }
+    },
+    "prompts": {
+      "chatPrompt": { "globalDefault": "You are EduChatAI, an educational assistant.", "storedOverride": null, "effectiveValue": "You are EduChatAI, an educational assistant." },
+      "contextPrompt": { "globalDefault": "Use the retrieved course-material chunks as authoritative context.", "storedOverride": null, "effectiveValue": "Use the retrieved course-material chunks as authoritative context." },
+      "noContextRetrievedPrompt": { "globalDefault": "State that the answer was not found in the course materials.", "storedOverride": null, "effectiveValue": "State that the answer was not found in the course materials." },
+      "titlePrompt": { "globalDefault": "Generate a short descriptive conversation title.", "storedOverride": null, "effectiveValue": "Generate a short descriptive conversation title." },
+      "citationExtractionPrompt": { "globalDefault": "Validate each deterministic citation occurrence.", "storedOverride": null, "effectiveValue": "Validate each deterministic citation occurrence." }
+    }
+  },
+  "aiOptions": {
+    "chunkingStrategies": [
+      { "value": "FixedLength", "label": "Fixed length with overlap" },
+      { "value": "RecursiveSeparator", "label": "Recursive separator" },
+      { "value": "SentenceParagraph", "label": "Sentence and paragraph packing" }
+    ],
+    "embeddingModels": [
+      { "value": "bge-m3", "label": "BGE-M3 (Ollama)" },
+      { "value": "nvidia/llama-nemotron-embed-vl-1b-v2:free", "label": "Nemotron Embed VL (OpenRouter)" },
+      { "value": "gemini-embedding-2", "label": "Gemini Embedding 2" }
+    ],
+    "chatModels": [
+      { "value": "qwen3", "label": "Qwen 3 (Ollama)" },
+      { "value": "openrouter/free", "label": "OpenRouter Free Router" },
+      { "value": "gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro Preview" },
+      { "value": "gemini-3.5-flash", "label": "Gemini 3.5 Flash" }
+    ],
+    "judgeModels": [
+      { "value": "gemini-3.5-flash", "label": "Gemini 3.5 Flash" }
+    ]
+  },
+  "testQuestions": [
+    { "testQuestionId": 1, "externalId": "DB201-VI-001", "question": "Chuẩn hóa cơ sở dữ liệu là gì?" },
+    { "testQuestionId": 2, "externalId": "DB201-VI-002", "question": "Dạng chuẩn thứ nhất yêu cầu điều gì?" },
+    { "testQuestionId": 3, "externalId": "DB201-VI-003", "question": "Chỉ mục B-tree giúp truy vấn như thế nào?" }
+  ]
+}

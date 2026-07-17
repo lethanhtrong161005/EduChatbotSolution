@@ -1,0 +1,8 @@
+{
+  "experimentId": "20000000-0000-0000-0000-000000000001",
+  "status": 0,
+  "queuedAt": "2026-07-13T03:10:00Z",
+  "questionCount": 3,
+  "requiresReindex": true,
+  "affectedDocumentCount": 4
+}

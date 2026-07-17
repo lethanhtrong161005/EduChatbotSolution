@@ -1,0 +1,21 @@
+{
+  "chunkingStrategies": [
+    { "value": "FixedLength", "label": "Fixed length with overlap" },
+    { "value": "RecursiveSeparator", "label": "Recursive separator" },
+    { "value": "SentenceParagraph", "label": "Sentence and paragraph packing" }
+  ],
+  "embeddingModels": [
+    { "value": "bge-m3", "label": "BGE-M3 (Ollama)" },
+    { "value": "nvidia/llama-nemotron-embed-vl-1b-v2:free", "label": "Nemotron Embed VL (OpenRouter)" },
+    { "value": "gemini-embedding-2", "label": "Gemini Embedding 2" }
+  ],
+  "chatModels": [
+    { "value": "qwen3", "label": "Qwen 3 (Ollama)" },
+    { "value": "openrouter/free", "label": "OpenRouter Free Router" },
+    { "value": "gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro Preview" },
+    { "value": "gemini-3.5-flash", "label": "Gemini 3.5 Flash" }
+  ],
+  "judgeModels": [
+    { "value": "gemini-3.5-flash", "label": "Gemini 3.5 Flash" }
+  ]
+}

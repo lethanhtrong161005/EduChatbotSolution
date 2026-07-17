@@ -1,0 +1,16 @@
+{
+  "experimentName": "DB201 recursive Gemini smoke run",
+  "subjectId": 3,
+  "testQuestionIds": [1, 2, 3],
+  "chunkingStrategy": "RecursiveSeparator",
+  "chunkSize": 1200,
+  "chunkOverlap": 180,
+  "embeddingModel": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+  "topK": 12,
+  "similarityThreshold": 0.55,
+  "maxContextChunks": 8,
+  "llmModel": "gemini-3.5-flash",
+  "chatTemperature": 0.2,
+  "judgeModel": "gemini-3.5-flash",
+  "notes": "Ba câu hỏi dùng để kiểm tra luồng trước khi chạy đủ 50 câu."
+}

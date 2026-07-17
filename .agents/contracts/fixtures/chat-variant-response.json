@@ -1,0 +1,33 @@
+{
+  "id": "42000000-0000-0000-0000-000000000001",
+  "chatRole": 2,
+  "content": "B-tree giữ khóa trong cây cân bằng để tăng tốc tìm kiếm [[1]].",
+  "sentAt": "2026-07-13T03:39:10Z",
+  "status": 2,
+  "generationErrors": null,
+  "citations": [
+    {
+      "chunkId": "43000000-0000-0000-0000-000000000001",
+      "citationIndex": 1,
+      "quotedText": "",
+      "locationInDocument": "Page 2, Key Concepts",
+      "chunkIndex": 3,
+      "chunkText": "B-tree indexes support efficient lookups and range scans.",
+      "documentTitle": "B Tree Structures",
+      "documentId": "10000000-0000-0000-0000-000000000001"
+    }
+  ],
+  "messageIndex": 2,
+  "inReplyToMessageId": "41000000-0000-0000-0000-000000000001",
+  "variantIndex": 1,
+  "isSelectedVariant": false,
+  "variantNavigation": {
+    "userMessageId": "41000000-0000-0000-0000-000000000001",
+    "currentVariantIndex": 1,
+    "totalVariantCount": 2,
+    "variants": [
+      { "messageId": "42000000-0000-0000-0000-000000000001", "variantIndex": 1, "isSelected": false, "status": 2 },
+      { "messageId": "42000000-0000-0000-0000-000000000002", "variantIndex": 2, "isSelected": true, "status": 2 }
+    ]
+  }
+}
