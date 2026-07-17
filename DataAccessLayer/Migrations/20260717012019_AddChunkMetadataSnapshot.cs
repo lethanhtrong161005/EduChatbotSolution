@@ -104,6 +104,26 @@ namespace DataAccessLayer.Migrations
                 AND "storage_locator" LIKE 'documents/%';
                 """);
 
+            // Best-effort rollback. If the batch's locator points to the 'user_imports' bucket,
+            // have it point to the old 'documents' bucket. Else leave it untouched.
+            // The files must be moved manually, preserving object keys.
+            migrationBuilder.Sql(
+                """
+                UPDATE "user_import_batches"
+                SET "storage_locator" =
+                    CASE
+                        WHEN "storage_locator" LIKE 'user_imports/%'
+                            THEN 'documents/' ||
+                                substring(
+                                    "storage_locator"
+                                    FROM length('user_imports/') + 1
+                                )
+                        ELSE "storage_locator"
+                    END
+                WHERE "storage_locator" IS NOT NULL
+                AND btrim("storage_locator") <> '';
+                """);
+
             // Old DocumentType:
             // TXT=0, DOCX=1, PDF=2, HTML=3, PPTX=4, Other=5
             migrationBuilder.Sql(
