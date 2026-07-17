@@ -274,6 +274,7 @@ const ChatTemplates = (function () {
 
             case ChatEnums.MessageStatus.Failed:
 
+                let content;
                 return `
                     ${marked.parse((content = message.getContent()) ? content + "\n\n-- -\n\n" : "")}
                     <div class="prose prose-error max-w-none wrap-normal md:wrap-anywhere">

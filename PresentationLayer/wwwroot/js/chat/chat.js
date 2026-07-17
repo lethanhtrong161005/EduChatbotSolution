@@ -1405,7 +1405,6 @@ window.Chat = (function () {
         if ($oldContainer.length > 0) {
             $oldContainer.attr("data-client-id", assistantMessageClientId);
         }
-
         message._clientId = assistantMessageClientId;
         updateUi_AssistantMessage(message);
 
@@ -1530,7 +1529,6 @@ window.Chat = (function () {
 
     function updateVariantsFromNavigation(message, variantNavigation, activeMessageId) {
         message.variantNavigation = variantNavigation;
-
         const oldVariantsMap = {};
         message._variants.forEach(v => {
             if (v.id) oldVariantsMap[v.id] = v;
@@ -1590,13 +1588,13 @@ window.Chat = (function () {
         message._activeVariant = message._variants.length - 1;
 
         updateMessageFromVariant(message);
-
+        
         const oldVariantClientId = message._clientId;
         const $oldContainer = $(`[data-client-id='${oldVariantClientId}']`);
         if ($oldContainer.length > 0) {
             $oldContainer.attr("data-client-id", newVariantClientId);
         }
-
+        
         message._clientId = newVariantClientId;
 
         updateUi_AssistantMessage(message);
@@ -1618,7 +1616,6 @@ window.Chat = (function () {
             });
 
             updateVariantsFromNavigation(message, response.variantNavigation, response.assistantMessageId);
-
             if (_activeSourcesClientId === oldVariantClientId) {
                 _activeSourcesClientId = newVariantClientId;
             }
@@ -1627,7 +1624,6 @@ window.Chat = (function () {
             alert("Failed to regenerate message.");
             message._variants.pop();
             message._activeVariant = oldActiveVariantIndex;
-
             const $newContainer = $(`[data-client-id='${newVariantClientId}']`);
             if ($newContainer.length > 0) {
                 $newContainer.attr("data-client-id", oldVariantClientId);
