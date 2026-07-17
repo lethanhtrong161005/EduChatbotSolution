@@ -28,6 +28,10 @@ public class Chunk : NaturalEntity
     /// <summary>Gets or sets the chunking strategy used (e.g., fixed-size, semantic).</summary>
     public string ChunkingStrategy { get; set; } = string.Empty;
 
+    public int ChunkSize { get; set; }
+
+    public int ChunkOverlap { get; set; }
+
     /// <summary>Gets or sets the embedding model used to vectorize this chunk.</summary>
     public string? EmbeddingModel { get; set; }
 

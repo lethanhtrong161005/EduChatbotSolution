@@ -2,7 +2,6 @@ using Business.Services.Documents.File;
 using Business.Services.Storage;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
-using Domain.Entities;
 using Domain.Utils;
 using Moq;
 using System.Text;

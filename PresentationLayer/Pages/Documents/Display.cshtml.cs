@@ -1,5 +1,4 @@
 using Domain.Contracts;
-using Domain.Entities;
 using Domain.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
