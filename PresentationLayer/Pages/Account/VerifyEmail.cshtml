@@ -2,9 +2,7 @@
 @model Presentation.Pages.Account.VerifyEmailModel
 @{
     ViewData["Title"] = "Verify Email - EduChatAI";
-
-    ViewData["NoContainer"] = true;
-    
+    Layout = "_AuthLayout";
     var returnUrl = Model.ReturnUrl;
 }
 

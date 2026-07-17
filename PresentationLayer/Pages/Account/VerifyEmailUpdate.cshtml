@@ -1,11 +1,9 @@
 @page "/verify-email-update/{handler?}"
 @model Presentation.Pages.Account.VerifyEmailUpdateModel
 @{
-  ViewData["Title"] = "Verify Email - EduChatAI";
-
-    ViewData["NoContainer"] = true;
-  
-  var returnUrl = Model.ReturnUrl;
+    ViewData["Title"] = "Verify Email - EduChatAI";
+    Layout = "_AuthLayout";
+    var returnUrl = Model.ReturnUrl;
 }
 
 @section Styles {
