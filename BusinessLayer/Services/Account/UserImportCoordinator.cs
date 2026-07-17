@@ -47,6 +47,7 @@ public class UserImportCoordinator(
             if (rows.Count == 0) rows = await ParseAsync(batch, cxlTkn);
             await ProcessRowsAsync(batch, rows, cxlTkn);
 
+            batch.ErrorMessage = null;
             batch.CompletedAt = DateTimeOffset.UtcNow;
             var terminalStatus = batch.FailedRows == 0 ? ImportBatchStatus.Completed : (batch.SuccessRows > 0 ? ImportBatchStatus.PartiallyCompleted : ImportBatchStatus.Failed);
             var properties = new Dictionary<string, object?>
@@ -65,6 +66,7 @@ public class UserImportCoordinator(
         catch (Exception ex)
         {
             await SaveFailure(batch, ex);
+            throw;
         }
     }
 
@@ -76,6 +78,10 @@ public class UserImportCoordinator(
 
     private async Task<List<UserImportRow>> ParseAsync(UserImportBatch batch, CancellationToken cxlTkn)
     {
+        batch.ProcessedRows = 0;
+        batch.SuccessRows = 0;
+        batch.FailedRows = 0;
+        batch.TotalRows = 0;
         await SaveAndPushUpdate(batch, ImportBatchStatus.Parsing, cxlTkn: cxlTkn);
 
         var readResult = await _importFileService.OpenReadAsync(batch.Id, cxlTkn);
@@ -94,7 +100,7 @@ public class UserImportCoordinator(
             batch.Rows.Add(row);
             _unitOfWork.UserImportRows.Insert(row);
         }
-        batch.TotalRows += rows.Count;
+        batch.TotalRows = rows.Count;
 
         await SaveAndPushUpdate(batch, ImportBatchStatus.Validated, cxlTkn: cxlTkn);
         return rows;
@@ -102,22 +108,28 @@ public class UserImportCoordinator(
 
     private async Task ProcessRowsAsync(UserImportBatch batch, List<UserImportRow> rows, CancellationToken cxlTkn = default)
     {
-        await SaveAndPushUpdate(batch, ImportBatchStatus.Processing, cxlTkn: cxlTkn);
+        batch.SuccessRows = rows.Count(e => e.Status == ImportRowStatus.Success);
+        batch.FailedRows = rows.Count(e => e.Status == ImportRowStatus.Failed);
+        batch.ProcessedRows = batch.SuccessRows + batch.FailedRows;
 
-        var rowsToProcess = rows.Where(e => e.Status != ImportRowStatus.Success);
+        var rowsToProcess = rows.Where(e => e.Status != ImportRowStatus.Success).ToList();
+        if (rowsToProcess.Count == 0) return;
+
+        await SaveAndPushUpdate(batch, ImportBatchStatus.Processing, cxlTkn: cxlTkn);
 
         foreach (var row in rowsToProcess)
         {
             cxlTkn.ThrowIfCancellationRequested();
 
+            var oldStatus = row.Status;
             var processed = await ProcessRowAsync(row, cxlTkn);
 
             processed.ProcessedAt = DateTimeOffset.UtcNow;
-            batch.ProcessedRows++;
-            if (processed.Status == ImportRowStatus.Success)
-                batch.SuccessRows++;
-            else
-                batch.FailedRows++;
+
+            if (oldStatus == ImportRowStatus.Failed) batch.FailedRows--;
+            if (processed.Status == ImportRowStatus.Success) batch.SuccessRows++;
+            else batch.FailedRows++;
+            batch.ProcessedRows = batch.SuccessRows + batch.FailedRows;
 
             var properties = new Dictionary<string, object?>
             {
@@ -145,6 +157,7 @@ public class UserImportCoordinator(
             {
                 row.Status = ImportRowStatus.Success;
                 row.CreatedUserId = user!.Id;
+                row.ErrorMessage = null;
             }
             else
             {

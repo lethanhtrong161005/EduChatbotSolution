@@ -1,6 +1,5 @@
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
-using Domain.Entities;
 using Domain.Exceptions;
 using Domain.Utils;
 using Hangfire;
@@ -10,7 +9,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Presentation.Background;
 using Presentation.Extensions;
 using Presentation.ViewModels;
-using System.Security.Claims;
 
 namespace Presentation.Pages.Admin;
 
@@ -22,12 +20,14 @@ namespace Presentation.Pages.Admin;
 public class UserManageModel(
     IUserManagementService userManagementService,
     IUserImportFileReceptionService importReceptionService,
-    IResourceRealtimeNotifier notifier)
+    IResourceRealtimeNotifier notifier,
+    ILogger<UserManageModel> logger)
     : PageModel
 {
     private readonly IUserManagementService _userManagementService = userManagementService;
     private readonly IUserImportFileReceptionService _importReceptionService = importReceptionService;
     private readonly IResourceRealtimeNotifier _notifier = notifier;
+    private readonly ILogger<UserManageModel> _logger = logger;
 
     /// <summary>
     /// Gets the user management view model rendered by the page.
@@ -222,20 +222,20 @@ public class UserManageModel(
 
             // Store file in Supabase
             var userId = User.GetUserId();
-            var fileId = Guid.NewGuid();
             var stagingLocator = string.Empty;
 
             try
             {
                 var stagingResult = await _importReceptionService.ReceiveAsync(file.OpenReadStream(), file.FileName, cxlTkn);
                 if (!stagingResult.Success)
-                    return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, message = $"Failed to upload file to storage: {string.Join(", ", stagingResult.Errors)}" });
+                    return StatusCode(StatusCodes.Status400BadRequest, new { Success = false, message = $"Invalid file format: {string.Join(", ", stagingResult.Errors)}" });
 
                 stagingLocator = stagingResult.Locator;
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, message = $"Failed to upload file to storage: {ex.Message}" });
+                _logger.LogError("Failed to stage user-import file: {Error}", ex.ToString());
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, message = $"Failed to save file." });
             }
 
             var batch = await _userManagementService.CreateImportBatchAsync(userId, file.FileName, stagingLocator);

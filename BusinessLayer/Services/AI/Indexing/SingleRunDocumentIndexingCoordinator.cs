@@ -53,7 +53,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
                 cancellationToken: cxlTkn))
                 .ToList();
 
-            if (IsComplete(doc, chunks, config))
+            if (IsComplete(doc, sections, chunks, config))
             {
                 if (doc.Status != DocumentStatus.Indexed)
                 {
@@ -66,12 +66,13 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             doc.IndexingErrors = null;
             await MoveToDir(doc, FileDirectoryCategory.Processing, cxlTkn);
 
-            if (sections.Count == 0) sections = await ParseDocumentAsync(doc, cxlTkn);
-
-            if (chunks.Count == 0 || chunks.Any(e => e.ChunkingStrategy != config.ChunkingStrategy)) chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
-
-            var chunksToEmbed = chunks.SkipWhile(e => e.Embedding != null && e.ChunkingStrategy == config.ChunkingStrategy && e.EmbeddingModel == config.EmbeddingModel).ToList();
-            if (chunksToEmbed.Count > 0) await EmbedChunksAsync(doc, chunksToEmbed, config, cxlTkn);
+            if (!HasCompletedParsing(doc, sections, config)) sections = await ParseDocumentAsync(doc, cxlTkn);
+            if (!HasCompletedChunking(doc, chunks, config)) chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
+            if (!HasCompletedEmbedding(doc, chunks, config))
+            {
+                var chunksToEmbed = chunks.SkipWhile(e => e.Embedding != null && e.EmbeddingModel == config.EmbeddingModel).ToList();
+                if (chunksToEmbed.Count > 0) await EmbedChunksAsync(doc, chunksToEmbed, config, cxlTkn);
+            }
 
             await MoveToDir(doc, FileDirectoryCategory.Indexed, cxlTkn);
 
@@ -145,6 +146,8 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             StartSectionTitle = result.StartSectionTitle,
             EndSectionTitle = result.EndSectionTitle,
             ChunkingStrategy = chunker.StrategyName,
+            ChunkSize = config.ChunkSize,
+            ChunkOverlap = config.ChunkOverlap,
         })).ToList();
 
         await SaveAndPushUpdate(doc, DocumentStatus.Chunked, chunkingStrategy: config.ChunkingStrategy, chunkCount: chunks.Count, cxlTkn: cxlTkn);
@@ -178,14 +181,26 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         }
     }
 
-    private static bool IsComplete(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config) =>
+    private static bool IsComplete(Document doc, List<ParsedSection> sections, List<Chunk> chunks, EffectiveAiConfiguration config) =>
+        HasCompletedParsing(doc, sections, config)
+        && HasCompletedChunking(doc, chunks, config)
+        && HasCompletedEmbedding(doc, chunks, config);
+
+    private static bool HasCompletedParsing(Document doc, List<ParsedSection> sections, EffectiveAiConfiguration config) => sections.Count > 0;
+
+    private static bool HasCompletedChunking(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config) =>
         chunks.Count > 0
         && doc.IndexedChunkingStrategy == config.ChunkingStrategy
         && doc.IndexedChunkSize == config.ChunkSize
         && doc.IndexedChunkOverlap == config.ChunkOverlap
+        && chunks.All(e => e.ChunkingStrategy == config.ChunkingStrategy
+                           && e.ChunkSize == config.ChunkSize
+                           && e.ChunkOverlap == config.ChunkOverlap);
+
+    private static bool HasCompletedEmbedding(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config) =>
+        chunks.Count > 0
         && doc.IndexedEmbeddingModel == config.EmbeddingModel
         && chunks.All(e => e.Embedding != null
-                           && e.ChunkingStrategy == config.ChunkingStrategy
                            && e.EmbeddingModel == config.EmbeddingModel);
 
     private async Task MoveToDir(Document doc, FileDirectoryCategory directory, CancellationToken cxlTkn)
