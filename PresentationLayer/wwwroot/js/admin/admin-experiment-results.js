@@ -432,7 +432,7 @@ function renderExperimentDetail(normalized) {
 
     // Show panel
     const panel = document.getElementById('erDetailPanel');
-    panel.removeAttribute('hidden');
+    $(panel).slideDown();
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -584,7 +584,7 @@ $(function () {
     // Close detail panel
     $('#btnCloseDetail').on('click', () => {
         stopPolling();
-        $('#erDetailPanel').attr('hidden', true);
+        $('#erDetailPanel').slideUp();
     });
 
     // View button (delegated)

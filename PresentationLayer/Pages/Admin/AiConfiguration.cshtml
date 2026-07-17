@@ -8,12 +8,17 @@
 @Html.AntiForgeryToken()
 
 <div class="sm-page">
+    <!-- Header -->
     <div class="page-header-row">
         <div class="header-left">
             <h1 class="page-title-text"><i class="fas fa-sliders-h text-primary"></i> Subject AI Configuration</h1>
             <p class="page-subtitle-text">Configure indexing, retrieval, generation settings and prompts per subject, or revert to system defaults.</p>
         </div>
-        <div class="header-right">
+    </div>
+
+    <!-- Toolbar aligned with native SubjectManage layout -->
+    <div class="sm-toolbar">
+        <div class="sm-filters">
             <div class="subject-select-wrapper">
                 <label for="subjectSelect" class="select-label">Select Subject:</label>
                 <select id="subjectSelect" class="form-control form-select">
@@ -37,30 +42,36 @@
                     <p class="card-desc">Defines how documents are chunked and embedded in the vector store. Changes require reindexing to take effect.</p>
                 </div>
                 <div class="card-body">
+                    <!-- Column headers -->
+                    <div class="setting-table-header">
+                        <div>Setting Description</div>
+                        <div style="text-align: center;">Global Default</div>
+                        <div>Override Options</div>
+                        <div style="text-align: center;">Effective Value</div>
+                    </div>
+
                     <!-- Chunking Strategy -->
                     <div class="setting-row" data-setting="ChunkingStrategy">
                         <div class="setting-info">
                             <label class="setting-label">Chunking Strategy</label>
                             <span class="setting-desc">The algorithm used to split documents into chunks.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-ChunkingStrategy">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-ChunkingStrategy">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ChunkingStrategy" />
+                                    <span>Override</span>
+                                </label>
+                                <select class="form-control form-select setting-input" id="input-ChunkingStrategy" disabled>
+                                    <!-- Populated dynamically -->
+                                </select>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ChunkingStrategy" />
-                                        <span>Override</span>
-                                    </label>
-                                    <select class="form-control form-select setting-input" id="input-ChunkingStrategy" disabled>
-                                        <!-- Populated dynamically -->
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-ChunkingStrategy">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-ChunkingStrategy">—</span>
                         </div>
                     </div>
 
@@ -70,22 +81,20 @@
                             <label class="setting-label">Chunk Size (chars)</label>
                             <span class="setting-desc">Target length of each text chunk (100 - 8000).</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-ChunkSize">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-ChunkSize">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ChunkSize" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-ChunkSize" min="100" max="8000" step="1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ChunkSize" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-ChunkSize" min="100" max="8000" step="1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-ChunkSize">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-ChunkSize">—</span>
                         </div>
                     </div>
 
@@ -95,22 +104,20 @@
                             <label class="setting-label">Chunk Overlap (chars)</label>
                             <span class="setting-desc">Characters shared between adjacent chunks. Must be less than Chunk Size.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-ChunkOverlap">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-ChunkOverlap">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ChunkOverlap" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-ChunkOverlap" min="0" step="1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ChunkOverlap" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-ChunkOverlap" min="0" step="1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-ChunkOverlap">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-ChunkOverlap">—</span>
                         </div>
                     </div>
 
@@ -120,24 +127,22 @@
                             <label class="setting-label">Embedding Model</label>
                             <span class="setting-desc">Model used to convert text chunks into vector representations.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-EmbeddingModel">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-EmbeddingModel">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-EmbeddingModel" />
+                                    <span>Override</span>
+                                </label>
+                                <select class="form-control form-select setting-input" id="input-EmbeddingModel" disabled>
+                                    <!-- Populated dynamically -->
+                                </select>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-EmbeddingModel" />
-                                        <span>Override</span>
-                                    </label>
-                                    <select class="form-control form-select setting-input" id="input-EmbeddingModel" disabled>
-                                        <!-- Populated dynamically -->
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-EmbeddingModel">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-EmbeddingModel">—</span>
                         </div>
                     </div>
                 </div>
@@ -150,28 +155,34 @@
                     <p class="card-desc">Controls how relevant document chunks are fetched and filtered for query context.</p>
                 </div>
                 <div class="card-body">
+                    <!-- Column headers -->
+                    <div class="setting-table-header">
+                        <div>Setting Description</div>
+                        <div style="text-align: center;">Global Default</div>
+                        <div>Override Options</div>
+                        <div style="text-align: center;">Effective Value</div>
+                    </div>
+
                     <!-- Top K -->
                     <div class="setting-row" data-setting="TopK">
                         <div class="setting-info">
                             <label class="setting-label">Top K</label>
                             <span class="setting-desc">Number of matching chunks to retrieve from the vector database.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-TopK">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-TopK">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-TopK" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-TopK" min="1" step="1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-TopK" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-TopK" min="1" step="1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-TopK">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-TopK">—</span>
                         </div>
                     </div>
 
@@ -181,22 +192,20 @@
                             <label class="setting-label">Similarity Threshold</label>
                             <span class="setting-desc">Minimum cosine similarity score required for retrieved chunks (0.00 - 1.00).</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-SimilarityThreshold">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-SimilarityThreshold">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-SimilarityThreshold" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-SimilarityThreshold" min="0" max="1" step="0.01" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-SimilarityThreshold" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-SimilarityThreshold" min="0" max="1" step="0.01" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-SimilarityThreshold">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-SimilarityThreshold">—</span>
                         </div>
                     </div>
 
@@ -206,22 +215,20 @@
                             <label class="setting-label">Max Context Chunks</label>
                             <span class="setting-desc">Maximum number of retrieved chunks sent to the LLM prompt.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-MaxContextChunks">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-MaxContextChunks">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-MaxContextChunks" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-MaxContextChunks" min="1" step="1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-MaxContextChunks" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-MaxContextChunks" min="1" step="1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-MaxContextChunks">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-MaxContextChunks">—</span>
                         </div>
                     </div>
                 </div>
@@ -234,30 +241,36 @@
                     <p class="card-desc">Configures LLM models, parameters, and token window settings for answers, titles, and citation extraction.</p>
                 </div>
                 <div class="card-body">
+                    <!-- Column headers -->
+                    <div class="setting-table-header">
+                        <div>Setting Description</div>
+                        <div style="text-align: center;">Global Default</div>
+                        <div>Override Options</div>
+                        <div style="text-align: center;">Effective Value</div>
+                    </div>
+
                     <!-- LLM Model -->
                     <div class="setting-row" data-setting="LlmModel">
                         <div class="setting-info">
                             <label class="setting-label">LLM Model</label>
                             <span class="setting-desc">Primary language model used to stream conversational answers.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-LlmModel">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-LlmModel">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-LlmModel" />
+                                    <span>Override</span>
+                                </label>
+                                <select class="form-control form-select setting-input" id="input-LlmModel" disabled>
+                                    <!-- Populated dynamically -->
+                                </select>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-LlmModel" />
-                                        <span>Override</span>
-                                    </label>
-                                    <select class="form-control form-select setting-input" id="input-LlmModel" disabled>
-                                        <!-- Populated dynamically -->
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-LlmModel">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-LlmModel">—</span>
                         </div>
                     </div>
 
@@ -267,22 +280,20 @@
                             <label class="setting-label">Temperature</label>
                             <span class="setting-desc">Controls randomness in chatbot generation (0.00 - 2.00). Lower is more deterministic.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-ChatTemperature">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-ChatTemperature">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ChatTemperature" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-ChatTemperature" min="0" max="2" step="0.1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ChatTemperature" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-ChatTemperature" min="0" max="2" step="0.1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-ChatTemperature">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-ChatTemperature">—</span>
                         </div>
                     </div>
 
@@ -292,22 +303,20 @@
                             <label class="setting-label">Max History Messages</label>
                             <span class="setting-desc">Maximum number of prior chat messages included in retrieval/generation window context.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-MaxHistoryMessages">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-MaxHistoryMessages">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-MaxHistoryMessages" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-MaxHistoryMessages" min="0" step="1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-MaxHistoryMessages" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-MaxHistoryMessages" min="0" step="1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-MaxHistoryMessages">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-MaxHistoryMessages">—</span>
                         </div>
                     </div>
 
@@ -317,22 +326,20 @@
                             <label class="setting-label">Title Temperature</label>
                             <span class="setting-desc">Creativity limit when generating short session titles (0.00 - 2.00).</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-TitleTemperature">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-TitleTemperature">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-TitleTemperature" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-TitleTemperature" min="0" max="2" step="0.1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-TitleTemperature" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-TitleTemperature" min="0" max="2" step="0.1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-TitleTemperature">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-TitleTemperature">—</span>
                         </div>
                     </div>
 
@@ -342,22 +349,20 @@
                             <label class="setting-label">Citation Extraction Temp</label>
                             <span class="setting-desc">Temperature parameter when run against citation extraction model (0.00 - 2.00).</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <span class="badge badge-default" id="def-CitationExtractionTemperature">—</span>
+                        <div class="col-default">
+                            <span class="subject-code-badge" id="def-CitationExtractionTemperature">—</span>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-CitationExtractionTemperature" />
+                                    <span>Override</span>
+                                </label>
+                                <input type="number" class="form-control setting-input" id="input-CitationExtractionTemperature" min="0" max="2" step="0.1" disabled />
                             </div>
-                            <div class="col-override">
-                                <div class="override-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-CitationExtractionTemperature" />
-                                        <span>Override</span>
-                                    </label>
-                                    <input type="number" class="form-control setting-input" id="input-CitationExtractionTemperature" min="0" max="2" step="0.1" disabled />
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <span class="badge badge-effective" id="eff-CitationExtractionTemperature">—</span>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <span class="effective-badge-green" id="eff-CitationExtractionTemperature">—</span>
                         </div>
                     </div>
                 </div>
@@ -370,28 +375,34 @@
                     <p class="card-desc">System instructions and context prompts that dictate model behaviors and response templates.</p>
                 </div>
                 <div class="card-body">
+                    <!-- Column headers -->
+                    <div class="setting-table-header">
+                        <div>Setting Description</div>
+                        <div style="text-align: center;">Global Default</div>
+                        <div>Override Options</div>
+                        <div style="text-align: center;">Effective Value</div>
+                    </div>
+
                     <!-- Chat Prompt -->
                     <div class="setting-row prompt-row" data-setting="ChatPrompt">
                         <div class="setting-info">
                             <label class="setting-label">System Chat Prompt</label>
                             <span class="setting-desc">The core persona and rules provided to the LLM assistant for answering.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('ChatPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        <div class="col-default">
+                            <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('ChatPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control prompt-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ChatPrompt" />
+                                    <span>Override</span>
+                                </label>
+                                <textarea class="form-control setting-input prompt-textarea" id="input-ChatPrompt" disabled></textarea>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control prompt-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ChatPrompt" />
-                                        <span>Override</span>
-                                    </label>
-                                    <textarea class="form-control setting-input prompt-textarea" id="input-ChatPrompt" disabled></textarea>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('ChatPrompt')"><i class="fas fa-eye"></i> View Effective</button>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('ChatPrompt')"><i class="fas fa-eye"></i> View Effective</button>
                         </div>
                     </div>
 
@@ -401,22 +412,20 @@
                             <label class="setting-label">Context Injection Prompt</label>
                             <span class="setting-desc">Prefix prompt placed before retrieved knowledge fragments are injected.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('ContextPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        <div class="col-default">
+                            <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('ContextPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control prompt-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-ContextPrompt" />
+                                    <span>Override</span>
+                                </label>
+                                <textarea class="form-control setting-input prompt-textarea" id="input-ContextPrompt" disabled></textarea>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control prompt-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-ContextPrompt" />
-                                        <span>Override</span>
-                                    </label>
-                                    <textarea class="form-control setting-input prompt-textarea" id="input-ContextPrompt" disabled></textarea>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('ContextPrompt')"><i class="fas fa-eye"></i> View Effective</button>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('ContextPrompt')"><i class="fas fa-eye"></i> View Effective</button>
                         </div>
                     </div>
 
@@ -426,22 +435,20 @@
                             <label class="setting-label">No-Context Fallback Prompt</label>
                             <span class="setting-desc">Prompt used when vector query similarity returns zero matching fragments.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('NoContextRetrievedPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        <div class="col-default">
+                            <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('NoContextRetrievedPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control prompt-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-NoContextRetrievedPrompt" />
+                                    <span>Override</span>
+                                </label>
+                                <textarea class="form-control setting-input prompt-textarea" id="input-NoContextRetrievedPrompt" disabled></textarea>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control prompt-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-NoContextRetrievedPrompt" />
-                                        <span>Override</span>
-                                    </label>
-                                    <textarea class="form-control setting-input prompt-textarea" id="input-NoContextRetrievedPrompt" disabled></textarea>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('NoContextRetrievedPrompt')"><i class="fas fa-eye"></i> View Effective</button>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('NoContextRetrievedPrompt')"><i class="fas fa-eye"></i> View Effective</button>
                         </div>
                     </div>
 
@@ -451,22 +458,20 @@
                             <label class="setting-label">Title Generation Prompt</label>
                             <span class="setting-desc">System rules for creating descriptive conversation titles.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('TitlePrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        <div class="col-default">
+                            <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('TitlePrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control prompt-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-TitlePrompt" />
+                                    <span>Override</span>
+                                </label>
+                                <textarea class="form-control setting-input prompt-textarea" id="input-TitlePrompt" disabled></textarea>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control prompt-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-TitlePrompt" />
-                                        <span>Override</span>
-                                    </label>
-                                    <textarea class="form-control setting-input prompt-textarea" id="input-TitlePrompt" disabled></textarea>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('TitlePrompt')"><i class="fas fa-eye"></i> View Effective</button>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('TitlePrompt')"><i class="fas fa-eye"></i> View Effective</button>
                         </div>
                     </div>
 
@@ -476,22 +481,20 @@
                             <label class="setting-label">Citation Verification Prompt</label>
                             <span class="setting-desc">Prompt defining JSON output expectations when extracting and validating citation sources.</span>
                         </div>
-                        <div class="setting-cols">
-                            <div class="col-default">
-                                <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('CitationExtractionPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        <div class="col-default">
+                            <button type="button" class="btn-view-prompt" onclick="viewDefaultPrompt('CitationExtractionPrompt')"><i class="fas fa-eye"></i> View Default</button>
+                        </div>
+                        <div class="col-override">
+                            <div class="override-control prompt-control">
+                                <label class="override-checkbox-label">
+                                    <input type="checkbox" class="override-toggle" id="override-toggle-CitationExtractionPrompt" />
+                                    <span>Override</span>
+                                </label>
+                                <textarea class="form-control setting-input prompt-textarea" id="input-CitationExtractionPrompt" disabled></textarea>
                             </div>
-                            <div class="col-override">
-                                <div class="override-control prompt-control">
-                                    <label class="override-checkbox-label">
-                                        <input type="checkbox" class="override-toggle" id="override-toggle-CitationExtractionPrompt" />
-                                        <span>Override</span>
-                                    </label>
-                                    <textarea class="form-control setting-input prompt-textarea" id="input-CitationExtractionPrompt" disabled></textarea>
-                                </div>
-                            </div>
-                            <div class="col-effective">
-                                <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('CitationExtractionPrompt')"><i class="fas fa-eye"></i> View Effective</button>
-                            </div>
+                        </div>
+                        <div class="col-effective">
+                            <button type="button" class="btn-view-prompt eff-prompt-btn" onclick="viewEffectivePrompt('CitationExtractionPrompt')"><i class="fas fa-eye"></i> View Effective</button>
                         </div>
                     </div>
                 </div>

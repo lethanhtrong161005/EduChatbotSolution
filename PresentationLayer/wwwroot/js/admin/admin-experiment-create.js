@@ -138,7 +138,7 @@ async function loadSubjectOptions(subjectId) {
         populateDropdown('chunkingStrategy', globalOptions.aiOptions.chunkingStrategies);
         populateDropdown('embeddingModel', globalOptions.aiOptions.embeddingModels);
         populateDropdown('llmModel', globalOptions.aiOptions.chatModels);
-        populateDropdown('judgeModel', globalOptions.aiOptions.judgeModels, '-- Choose Judge Model --');
+        populateDropdown('judgeModel', globalOptions.aiOptions.judgeModels);
 
         // Populate with current configuration values
         const current = globalOptions.currentConfiguration;
@@ -153,6 +153,10 @@ async function loadSubjectOptions(subjectId) {
 
         document.getElementById('llmModel').value = current.generation.llmModel.effectiveValue;
         document.getElementById('chatTemperature').value = current.generation.chatTemperature.effectiveValue;
+
+        // Select matching judge model or default to gemini-3.5-flash
+        const hasGeminiFlash = globalOptions.aiOptions.judgeModels.some(m => m.value === 'gemini-3.5-flash');
+        document.getElementById('judgeModel').value = hasGeminiFlash ? 'gemini-3.5-flash' : globalOptions.aiOptions.judgeModels[0]?.value ?? '';
 
         // Default name
         document.getElementById('experimentName').value = `${globalOptions.subjectCode} smoke run`;
@@ -171,18 +175,10 @@ async function loadSubjectOptions(subjectId) {
     }
 }
 
-function populateDropdown(selectId, options, placeholder = null) {
+function populateDropdown(selectId, options) {
     const select = document.getElementById(selectId);
     if (!select) return;
     select.innerHTML = '';
-    if (placeholder) {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = placeholder;
-        option.disabled = true;
-        option.selected = true;
-        select.appendChild(option);
-    }
     options.forEach(opt => {
         const o = document.createElement('option');
         o.value = opt.value;
