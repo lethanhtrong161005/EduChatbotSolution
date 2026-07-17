@@ -65,6 +65,8 @@ public sealed class EmbeddedExperimentDatasetProvider(IUnitOfWork unitOfWork) : 
     private static void Validate(TestDatasetDto dataset)
     {
         if (dataset.DatasetKey != "db201-vi-50-v1") throw new EntityValidationException("The experiment dataset key must be 'db201-vi-50-v1'.", nameof(dataset.DatasetKey));
+        if (dataset.DatasetName != "DB201 Vietnamese 50") throw new EntityValidationException("The experiment dataset name is invalid.", nameof(dataset.DatasetName));
+        if (dataset.DatasetVersion != "1") throw new EntityValidationException("The experiment dataset version must be '1'.", nameof(dataset.DatasetVersion));
         if (dataset.Language != "vi") throw new EntityValidationException("The DB201 experiment dataset language must be Vietnamese.", nameof(dataset.Language));
         if (dataset.SubjectCode != "DB201") throw new EntityValidationException("The experiment dataset subject must be DB201.", nameof(dataset.SubjectCode));
         if (dataset.Questions.Count != 50) throw new EntityValidationException("The DB201 experiment dataset must contain exactly 50 questions.", nameof(dataset.Questions));

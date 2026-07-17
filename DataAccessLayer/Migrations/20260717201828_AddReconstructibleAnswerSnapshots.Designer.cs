@@ -3,6 +3,7 @@ using System;
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduChatAiDbContext))]
-    partial class EduChatAiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717201828_AddReconstructibleAnswerSnapshots")]
+    partial class AddReconstructibleAnswerSnapshots
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1237,6 +1240,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("affected_document_count");
 
+                    b.Property<double?>("AnswerRelevancy")
+                        .HasColumnType("double precision")
+                        .HasColumnName("answer_relevancy");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
@@ -1244,6 +1251,14 @@ namespace DataAccessLayer.Migrations
                     b.Property<int>("CompletedQuestionCount")
                         .HasColumnType("integer")
                         .HasColumnName("completed_question_count");
+
+                    b.Property<double?>("ContextPrecision")
+                        .HasColumnType("double precision")
+                        .HasColumnName("context_precision");
+
+                    b.Property<double?>("ContextRecall")
+                        .HasColumnType("double precision")
+                        .HasColumnName("context_recall");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -1259,6 +1274,10 @@ namespace DataAccessLayer.Migrations
                     b.Property<string>("FailureReason")
                         .HasColumnType("text")
                         .HasColumnName("failure_reason");
+
+                    b.Property<double?>("Faithfulness")
+                        .HasColumnType("double precision")
+                        .HasColumnName("faithfulness");
 
                     b.Property<int>("IndexedDocumentCount")
                         .HasColumnType("integer")
@@ -1361,35 +1380,15 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("embedding_provider");
 
-                    b.Property<string>("EvaluatorEmbeddingModel")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_embedding_model");
-
-                    b.Property<string>("EvaluatorEmbeddingProvider")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_embedding_provider");
-
-                    b.Property<string>("EvaluatorLlmModel")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_llm_model");
-
-                    b.Property<string>("EvaluatorLlmProvider")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_llm_provider");
-
-                    b.Property<string>("EvaluatorMetricSetKey")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_metric_set_key");
-
                     b.Property<string>("EvaluatorPromptVersion")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("evaluator_prompt_version");
+
+                    b.Property<string>("JudgeModel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("judge_model");
 
                     b.Property<string>("LlmModel")
                         .IsRequired()
@@ -2160,19 +2159,27 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<double?>("AnswerRelevancy")
+                        .HasColumnType("double precision")
+                        .HasColumnName("answer_relevancy");
+
                     b.Property<long?>("CompletionTokens")
                         .HasColumnType("bigint")
                         .HasColumnName("completion_tokens");
+
+                    b.Property<double?>("ContextPrecision")
+                        .HasColumnType("double precision")
+                        .HasColumnName("context_precision");
+
+                    b.Property<double?>("ContextRecall")
+                        .HasColumnType("double precision")
+                        .HasColumnName("context_recall");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
-
-                    b.Property<Guid?>("CurrentEvaluationAttemptId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("current_evaluation_attempt_id");
 
                     b.Property<string>("DatasetKey")
                         .HasColumnType("text")
@@ -2190,9 +2197,17 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("experiment_id");
 
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text")
+                        .HasColumnName("explanation");
+
                     b.Property<string>("FailureReason")
                         .HasColumnType("text")
                         .HasColumnName("failure_reason");
+
+                    b.Property<double?>("Faithfulness")
+                        .HasColumnType("double precision")
+                        .HasColumnName("faithfulness");
 
                     b.Property<string>("GeneratedAnswer")
                         .HasColumnType("text")
@@ -2262,15 +2277,12 @@ namespace DataAccessLayer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_test_responses");
 
-                    b.HasIndex("CurrentEvaluationAttemptId")
-                        .HasDatabaseName("ix_test_responses_current_evaluation_attempt_id");
-
                     b.HasIndex("TestQuestionId")
                         .HasDatabaseName("ix_test_responses_test_question_id");
 
-                    b.HasIndex("ExperimentId", "SourceQuestionId")
+                    b.HasIndex("ExperimentId", "TestQuestionId")
                         .IsUnique()
-                        .HasDatabaseName("ix_test_responses_experiment_id_source_question_id");
+                        .HasDatabaseName("ix_test_responses_experiment_id_test_question_id");
 
                     b.ToTable("test_responses", (string)null);
                 });
@@ -2390,195 +2402,6 @@ namespace DataAccessLayer.Migrations
                             t.HasCheckConstraint("ck_test_response_contexts_prompt_order", "(was_included_in_prompt = TRUE AND prompt_order >= 1) OR (was_included_in_prompt = FALSE AND prompt_order IS NULL)");
 
                             t.HasCheckConstraint("ck_test_response_contexts_retrieval_rank", "retrieval_rank >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Entities.TestResponseEvaluationAttempt", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("AttemptNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("attempt_number");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<string>("ContractVersion")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("contract_version");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("EmbeddingModel")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("embedding_model");
-
-                    b.Property<string>("EmbeddingProvider")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("embedding_provider");
-
-                    b.Property<string>("EvaluatorFamily")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_family");
-
-                    b.Property<string>("EvaluatorProfileKey")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("evaluator_profile_key");
-
-                    b.Property<string>("FailureReason")
-                        .HasColumnType("text")
-                        .HasColumnName("failure_reason");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("language");
-
-                    b.Property<string>("LlmModel")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("llm_model");
-
-                    b.Property<string>("LlmProvider")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("llm_provider");
-
-                    b.Property<string>("MetricSetKey")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("metric_set_key");
-
-                    b.Property<string>("PromptVersion")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("prompt_version");
-
-                    b.Property<string>("RagasVersion")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("ragas_version");
-
-                    b.Property<string>("ServiceVersion")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("service_version");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("started_at");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<string>("Summary")
-                        .HasColumnType("text")
-                        .HasColumnName("summary");
-
-                    b.Property<Guid>("TestResponseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("test_response_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_test_response_evaluation_attempts");
-
-                    b.HasIndex("TestResponseId", "AttemptNumber")
-                        .IsUnique()
-                        .HasDatabaseName("ix_test_response_evaluation_attempts_test_response_id_attempt_");
-
-                    b.ToTable("test_response_evaluation_attempts", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_test_response_evaluation_attempts_attempt_number", "attempt_number >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Entities.TestResponseEvaluationMetric", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<long?>("DurationMs")
-                        .HasColumnType("bigint")
-                        .HasColumnName("duration_ms");
-
-                    b.Property<string>("ErrorCode")
-                        .HasColumnType("text")
-                        .HasColumnName("error_code");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<Guid>("EvaluationAttemptId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("evaluation_attempt_id");
-
-                    b.Property<string>("MetricName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("metric_name");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("text")
-                        .HasColumnName("reason");
-
-                    b.Property<int>("RetryCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("retry_count");
-
-                    b.Property<double?>("Score")
-                        .HasColumnType("double precision")
-                        .HasColumnName("score");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_test_response_evaluation_metrics");
-
-                    b.HasIndex("EvaluationAttemptId", "MetricName")
-                        .IsUnique()
-                        .HasDatabaseName("ix_test_response_evaluation_metrics_evaluation_attempt_id_metr");
-
-                    b.ToTable("test_response_evaluation_metrics", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_test_response_evaluation_metrics_retry_count", "retry_count >= 0");
-
-                            t.HasCheckConstraint("ck_test_response_evaluation_metrics_score", "score IS NULL OR (score >= 0 AND score <= 1)");
                         });
                 });
 
@@ -3325,12 +3148,6 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.TestResponse", b =>
                 {
-                    b.HasOne("Domain.Entities.TestResponseEvaluationAttempt", "CurrentEvaluationAttempt")
-                        .WithMany()
-                        .HasForeignKey("CurrentEvaluationAttemptId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_test_responses_test_response_evaluation_attempts_current_ev");
-
                     b.HasOne("Domain.Entities.Experiment", "Experiment")
                         .WithMany("TestResponses")
                         .HasForeignKey("ExperimentId")
@@ -3343,8 +3160,6 @@ namespace DataAccessLayer.Migrations
                         .HasForeignKey("TestQuestionId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_test_responses_test_questions_test_question_id");
-
-                    b.Navigation("CurrentEvaluationAttempt");
 
                     b.Navigation("Experiment");
 
@@ -3369,30 +3184,6 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Chunk");
 
                     b.Navigation("TestResponse");
-                });
-
-            modelBuilder.Entity("Domain.Entities.TestResponseEvaluationAttempt", b =>
-                {
-                    b.HasOne("Domain.Entities.TestResponse", "TestResponse")
-                        .WithMany("EvaluationAttempts")
-                        .HasForeignKey("TestResponseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_test_response_evaluation_attempts_test_responses_test_respo");
-
-                    b.Navigation("TestResponse");
-                });
-
-            modelBuilder.Entity("Domain.Entities.TestResponseEvaluationMetric", b =>
-                {
-                    b.HasOne("Domain.Entities.TestResponseEvaluationAttempt", "EvaluationAttempt")
-                        .WithMany("Metrics")
-                        .HasForeignKey("EvaluationAttemptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_test_response_evaluation_metrics_test_response_evaluation_a");
-
-                    b.Navigation("EvaluationAttempt");
                 });
 
             modelBuilder.Entity("Domain.Entities.TestResponseRequestMessage", b =>
@@ -3598,16 +3389,9 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("Domain.Entities.TestResponse", b =>
                 {
-                    b.Navigation("EvaluationAttempts");
-
                     b.Navigation("RequestMessages");
 
                     b.Navigation("RetrievedContexts");
-                });
-
-            modelBuilder.Entity("Domain.Entities.TestResponseEvaluationAttempt", b =>
-                {
-                    b.Navigation("Metrics");
                 });
 
             modelBuilder.Entity("Domain.Entities.UserImportBatch", b =>

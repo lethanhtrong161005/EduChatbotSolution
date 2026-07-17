@@ -51,8 +51,8 @@ public class ChatGenerationService(
             Title = response.Text,
             Metrics = new TitleGenerationMetrics
             {
-                PromptTokens = ToNullableInt(response.Usage?.InputTokenCount),
-                CompletionTokens = ToNullableInt(response.Usage?.OutputTokenCount),
+                PromptTokens = response.Usage?.InputTokenCount,
+                CompletionTokens = response.Usage?.OutputTokenCount,
                 ResponseTimeMs = responseTimer.ElapsedMilliseconds,
             },
         };
@@ -86,17 +86,36 @@ public class ChatGenerationService(
         Func<string, Task> onToken,
         CancellationToken cxlTkn = default)
     {
-        await EnsureSubjectIndexesReadyAsync(req.AllowedSubjects, cxlTkn);
+        var resolvedSubjects = await ResolveReadySubjectsAsync(req.AllowedSubjects, cxlTkn);
 
         var totalTimer = Stopwatch.StartNew();
         var retrievalTimer = Stopwatch.StartNew();
         var chunkRetrievals = await RetrieveChunksAsync(req, cxlTkn);
         retrievalTimer.Stop();
         var chunkRetrievalsInContext = chunkRetrievals.Take(req.Settings.MaxContextChunks).ToList();
-        IReadOnlyList<RetrievedContextSnapshot> retrievedContexts = [.. chunkRetrievalsInContext.Select((chunk, index) => new RetrievedContextSnapshot
+        IReadOnlyList<RetrievedContextSnapshot> retrievedContexts = [.. chunkRetrievals.Select((chunk, index) => new RetrievedContextSnapshot
         {
-            ContextIndex = index,
-            ContextText = chunk.ChunkText,
+            RetrievalRank = index + 1,
+            PromptOrder = index < chunkRetrievalsInContext.Count ? index + 1 : null,
+            WasIncludedInPrompt = index < chunkRetrievalsInContext.Count,
+            ChunkId = chunk.ChunkId,
+            SourceDocumentId = chunk.DocumentId,
+            SourceSubjectId = chunk.SubjectId,
+            ChunkIndex = chunk.ChunkIndex,
+            ChunkText = chunk.ChunkText,
+            SimilarityScore = chunk.SimilarityScore,
+            DocumentTitle = chunk.DocumentTitle,
+            DocumentFileName = chunk.DocumentFileName,
+            SubjectCode = chunk.SubjectCode,
+            SubjectName = chunk.SubjectName,
+            StartPageNumber = chunk.StartPageNumber,
+            EndPageNumber = chunk.EndPageNumber,
+            StartSectionTitle = chunk.StartSectionTitle,
+            EndSectionTitle = chunk.EndSectionTitle,
+            ChunkingStrategy = chunk.ChunkingStrategy,
+            ChunkSize = chunk.ChunkSize,
+            ChunkOverlap = chunk.ChunkOverlap,
+            EmbeddingModel = chunk.EmbeddingModel,
         })];
 
         var chatMessages = GetChatMessages(
@@ -141,8 +160,8 @@ public class ChatGenerationService(
         var (processedAnswer, chunkUsages) = ProcessAnswer(rawAnswer, chunkRetrievalsInContext);
         totalTimer.Stop();
 
-        var promptTokens = ToNullableInt(usage?.InputTokenCount);
-        var completionTokens = ToNullableInt(usage?.OutputTokenCount);
+        var promptTokens = usage?.InputTokenCount;
+        var completionTokens = usage?.OutputTokenCount;
         double? tokensPerSecond = completionTokens is > 0 && generationTimer.Elapsed.TotalSeconds > 0
             ? completionTokens.Value / generationTimer.Elapsed.TotalSeconds
             : null;
@@ -153,6 +172,8 @@ public class ChatGenerationService(
             RawAnswer = rawAnswer,
             ChunkRetrievals = chunkRetrievals,
             RetrievedContexts = retrievedContexts,
+            RequestMessages = [.. chatMessages.Select((message, index) => new NormalizedRequestMessageSnapshot { MessageOrder = index + 1, Role = Role(message.Role), Content = message.Text })],
+            ResolvedSubjects = resolvedSubjects,
             ChunkUsages = chunkUsages,
             Metrics = new ChatGenerationMetrics
             {
@@ -166,10 +187,7 @@ public class ChatGenerationService(
         };
     }
 
-    private static int? ToNullableInt(long? value)
-        => value.HasValue ? checked((int)value.Value) : null;
-
-    private async Task EnsureSubjectIndexesReadyAsync(IReadOnlyList<int> allowedSubjectIds, CancellationToken cxlTkn)
+    private async Task<IReadOnlyList<ResolvedSubjectSnapshot>> ResolveReadySubjectsAsync(IReadOnlyList<int> allowedSubjectIds, CancellationToken cxlTkn)
     {
         var subjectIds = allowedSubjectIds.Distinct().ToArray();
         if (subjectIds.Length == 0) throw new EntityValidationException("At least one subject is required for chat generation.", nameof(ChatGenerationRequest.AllowedSubjects));
@@ -184,7 +202,12 @@ public class ChatGenerationService(
         var unavailable = subjects.Where(e => e.IndexAvailability != Domain.Entities.SubjectIndexAvailability.Ready).OrderBy(e => e.Code).ToArray();
         if (unavailable.Length > 0)
             throw new EntityConflictException($"Chat generation is unavailable while subject indexes are not ready: {string.Join(", ", unavailable.Select(e => $"{e.Code} ({e.IndexAvailability})"))}.", nameof(Domain.Entities.Subject.IndexAvailability));
+
+        var lookup = subjects.ToDictionary(e => e.Id);
+        return [.. subjectIds.Select((id, index) => new ResolvedSubjectSnapshot { SubjectOrder = index + 1, SubjectId = id, SubjectCode = lookup[id].Code, SubjectName = lookup[id].Name })];
     }
+
+    private static string Role(ChatRole role) => role == ChatRole.System ? "system" : role == ChatRole.User ? "user" : role == ChatRole.Assistant ? "assistant" : role.ToString().ToLowerInvariant();
 
     private async Task<IReadOnlyList<ChunkRetrieval>> RetrieveChunksAsync(
         ChatGenerationRequest req,

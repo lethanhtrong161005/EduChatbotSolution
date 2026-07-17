@@ -71,6 +71,8 @@ public interface IChatPersistenceService
         string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
         IReadOnlyList<RetrievedContextSnapshot> retrievedContexts,
+        IReadOnlyList<NormalizedRequestMessageSnapshot> requestMessages,
+        IReadOnlyList<ResolvedSubjectSnapshot> resolvedSubjects,
         IReadOnlyList<ChunkUsage> chunkUsages,
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,

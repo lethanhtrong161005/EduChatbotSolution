@@ -45,10 +45,12 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     GenericRepository<Citation>? _citations;
     GenericRepository<CitationOccurrence>? _citationOccurrences;
     AdminReportRepository? _adminReports;
+    AnswerReconstructionRepository? _answerReconstructions;
     GenericRepository<TestQuestion>? _testQuestions;
     GenericRepository<Experiment>? _experiments;
     GenericRepository<ExperimentConfigurationSnapshot>? _experimentConfigurationSnapshots;
     ExperimentRunRepository? _experimentRuns;
+    ExperimentEvaluationRepository? _experimentEvaluations;
     GenericRepository<TestResponse>? _testResponses;
     GenericRepository<TestResponseContext>? _testResponseContexts;
 
@@ -117,6 +119,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     /// <inheritdoc/>
     public GenericRepository<CitationOccurrence> CitationOccurrences => _citationOccurrences ??= new GenericRepository<CitationOccurrence>(_context);
     public AdminReportRepository AdminReports => _adminReports ??= new AdminReportRepository(_context);
+    public AnswerReconstructionRepository AnswerReconstructions => _answerReconstructions ??= new AnswerReconstructionRepository(_context);
     /// <inheritdoc/>
     public GenericRepository<TestQuestion> TestQuestions => _testQuestions ??= new GenericRepository<TestQuestion>(_context);
     /// <inheritdoc/>
@@ -125,6 +128,7 @@ public class UnitOfWork(EduChatAiDbContext context) : IUnitOfWork
     public GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots => _experimentConfigurationSnapshots ??= new GenericRepository<ExperimentConfigurationSnapshot>(_context);
     /// <inheritdoc/>
     public ExperimentRunRepository ExperimentRuns => _experimentRuns ??= new ExperimentRunRepository(_context);
+    public ExperimentEvaluationRepository ExperimentEvaluations => _experimentEvaluations ??= new ExperimentEvaluationRepository(_context);
     /// <inheritdoc/>
     public GenericRepository<TestResponse> TestResponses => _testResponses ??= new GenericRepository<TestResponse>(_context);
     /// <inheritdoc/>

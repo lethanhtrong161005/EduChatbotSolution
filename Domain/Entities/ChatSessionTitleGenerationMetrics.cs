@@ -2,9 +2,9 @@
 
 public class ChatSessionTitleGenerationMetrics : NaturalEntity
 {
-    public int? PromptTokens { get; set; }
+    public long? PromptTokens { get; set; }
 
-    public int? CompletionTokens { get; set; }
+    public long? CompletionTokens { get; set; }
 
     public long ResponseTimeMs { get; set; }
 

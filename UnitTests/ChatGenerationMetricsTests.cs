@@ -101,7 +101,7 @@ public class ChatGenerationMetricsTests
     }
 
     [Test]
-    public async Task GenerateAnswer_SnapshotsOnlyTheOrderedContextsAddedToThePrompt()
+    public async Task GenerateAnswer_SnapshotsAllRankedContextsAndExactPromptMembership()
     {
         var client = new Mock<IChatClient>();
         client.Setup(item => item.GetStreamingResponseAsync(
@@ -112,19 +112,23 @@ public class ChatGenerationMetricsTests
 
         IReadOnlyList<ChunkRetrieval> retrievals =
         [
-            new() { ChunkId = Guid.NewGuid(), ChunkText = "First context", SimilarityScore = .9 },
-            new() { ChunkId = Guid.NewGuid(), ChunkText = "Second context", SimilarityScore = .8 },
-            new() { ChunkId = Guid.NewGuid(), ChunkText = "Excluded context", SimilarityScore = .7 },
+            Retrieval(1, "First context", .9),
+            Retrieval(2, "Second context", .8),
+            Retrieval(3, "Excluded context", .7),
         ];
         var service = CreateService(client.Object, retrievals);
 
         var result = await service.GenerateAnswerAsync(ChatRequest(maxContextChunks: 2), _ => Task.CompletedTask);
 
-        Assert.That(result.RetrievedContexts, Is.EqualTo(new RetrievedContextSnapshot[]
+        using (Assert.EnterMultipleScope())
         {
-            new() { ContextIndex = 0, ContextText = "First context" },
-            new() { ContextIndex = 1, ContextText = "Second context" },
-        }));
+            Assert.That(result.RetrievedContexts.Select(e => e.RetrievalRank), Is.EqualTo(new[] { 1, 2, 3 }));
+            Assert.That(result.RetrievedContexts.Select(e => e.PromptOrder), Is.EqualTo(new int?[] { 1, 2, null }));
+            Assert.That(result.RetrievedContexts.Select(e => e.WasIncludedInPrompt), Is.EqualTo(new[] { true, true, false }));
+            Assert.That(result.RetrievedContexts.Select(e => e.ChunkText), Is.EqualTo(new[] { "First context", "Second context", "Excluded context" }));
+            Assert.That(result.RequestMessages.Select(e => e.MessageOrder), Is.EqualTo(Enumerable.Range(1, result.RequestMessages.Count)));
+            Assert.That(result.ResolvedSubjects.Single(), Is.EqualTo(new ResolvedSubjectSnapshot { SubjectOrder = 1, SubjectId = 1, SubjectCode = "DB201", SubjectName = "Database Systems" }));
+        }
     }
 
     private static ChatGenerationService CreateService(IChatClient client, IReadOnlyList<ChunkRetrieval>? retrievals = null)
@@ -197,6 +201,13 @@ public class ChatGenerationMetricsTests
             MaxContextChunks = maxContextChunks,
             MaxHistoryMessages = 12,
         },
+    };
+
+    private static ChunkRetrieval Retrieval(int index, string text, double score) => new()
+    {
+        ChunkId = Guid.NewGuid(), DocumentId = Guid.NewGuid(), SubjectId = 1, ChunkIndex = index, ChunkText = text, SimilarityScore = score,
+        DocumentTitle = "Database", DocumentFileName = "database.pdf", SubjectCode = "DB201", SubjectName = "Database Systems",
+        StartPageNumber = index, EndPageNumber = index, StartSectionTitle = "Section", EndSectionTitle = "Section", ChunkingStrategy = "FixedLength", ChunkSize = 1000, ChunkOverlap = 200, EmbeddingModel = "embed",
     };
 
     private static async IAsyncEnumerable<ChatResponseUpdate> StreamWithUsage(long outputTokens = 5)

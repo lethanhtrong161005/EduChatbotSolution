@@ -286,7 +286,7 @@ public sealed class AdminReportDemoDataSeederIntegrationTests
         var assistantIds = assistant.Select(message => message.Id).ToArray();
         var citationsFromNonIndexedDocuments = await _context.Citations.AsNoTracking()
             .CountAsync(citation => assistantIds.Contains(citation.ChatMessageId)
-                && citation.Chunk.Document.Status != DocumentStatus.Indexed);
+                && citation.Chunk != null && citation.Chunk.Document.Status != DocumentStatus.Indexed);
         var localDates = messages.Where(message => message.ChatRole == ChatRole.User)
             .Select(message => DateOnly.FromDateTime(message.SentAt.AddHours(7)))
             .Distinct()
@@ -341,8 +341,8 @@ public sealed class AdminReportDemoDataSeederIntegrationTests
             completed.Count(message => message.Citations.Count > 0),
             completed.Count(message => message.GenerationMetrics?.ContextChunkCount == 0),
             completed.Count(message => message.GenerationMetrics is null || message.GenerationMetrics.ContextChunkCount != message.RetrievedContexts.Count),
-            completed.Count(message => !message.RetrievedContexts.OrderBy(row => row.ContextIndex).Select(row => row.ContextIndex)
-                .SequenceEqual(Enumerable.Range(0, message.RetrievedContexts.Count))),
+            completed.Count(message => !message.RetrievedContexts.OrderBy(row => row.RetrievalRank).Select(row => row.RetrievalRank)
+                .SequenceEqual(Enumerable.Range(1, message.RetrievedContexts.Count))),
             citationsFromNonIndexedDocuments,
             documents.Count,
             documents.Count(document => document.Status == DocumentStatus.Indexed),

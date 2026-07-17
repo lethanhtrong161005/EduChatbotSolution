@@ -91,6 +91,7 @@ public class ChatPersistenceService(
                 nameof(ChatMessage.Citations),
                 nameof(ChatMessage.Citations) + "." + nameof(Citation.Chunk),
                 nameof(ChatMessage.Citations) + "." + nameof(Citation.Chunk) + "." + nameof(Chunk.Document),
+                nameof(ChatMessage.Citations) + "." + nameof(Citation.RetrievalSnapshot),
                 nameof(ChatMessage.InReplyToMessage),
                 nameof(ChatMessage.InReplyToMessage) + "." + nameof(ChatMessage.AssistantVariants),
             ],
@@ -252,11 +253,18 @@ public class ChatPersistenceService(
         string rawContent,
         IReadOnlyList<ChunkRetrieval> chunkRetrievals,
         IReadOnlyList<RetrievedContextSnapshot> retrievedContexts,
+        IReadOnlyList<NormalizedRequestMessageSnapshot> requestMessages,
+        IReadOnlyList<ResolvedSubjectSnapshot> resolvedSubjects,
         IReadOnlyList<ChunkUsage> chunkUsages,
         ChatGenerationSettings generationSettings,
         ChatGenerationMetrics generationMetrics,
         CancellationToken cxlTkn = default)
     {
+        SequentialIndexValidator.EnsureExact(retrievedContexts, e => e.RetrievalRank, "Retrieved chat contexts");
+        SequentialIndexValidator.EnsureExact(retrievedContexts.Where(e => e.WasIncludedInPrompt), e => e.PromptOrder ?? 0, "Prompt chat contexts");
+        SequentialIndexValidator.EnsureExact(requestMessages, e => e.MessageOrder, "Normalized chat request messages");
+        SequentialIndexValidator.EnsureExact(resolvedSubjects, e => e.SubjectOrder, "Resolved chat subjects");
+        if (retrievedContexts.Any(e => e.WasIncludedInPrompt != e.PromptOrder.HasValue)) throw new InvalidOperationException("Retrieved chat prompt membership and prompt order disagree.");
         var message = (await _unitOfWork.ChatMessages.GetAsync(
             filter: e => e.Id == messageId,
             cancellationToken: cxlTkn))
@@ -269,23 +277,47 @@ public class ChatPersistenceService(
         message.RawContent = rawContent;
         message.Status = MessageStatus.Completed;
 
-        foreach (var context in retrievedContexts.OrderBy(item => item.ContextIndex))
+        var persistedContexts = new Dictionary<Guid, ChatMessageContext>();
+        foreach (var context in retrievedContexts.OrderBy(item => item.RetrievalRank))
         {
-            message.RetrievedContexts.Add(new ChatMessageContext
+            var persisted = new ChatMessageContext
             {
                 ChatMessageId = message.Id,
-                ContextIndex = context.ContextIndex,
-                ContextText = context.ContextText,
-            });
+                RetrievalRank = context.RetrievalRank,
+                PromptOrder = context.PromptOrder,
+                WasIncludedInPrompt = context.WasIncludedInPrompt,
+                ChunkId = context.ChunkId,
+                SourceChunkId = context.ChunkId,
+                SourceDocumentId = context.SourceDocumentId,
+                SourceSubjectId = context.SourceSubjectId,
+                ChunkIndex = context.ChunkIndex,
+                ChunkText = context.ChunkText,
+                SimilarityScore = context.SimilarityScore,
+                DocumentTitle = context.DocumentTitle,
+                DocumentFileName = context.DocumentFileName,
+                SubjectCode = context.SubjectCode,
+                SubjectName = context.SubjectName,
+                StartPageNumber = context.StartPageNumber,
+                EndPageNumber = context.EndPageNumber,
+                StartSectionTitle = context.StartSectionTitle,
+                EndSectionTitle = context.EndSectionTitle,
+            };
+            message.RetrievedContexts.Add(persisted);
+            persistedContexts.Add(context.ChunkId, persisted);
         }
+
+        foreach (var requestMessage in requestMessages.OrderBy(e => e.MessageOrder)) message.RequestMessages.Add(new ChatMessageRequestMessage { MessageOrder = requestMessage.MessageOrder, Role = requestMessage.Role, Content = requestMessage.Content });
+        foreach (var subject in resolvedSubjects.OrderBy(e => e.SubjectOrder)) message.ResolvedSubjects.Add(new ChatMessageSubjectSnapshot { SubjectOrder = subject.SubjectOrder, SubjectId = subject.SubjectId, SourceSubjectId = subject.SubjectId, SubjectCode = subject.SubjectCode, SubjectName = subject.SubjectName });
 
         message.GenerationSettings = new ChatMessageGenerationSettings
         {
+            EmbeddingProvider = generationSettings.EmbeddingProvider,
             EmbeddingModel = generationSettings.EmbeddingModel,
 
             TopK = generationSettings.TopK,
             SimilarityThreshold = generationSettings.SimilarityThreshold,
 
+            LlmProvider = generationSettings.LlmProvider,
             LlmModel = generationSettings.LlmModel,
             Temperature = generationSettings.Temperature,
 
@@ -298,12 +330,14 @@ public class ChatPersistenceService(
 
             MaxContextChunks = generationSettings.MaxContextChunks,
             MaxHistoryMessages = generationSettings.MaxHistoryMessages,
+            ReasoningEffort = generationSettings.ReasoningEffort,
+            ReasoningOutput = generationSettings.ReasoningOutput,
         };
 
         message.GenerationMetrics = new ChatMessageGenerationMetrics
         {
             RetrievedChunkCount = chunkRetrievals.Count,
-            ContextChunkCount = retrievedContexts.Count,
+            ContextChunkCount = retrievedContexts.Count(e => e.WasIncludedInPrompt),
 
             PromptTokens = generationMetrics.PromptTokens,
             CompletionTokens = generationMetrics.CompletionTokens,
@@ -318,6 +352,7 @@ public class ChatPersistenceService(
             c => new Citation
             {
                 ChunkId = c.ChunkId,
+                RetrievalSnapshot = persistedContexts.GetValueOrDefault(c.ChunkId) ?? throw new InvalidOperationException($"Citation chunk {c.ChunkId} is absent from the persisted retrieval snapshot."),
                 CitationIndex = c.CitationIndex,
                 SimilarityScore = c.SimilarityScore,
                 LocationInDocument = c.LocationInDocument,
@@ -327,6 +362,8 @@ public class ChatPersistenceService(
         {
             message.Citations.Add(citation);
         }
+
+        message.ReconstructionCompleteness = ReconstructionCompleteness.Complete;
 
         await _unitOfWork.SaveAsync(cxlTkn);
 

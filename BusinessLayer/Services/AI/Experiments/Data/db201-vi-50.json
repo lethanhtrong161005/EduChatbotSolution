@@ -1,5 +1,7 @@
 {
+  "datasetName": "DB201 Vietnamese 50",
   "datasetKey": "db201-vi-50-v1",
+  "datasetVersion": "1",
   "language": "vi",
   "subjectCode": "DB201",
   "questions": [

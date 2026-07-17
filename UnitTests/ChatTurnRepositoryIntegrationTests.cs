@@ -73,8 +73,10 @@ public class ChatTurnRepositoryIntegrationTests
         exchange.AssistantMessage.RetrievedContexts.Add(new ChatMessageContext
         {
             ChatMessageId = exchange.AssistantMessage.Id,
-            ContextIndex = 0,
-            ContextText = "Stale context",
+            RetrievalRank = 1,
+            PromptOrder = 1,
+            WasIncludedInPrompt = true,
+            ChunkText = "Stale context",
         });
         await context.SaveChangesAsync();
 

@@ -22,11 +22,15 @@ public record ChatHistoryMessage
 
 public record ChatGenerationSettings
 {
+    public string EmbeddingProvider { get; init; } = string.Empty;
+
     public required string EmbeddingModel { get; init; }
 
     public required int TopK { get; init; }
 
     public required double SimilarityThreshold { get; init; }
+
+    public string LlmProvider { get; init; } = string.Empty;
 
     public required string LlmModel { get; init; }
 
@@ -45,4 +49,8 @@ public record ChatGenerationSettings
     public required int MaxContextChunks { get; init; }
 
     public required int MaxHistoryMessages { get; init; }
+
+    public string ReasoningEffort { get; init; } = string.Empty;
+
+    public string ReasoningOutput { get; init; } = string.Empty;
 }

@@ -7,10 +7,10 @@ public class ChatMessageGenerationMetrics : NaturalEntity
     public int ContextChunkCount { get; set; }
 
     /// <summary>Gets or sets the number of prompt tokens consumed (nullable).</summary>
-    public int? PromptTokens { get; set; }
+    public long? PromptTokens { get; set; }
 
     /// <summary>Gets or sets the number of completion tokens generated (nullable).</summary>
-    public int? CompletionTokens { get; set; }
+    public long? CompletionTokens { get; set; }
 
     public long RetrievalTimeMs { get; set; }
 

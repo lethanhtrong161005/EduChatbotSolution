@@ -72,6 +72,8 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             .Include(item => item.GenerationSettings)
             .Include(item => item.GenerationMetrics)
             .Include(item => item.RetrievedContexts)
+            .Include(item => item.RequestMessages)
+            .Include(item => item.ResolvedSubjects)
             .Include(item => item.Citations)
                 .ThenInclude(citation => citation.CitationOccurrences)
             .SingleOrDefaultAsync(
@@ -88,12 +90,17 @@ public class ChatTurnRepository(EduChatAiDbContext context)
             _context.ChatMessageGenerationMetrics.Remove(message.GenerationMetrics);
         if (message.RetrievedContexts.Count > 0)
             _context.ChatMessageContexts.RemoveRange(message.RetrievedContexts);
+        if (message.RequestMessages.Count > 0)
+            _context.ChatMessageRequestMessages.RemoveRange(message.RequestMessages);
+        if (message.ResolvedSubjects.Count > 0)
+            _context.ChatMessageSubjectSnapshots.RemoveRange(message.ResolvedSubjects);
         if (message.Citations.Count > 0)
             _context.Citations.RemoveRange(message.Citations);
 
         message.Content = string.Empty;
         message.RawContent = string.Empty;
         message.GenerationErrors = null;
+        message.ReconstructionCompleteness = ReconstructionCompleteness.LegacyIncomplete;
         message.Status = MessageStatus.Pending;
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -155,8 +162,10 @@ public class ChatTurnRepository(EduChatAiDbContext context)
         => _context.ChatMessages
             .AsNoTracking()
             .Include(item => item.Citations)
-                .ThenInclude(citation => citation.Chunk)
+                .ThenInclude(citation => citation.Chunk!)
                     .ThenInclude(chunk => chunk.Document)
+            .Include(item => item.Citations)
+                .ThenInclude(citation => citation.RetrievalSnapshot)
             .SingleOrDefaultAsync(
                 item => item.Id == assistantMessageId &&
                         item.ChatSessionId == sessionId &&

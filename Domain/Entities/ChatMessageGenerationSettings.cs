@@ -2,11 +2,15 @@
 
 public class ChatMessageGenerationSettings : NaturalEntity
 {
+    public string EmbeddingProvider { get; set; } = string.Empty;
+
     public string EmbeddingModel { get; set; } = string.Empty;
 
     public int TopK { get; set; }
 
     public double SimilarityThreshold { get; set; }
+
+    public string LlmProvider { get; set; } = string.Empty;
 
     public string LlmModel { get; set; } = string.Empty;
 
@@ -25,6 +29,10 @@ public class ChatMessageGenerationSettings : NaturalEntity
     public int MaxContextChunks { get; set; }
 
     public int MaxHistoryMessages { get; set; }
+
+    public string ReasoningEffort { get; set; } = string.Empty;
+
+    public string ReasoningOutput { get; set; } = string.Empty;
 
     public virtual ChatMessage ChatMessage { get; set; } = null!;
 }

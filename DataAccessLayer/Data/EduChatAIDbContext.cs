@@ -75,6 +75,10 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
 
     public DbSet<ChatMessageContext> ChatMessageContexts { get; set; }
 
+    public DbSet<ChatMessageRequestMessage> ChatMessageRequestMessages { get; set; }
+
+    public DbSet<ChatMessageSubjectSnapshot> ChatMessageSubjectSnapshots { get; set; }
+
     public DbSet<ChatMessageGenerationSettings> ChatMessageGenerationSettings { get; set; }
 
     public DbSet<ChatMessageGenerationMetrics> ChatMessageGenerationMetrics { get; set; }
@@ -97,6 +101,12 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
     public DbSet<TestResponse> TestResponses { get; set; }
 
     public DbSet<TestResponseContext> TestResponseContexts { get; set; }
+
+    public DbSet<TestResponseRequestMessage> TestResponseRequestMessages { get; set; }
+
+    public DbSet<TestResponseEvaluationAttempt> TestResponseEvaluationAttempts { get; set; }
+
+    public DbSet<TestResponseEvaluationMetric> TestResponseEvaluationMetrics { get; set; }
 
     /// <inheritdoc/>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -144,6 +154,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<ChatSessionTitleGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageContext>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessageRequestMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatMessageSubjectSnapshot>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationSettings>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<ChatMessageGenerationMetrics>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<Citation>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
@@ -153,6 +165,9 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
         modelBuilder.Entity<ExperimentConfigurationSnapshot>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponse>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<TestResponseContext>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestResponseRequestMessage>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestResponseEvaluationAttempt>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<TestResponseEvaluationMetric>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<UserImportBatch>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         modelBuilder.Entity<UserImportRow>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
 
@@ -232,9 +247,18 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
                       .HasForeignKey(j => new { j.DocumentId, j.SubjectId })
                       .HasPrincipalKey(p => new { p.Id, p.SubjectId }));
 
+        modelBuilder.Entity<ParsedSection>()
+            .HasIndex(e => new { e.DocumentId, e.SectionIndex })
+            .IsUnique();
+        modelBuilder.Entity<ParsedSection>()
+            .ToTable(table => table.HasCheckConstraint("ck_parsed_sections_section_index", "section_index >= 1"));
+
         modelBuilder.Entity<Chunk>()
             .Property(e => e.Embedding)
             .HasColumnType("vector(1024)");
+        modelBuilder.Entity<Chunk>()
+            .HasIndex(e => new { e.DocumentId, e.ChunkIndex })
+            .IsUnique();
         modelBuilder.Entity<Chunk>()
             .HasIndex(x => x.Embedding)
             .HasMethod("hnsw")
@@ -249,7 +273,8 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .ToTable(table => table.HasCheckConstraint(
                 "ck_chunks_section_titles",
                 "(start_section_title IS NULL AND end_section_title IS NULL) OR " +
-                "(start_section_title IS NOT NULL AND end_section_title IS NOT NULL)"));
+                "(start_section_title IS NOT NULL AND end_section_title IS NOT NULL)"))
+            .ToTable(table => table.HasCheckConstraint("ck_chunks_chunk_index", "chunk_index >= 1"));
 
         modelBuilder.Entity<ChatSessionTitleGenerationSettings>()
             .HasOne(d => d.ChatSession)
@@ -313,13 +338,67 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ChatMessageContext>()
-            .HasIndex(e => new { e.ChatMessageId, e.ContextIndex })
+            .HasOne(e => e.Chunk)
+            .WithMany()
+            .HasForeignKey(e => e.ChunkId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<ChatMessageContext>()
+            .HasIndex(e => new { e.ChatMessageId, e.RetrievalRank })
             .IsUnique();
 
         modelBuilder.Entity<ChatMessageContext>()
-            .ToTable(table => table.HasCheckConstraint(
-                "ck_chat_message_contexts_context_index",
-                "context_index >= 0"));
+            .HasIndex(e => new { e.ChatMessageId, e.PromptOrder })
+            .HasFilter("\"prompt_order\" IS NOT NULL")
+            .IsUnique();
+
+        modelBuilder.Entity<ChatMessageContext>()
+            .ToTable(table => table.HasCheckConstraint("ck_chat_message_contexts_retrieval_rank", "retrieval_rank >= 1"))
+            .ToTable(table => table.HasCheckConstraint("ck_chat_message_contexts_prompt_order", "(was_included_in_prompt = TRUE AND prompt_order >= 1) OR (was_included_in_prompt = FALSE AND prompt_order IS NULL)"));
+
+        modelBuilder.Entity<ChatMessageRequestMessage>()
+            .HasOne(e => e.ChatMessage)
+            .WithMany(e => e.RequestMessages)
+            .HasForeignKey(e => e.ChatMessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMessageRequestMessage>()
+            .HasIndex(e => new { e.ChatMessageId, e.MessageOrder })
+            .IsUnique();
+        modelBuilder.Entity<ChatMessageRequestMessage>()
+            .ToTable(table => table.HasCheckConstraint("ck_chat_message_request_messages_message_order", "message_order >= 1"));
+
+        modelBuilder.Entity<ChatMessageSubjectSnapshot>()
+            .HasOne(e => e.ChatMessage)
+            .WithMany(e => e.ResolvedSubjects)
+            .HasForeignKey(e => e.ChatMessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMessageSubjectSnapshot>()
+            .HasOne(e => e.Subject)
+            .WithMany()
+            .HasForeignKey(e => e.SubjectId)
+            .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ChatMessageSubjectSnapshot>()
+            .HasIndex(e => new { e.ChatMessageId, e.SubjectOrder })
+            .IsUnique();
+        modelBuilder.Entity<ChatMessageSubjectSnapshot>()
+            .ToTable(table => table.HasCheckConstraint("ck_chat_message_subject_snapshots_subject_order", "subject_order >= 1"));
+
+        modelBuilder.Entity<Citation>()
+            .HasOne(e => e.Chunk)
+            .WithMany(e => e.Citations)
+            .HasForeignKey(e => e.ChunkId)
+            .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<Citation>()
+            .HasOne(e => e.RetrievalSnapshot)
+            .WithMany(e => e.Citations)
+            .HasForeignKey(e => e.RetrievalSnapshotId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<CitationOccurrence>()
+            .HasIndex(e => new { e.CitationId, e.OccurrenceIndex })
+            .IsUnique();
+        modelBuilder.Entity<CitationOccurrence>()
+            .ToTable(table => table.HasCheckConstraint("ck_citation_occurrences_occurrence_index", "occurrence_index >= 1"));
 
         modelBuilder.Entity<Experiment>()
             .HasOne(e => e.Subject)
@@ -353,8 +432,14 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .IsUnique();
 
         modelBuilder.Entity<TestResponse>()
-            .HasIndex(e => new { e.ExperimentId, e.TestQuestionId })
+            .HasIndex(e => new { e.ExperimentId, e.SourceQuestionId })
             .IsUnique();
+
+        modelBuilder.Entity<TestResponse>()
+            .HasOne(e => e.TestQuestion)
+            .WithMany(e => e.TestResponses)
+            .HasForeignKey(e => e.TestQuestionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<TestResponseContext>()
             .HasOne(e => e.TestResponse)
@@ -363,12 +448,62 @@ public class EduChatAiDbContext(DbContextOptions<EduChatAiDbContext> options)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<TestResponseContext>()
-            .HasIndex(e => new { e.TestResponseId, e.ContextIndex })
+            .HasOne(e => e.Chunk)
+            .WithMany()
+            .HasForeignKey(e => e.ChunkId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<TestResponseContext>()
+            .HasIndex(e => new { e.TestResponseId, e.RetrievalRank })
             .IsUnique();
 
         modelBuilder.Entity<TestResponseContext>()
-            .ToTable(table => table.HasCheckConstraint(
-                "ck_test_response_contexts_context_index",
-                "context_index >= 0"));
+            .HasIndex(e => new { e.TestResponseId, e.PromptOrder })
+            .HasFilter("\"prompt_order\" IS NOT NULL")
+            .IsUnique();
+
+        modelBuilder.Entity<TestResponseContext>()
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_contexts_retrieval_rank", "retrieval_rank >= 1"))
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_contexts_prompt_order", "(was_included_in_prompt = TRUE AND prompt_order >= 1) OR (was_included_in_prompt = FALSE AND prompt_order IS NULL)"));
+
+        modelBuilder.Entity<TestResponseRequestMessage>()
+            .HasOne(e => e.TestResponse)
+            .WithMany(e => e.RequestMessages)
+            .HasForeignKey(e => e.TestResponseId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<TestResponseRequestMessage>()
+            .HasIndex(e => new { e.TestResponseId, e.MessageOrder })
+            .IsUnique();
+        modelBuilder.Entity<TestResponseRequestMessage>()
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_request_messages_message_order", "message_order >= 1"));
+
+        modelBuilder.Entity<TestResponseEvaluationAttempt>()
+            .HasOne(e => e.TestResponse)
+            .WithMany(e => e.EvaluationAttempts)
+            .HasForeignKey(e => e.TestResponseId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<TestResponseEvaluationAttempt>()
+            .HasIndex(e => new { e.TestResponseId, e.AttemptNumber })
+            .IsUnique();
+        modelBuilder.Entity<TestResponseEvaluationAttempt>()
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_evaluation_attempts_attempt_number", "attempt_number >= 1"));
+
+        modelBuilder.Entity<TestResponseEvaluationMetric>()
+            .HasOne(e => e.EvaluationAttempt)
+            .WithMany(e => e.Metrics)
+            .HasForeignKey(e => e.EvaluationAttemptId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<TestResponseEvaluationMetric>()
+            .HasIndex(e => new { e.EvaluationAttemptId, e.MetricName })
+            .IsUnique();
+        modelBuilder.Entity<TestResponseEvaluationMetric>()
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_evaluation_metrics_score", "score IS NULL OR (score >= 0 AND score <= 1)"))
+            .ToTable(table => table.HasCheckConstraint("ck_test_response_evaluation_metrics_retry_count", "retry_count >= 0"));
+
+        modelBuilder.Entity<TestResponse>()
+            .HasOne(e => e.CurrentEvaluationAttempt)
+            .WithMany()
+            .HasForeignKey(e => e.CurrentEvaluationAttemptId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

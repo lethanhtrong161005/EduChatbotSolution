@@ -104,6 +104,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     AdminReportRepository AdminReports { get; }
 
+    AnswerReconstructionRepository AnswerReconstructions { get; }
+
     // ── Research & Evaluation ────────────────────────────────
     /// <summary>Gets the repository for <see cref="TestQuestion"/> entities.</summary>
     GenericRepository<TestQuestion> TestQuestions { get; }
@@ -114,6 +116,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     GenericRepository<ExperimentConfigurationSnapshot> ExperimentConfigurationSnapshots { get; }
 
     ExperimentRunRepository ExperimentRuns { get; }
+
+    ExperimentEvaluationRepository ExperimentEvaluations { get; }
 
     /// <summary>Gets the repository for <see cref="TestResponse"/> entities.</summary>
     GenericRepository<TestResponse> TestResponses { get; }

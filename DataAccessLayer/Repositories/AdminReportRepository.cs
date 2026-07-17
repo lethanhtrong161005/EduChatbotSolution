@@ -111,13 +111,15 @@ public class AdminReportRepository(EduChatAiDbContext context)
             FailedDocumentCount = await Context.Documents.AsNoTracking().CountAsync(document => document.Status == DocumentStatus.Failed, cxlTkn),
         };
         var hotDocuments = await completedMessages
-            .SelectMany(message => message.Citations.Select(citation => new
+            .SelectMany(message => message.Citations
+            .Where(citation => citation.RetrievalSnapshot!.SourceDocumentId.HasValue || citation.Chunk != null)
+            .Select(citation => new
             {
                 AnswerId = message.Id,
-                citation.Chunk.DocumentId,
-                DocumentTitle = citation.Chunk.Document.Title,
-                citation.Chunk.Document.SubjectId,
-                SubjectCode = citation.Chunk.Document.Subject.Code,
+                DocumentId = citation.RetrievalSnapshot!.SourceDocumentId ?? citation.Chunk!.DocumentId,
+                DocumentTitle = citation.RetrievalSnapshot.DocumentTitle ?? citation.Chunk!.Document.Title,
+                SubjectId = citation.RetrievalSnapshot.SourceSubjectId ?? citation.Chunk!.Document.SubjectId,
+                SubjectCode = citation.RetrievalSnapshot.SubjectCode ?? citation.Chunk!.Document.Subject.Code,
             }))
             .Distinct()
             .GroupBy(item => new { item.DocumentId, item.DocumentTitle, item.SubjectId, item.SubjectCode })
@@ -259,8 +261,8 @@ public class AdminReportRepository(EduChatAiDbContext context)
             CoveragePercent = 0,
         };
 
-        var prompt = measured.Sum(row => (long)row.PromptTokens!.Value);
-        var completion = measured.Sum(row => (long)row.CompletionTokens!.Value);
+        var prompt = measured.Sum(row => row.PromptTokens!.Value);
+        var completion = measured.Sum(row => row.CompletionTokens!.Value);
         return new TokenMeasurementDto
         {
             MeasuredPromptTokens = prompt,
@@ -287,8 +289,8 @@ public class AdminReportRepository(EduChatAiDbContext context)
         public required int? SubjectId { get; init; }
         public required string? SubjectCode { get; init; }
         public required string? SubjectName { get; init; }
-        public required int? PromptTokens { get; init; }
-        public required int? CompletionTokens { get; init; }
+        public required long? PromptTokens { get; init; }
+        public required long? CompletionTokens { get; init; }
         public required long? TotalResponseTimeMs { get; init; }
         public required int? ContextChunkCount { get; init; }
     }

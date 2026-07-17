@@ -10,7 +10,9 @@ public class Citation : NaturalEntity
     public Guid ChatMessageId { get; set; }
 
     /// <summary>Gets or sets the foreign key to the specific <see cref="Entities.Chunk"/>.</summary>
-    public Guid ChunkId { get; set; }
+    public Guid? ChunkId { get; set; }
+
+    public Guid? RetrievalSnapshotId { get; set; }
 
     public int CitationIndex { get; set; }
 
@@ -23,7 +25,9 @@ public class Citation : NaturalEntity
     public virtual ChatMessage ChatMessage { get; set; } = null!;
 
     /// <summary>Gets or sets the source chunk.</summary>
-    public virtual Chunk Chunk { get; set; } = null!;
+    public virtual Chunk? Chunk { get; set; }
+
+    public virtual ChatMessageContext? RetrievalSnapshot { get; set; }
 
     public virtual ICollection<CitationOccurrence> CitationOccurrences { get; } = [];
 }

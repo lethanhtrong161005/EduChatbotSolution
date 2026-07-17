@@ -12,10 +12,7 @@ public class Experiment : NaturalEntity
     public int AffectedDocumentCount { get; set; }
     public int CompletedQuestionCount { get; set; }
     public int TotalQuestionCount { get; set; }
-    public double? Faithfulness { get; set; }
-    public double? AnswerRelevancy { get; set; }
-    public double? ContextPrecision { get; set; }
-    public double? ContextRecall { get; set; }
+    public ReconstructionCompleteness ReconstructionCompleteness { get; set; } = ReconstructionCompleteness.LegacyIncomplete;
     public string? Notes { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? FailureReason { get; set; }

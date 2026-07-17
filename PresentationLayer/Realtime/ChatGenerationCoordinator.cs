@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
@@ -101,6 +102,7 @@ public class ChatGenerationCoordinator(
             var allowedSubjectIds = session.SubjectId.HasValue
                 ? [session.SubjectId.Value]
                 : (await _subjectService.GetAccessibleSubjectsAsync(session.UserId, cancellationToken: cxlTkn))
+                    .OrderBy(e => e.Id)
                     .Select(e => e.Id);
 
             var request = await BuildChatGenerationRequest(session, targetAssistantMessage, allowedSubjectIds, cxlTkn);
@@ -129,6 +131,8 @@ public class ChatGenerationCoordinator(
                    result.RawAnswer,
                    result.ChunkRetrievals,
                    result.RetrievedContexts,
+                   result.RequestMessages,
+                   result.ResolvedSubjects,
                    result.ChunkUsages,
                    request.Settings,
                    result.Metrics,
@@ -180,11 +184,13 @@ public class ChatGenerationCoordinator(
             ChatHistory = chatHistory,
             Settings = new ChatGenerationSettings
             {
+                EmbeddingProvider = AiProviderName.ForEmbeddingModel(aiConfig.EmbeddingModel),
                 EmbeddingModel = aiConfig.EmbeddingModel,
 
                 TopK = aiConfig.TopK,
                 SimilarityThreshold = aiConfig.SimilarityThreshold,
 
+                LlmProvider = AiProviderName.ForChatModel(aiConfig.LlmModel),
                 LlmModel = aiConfig.LlmModel,
                 Temperature = aiConfig.ChatTemperature,
 
@@ -197,6 +203,8 @@ public class ChatGenerationCoordinator(
 
                 MaxContextChunks = aiConfig.MaxContextChunks,
                 MaxHistoryMessages = aiConfig.MaxHistoryMessages,
+                ReasoningEffort = "low",
+                ReasoningOutput = "none",
             }
         };
 

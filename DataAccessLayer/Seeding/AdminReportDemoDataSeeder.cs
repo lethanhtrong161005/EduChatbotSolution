@@ -260,16 +260,17 @@ public sealed class AdminReportDemoDataSeeder(EduChatAiDbContext context, TimePr
             data.DocumentSubjectCodes[documentId] = definition.SubjectCode;
 
             if (!isIndexed) continue;
-            for (var chunkIndex = 0; chunkIndex < 2; chunkIndex++)
+            for (var chunkOffset = 0; chunkOffset < 2; chunkOffset++)
             {
+                var chunkIndex = chunkOffset + 1;
                 data.Chunks.Add(new Chunk
                 {
                     Id = CreateDemoId($"chunk:{index + 1:D2}:{chunkIndex}"),
                     DocumentId = documentId,
                     ChunkIndex = chunkIndex,
                     ChunkText = $"{definition.SubjectCode} demo context {index + 1:D2}.{chunkIndex}: grounded historical dashboard content.",
-                    StartPageNumber = chunkIndex + 1,
-                    EndPageNumber = chunkIndex + 1,
+                    StartPageNumber = chunkIndex,
+                    EndPageNumber = chunkIndex,
                     StartSectionTitle = "Demo section",
                     EndSectionTitle = "Demo section",
                     ChunkingStrategy = "FixedLength",
@@ -428,14 +429,21 @@ public sealed class AdminReportDemoDataSeeder(EduChatAiDbContext context, TimePr
         if (noContext) return;
         var contextSubjectCode = plan.SubjectCode ?? plan.AccessibleSubjectCode;
         var chunks = chunksBySubject[contextSubjectCode];
-        for (var contextIndex = 0; contextIndex < contextCount; contextIndex++)
+        for (var contextOffset = 0; contextOffset < contextCount; contextOffset++)
         {
+            var contextIndex = contextOffset + 1;
             data.Contexts.Add(new ChatMessageContext
             {
                 Id = CreateDemoId($"context:{assistantId:N}:{contextIndex}"),
                 ChatMessageId = assistantId,
-                ContextIndex = contextIndex,
-                ContextText = chunks[contextIndex].ChunkText,
+                RetrievalRank = contextIndex,
+                PromptOrder = contextIndex,
+                WasIncludedInPrompt = true,
+                ChunkId = chunks[contextOffset].Id,
+                SourceChunkId = chunks[contextOffset].Id,
+                SourceDocumentId = chunks[contextOffset].DocumentId,
+                ChunkIndex = chunks[contextOffset].ChunkIndex,
+                ChunkText = chunks[contextOffset].ChunkText,
             });
         }
 

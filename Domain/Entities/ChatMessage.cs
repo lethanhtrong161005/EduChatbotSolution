@@ -31,6 +31,8 @@ public class ChatMessage : NaturalEntity
 
     public bool IsSelectedVariant { get; set; }
 
+    public ReconstructionCompleteness ReconstructionCompleteness { get; set; } = ReconstructionCompleteness.LegacyIncomplete;
+
     // ── Navigation ──────────────────────────────────────────
     /// <summary>Gets or sets the parent conversation.</summary>
     public virtual ChatSession ChatSession { get; set; } = null!;
@@ -44,6 +46,10 @@ public class ChatMessage : NaturalEntity
     public virtual ChatMessageGenerationMetrics? GenerationMetrics { get; set; }
 
     public virtual ICollection<ChatMessageContext> RetrievedContexts { get; } = [];
+
+    public virtual ICollection<ChatMessageRequestMessage> RequestMessages { get; } = [];
+
+    public virtual ICollection<ChatMessageSubjectSnapshot> ResolvedSubjects { get; } = [];
 
     /// <summary>Gets or sets citations associated with this message.</summary>
     public virtual ICollection<Citation> Citations { get; } = [];

@@ -2,7 +2,9 @@ namespace Domain.Contracts.DTOs;
 
 public record TestDatasetDto
 {
+    public required string DatasetName { get; init; }
     public required string DatasetKey { get; init; }
+    public required string DatasetVersion { get; init; }
     public required string Language { get; init; }
     public required string SubjectCode { get; init; }
     public required IReadOnlyList<TestDatasetQuestionDto> Questions { get; init; }

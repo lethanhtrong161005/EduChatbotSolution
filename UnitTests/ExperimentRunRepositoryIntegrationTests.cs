@@ -80,6 +80,62 @@ public class ExperimentRunRepositoryIntegrationTests
         });
     }
 
+    [Test]
+    public async Task EvaluationAttempts_AppendOneBasedAndSelectingCurrentPreservesEarlierAttempts()
+    {
+        var responseId = await CreateAnsweredResponseAsync();
+        Guid firstId;
+
+        await using (var firstContext = CreateContext())
+        {
+            var repository = new ExperimentEvaluationRepository(firstContext);
+            var first = await repository.AppendAttemptAsync(responseId, Attempt());
+            first.Status = EvaluationAttemptStatus.Completed;
+            first.Metrics.Add(new TestResponseEvaluationMetric { MetricName = "faithfulness", Status = EvaluationMetricStatus.Completed, Score = .75 });
+            await firstContext.SaveChangesAsync();
+            await repository.SelectCurrentAsync(responseId, first.Id);
+            firstId = first.Id;
+        }
+
+        await using (var secondContext = CreateContext())
+        {
+            var repository = new ExperimentEvaluationRepository(secondContext);
+            var second = await repository.AppendAttemptAsync(responseId, Attempt());
+            second.Status = EvaluationAttemptStatus.PartiallyCompleted;
+            second.Metrics.Add(new TestResponseEvaluationMetric { MetricName = "faithfulness", Status = EvaluationMetricStatus.Completed, Score = .9 });
+            second.Metrics.Add(new TestResponseEvaluationMetric { MetricName = "context_recall", Status = EvaluationMetricStatus.Failed, ErrorCode = "evaluation_error" });
+            await secondContext.SaveChangesAsync();
+            await repository.SelectCurrentAsync(responseId, second.Id);
+        }
+
+        await using var assertionContext = CreateContext();
+        var response = await assertionContext.TestResponses.AsNoTracking().Include(e => e.EvaluationAttempts).ThenInclude(e => e.Metrics).SingleAsync(e => e.Id == responseId);
+        var attempts = response.EvaluationAttempts.OrderBy(e => e.AttemptNumber).ToArray();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(attempts.Select(e => e.AttemptNumber), Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(attempts[0].Id, Is.EqualTo(firstId));
+            Assert.That(attempts[0].Metrics.Single().Score, Is.EqualTo(.75));
+            Assert.That(attempts[1].Metrics.Count, Is.EqualTo(2));
+            Assert.That(response.CurrentEvaluationAttemptId, Is.EqualTo(attempts[1].Id));
+        }
+    }
+
+    [Test]
+    public async Task SelectCurrentAsync_RunningAttemptIsRejected()
+    {
+        var responseId = await CreateAnsweredResponseAsync();
+        await using var context = CreateContext();
+        var repository = new ExperimentEvaluationRepository(context);
+        var attempt = await repository.AppendAttemptAsync(responseId, Attempt());
+        attempt.Status = EvaluationAttemptStatus.Running;
+        await context.SaveChangesAsync();
+
+        Assert.That(async () => await repository.SelectCurrentAsync(responseId, attempt.Id), Throws.TypeOf<EntityConflictException>());
+        Assert.That(await context.TestResponses.AsNoTracking().Where(e => e.Id == responseId).Select(e => e.CurrentEvaluationAttemptId).SingleAsync(), Is.Null);
+    }
+
     private async Task<int> CreateSubjectAsync(SubjectIndexAvailability availability = SubjectIndexAvailability.Ready)
     {
         await using var context = CreateContext();
@@ -87,6 +143,28 @@ public class ExperimentRunRepositoryIntegrationTests
         await context.SaveChangesAsync();
         return subject.Id;
     }
+
+    private async Task<Guid> CreateAnsweredResponseAsync()
+    {
+        var subjectId = await CreateSubjectAsync();
+        var experiment = NewExperiment(subjectId, "Evaluation attempts");
+        var response = new TestResponse
+        {
+            Id = Guid.NewGuid(), ExperimentId = experiment.Id, SourceQuestionId = 1, Status = ExperimentQuestionStatus.Completed, ReconstructionCompleteness = ReconstructionCompleteness.Complete,
+            DatasetName = "Dataset", DatasetKey = "dataset-v1", DatasetVersion = "1", QuestionExternalId = "Q-001", QuestionLanguage = "vi", Question = "Question", GroundTruth = "Reference", GeneratedAnswer = "Answer",
+        };
+        experiment.TestResponses.Add(response);
+        await using var context = CreateContext();
+        context.Experiments.Add(experiment);
+        await context.SaveChangesAsync();
+        return response.Id;
+    }
+
+    private static TestResponseEvaluationAttempt Attempt() => new()
+    {
+        EvaluatorFamily = "python-ragas", ContractVersion = "ragas-evaluation-v1", ServiceVersion = "1.0.0", RagasVersion = "0.4.3", PromptVersion = "vi-ragas-v1", Language = "vi",
+        LlmProvider = "ollama", LlmModel = "qwen3", EmbeddingProvider = "ollama", EmbeddingModel = "bge-m3", MetricSetKey = "ragas-rag-core-v1", EvaluatorProfileKey = "profile",
+    };
 
     private static Experiment NewExperiment(int subjectId, string name)
     {
@@ -121,8 +199,9 @@ public class ExperimentRunRepositoryIntegrationTests
                 NoContextRetrievedPrompt = "No context.",
                 CitationExtractionTemperature = 0,
                 CitationExtractionPrompt = "Extract citations.",
-                JudgeModel = ChatModelName.Gemini35Flash,
-                EvaluatorPromptVersion = "ragas-style-v1",
+                EvaluatorLlmProvider = "gemini", EvaluatorLlmModel = ChatModelName.Gemini35Flash,
+                EvaluatorEmbeddingProvider = "gemini", EvaluatorEmbeddingModel = EmbeddingModelName.GeminiEmbedding2,
+                EvaluatorMetricSetKey = "ragas-rag-core-v1", EvaluatorPromptVersion = "vi-ragas-v1",
             },
         };
     }

@@ -26,16 +26,18 @@ public class ChatMappingProfile : Profile
             .ForMember(dest => dest.VariantNavigation, opts => opts.MapFrom<ChatVariantNavigationResolver>());
 
         CreateMap<Citation, ChatCitationDto>()
-            .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.Chunk.ChunkIndex))
-            .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.Chunk.ChunkText))
-            .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.Chunk.Document.Title))
-            .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.Chunk.DocumentId));
+            .ForMember(dest => dest.ChunkId, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.SourceChunkId.HasValue ? src.RetrievalSnapshot.SourceChunkId.Value : src.ChunkId ?? Guid.Empty))
+            .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.ChunkIndex.HasValue ? src.RetrievalSnapshot.ChunkIndex.Value : src.Chunk != null ? src.Chunk.ChunkIndex : 0))
+            .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.RetrievalSnapshot != null ? src.RetrievalSnapshot.ChunkText : src.Chunk != null ? src.Chunk.ChunkText : string.Empty))
+            .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.RetrievalSnapshot != null ? src.RetrievalSnapshot.DocumentTitle ?? string.Empty : src.Chunk != null ? src.Chunk.Document.Title : string.Empty))
+            .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.SourceDocumentId.HasValue ? src.RetrievalSnapshot.SourceDocumentId.Value : src.Chunk != null ? src.Chunk.DocumentId : Guid.Empty));
 
         CreateMap<Citation, ResolvedCitation>()
-            .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.Chunk.ChunkIndex))
-            .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.Chunk.ChunkText))
-            .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.Chunk.Document.Title))
-            .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.Chunk.DocumentId));
+            .ForMember(dest => dest.ChunkId, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.SourceChunkId.HasValue ? src.RetrievalSnapshot.SourceChunkId.Value : src.ChunkId ?? Guid.Empty))
+            .ForMember(dest => dest.ChunkIndex, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.ChunkIndex.HasValue ? src.RetrievalSnapshot.ChunkIndex.Value : src.Chunk != null ? src.Chunk.ChunkIndex : 0))
+            .ForMember(dest => dest.ChunkText, opts => opts.MapFrom(src => src.RetrievalSnapshot != null ? src.RetrievalSnapshot.ChunkText : src.Chunk != null ? src.Chunk.ChunkText : string.Empty))
+            .ForMember(dest => dest.DocumentTitle, opts => opts.MapFrom(src => src.RetrievalSnapshot != null ? src.RetrievalSnapshot.DocumentTitle ?? string.Empty : src.Chunk != null ? src.Chunk.Document.Title : string.Empty))
+            .ForMember(dest => dest.DocumentId, opts => opts.MapFrom(src => src.RetrievalSnapshot != null && src.RetrievalSnapshot.SourceDocumentId.HasValue ? src.RetrievalSnapshot.SourceDocumentId.Value : src.Chunk != null ? src.Chunk.DocumentId : Guid.Empty));
 
         /* Send message */
         CreateMap<ChatMessage, ResolvedChatMessage>()
