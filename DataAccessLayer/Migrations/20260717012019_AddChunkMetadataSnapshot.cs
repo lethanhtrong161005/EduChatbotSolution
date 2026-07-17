@@ -104,24 +104,24 @@ namespace DataAccessLayer.Migrations
                 AND "storage_locator" LIKE 'documents/%';
                 """);
 
-            // Best-effort rollback. If the batch's locator points to the 'user_imports' bucket,
-            // have it point to the old 'documents' bucket. Else leave it untouched.
-            // The files must be moved manually, preserving object keys.
+            // Best-effort locator rollback.
+            //
+            // Before applying this migration down, move the corresponding physical
+            // objects from the 'user_imports' Supabase bucket back to the 'documents'
+            // bucket while preserving each object's key.
             migrationBuilder.Sql(
                 """
                 UPDATE "user_import_batches"
                 SET "storage_locator" =
-                    CASE
-                        WHEN "storage_locator" LIKE 'user_imports/%'
-                            THEN 'documents/' ||
-                                substring(
-                                    "storage_locator"
-                                    FROM length('user_imports/') + 1
-                                )
-                        ELSE "storage_locator"
-                    END
-                WHERE "storage_locator" IS NOT NULL
-                AND btrim("storage_locator") <> '';
+                    'documents/' ||
+                    ltrim(
+                        substring(
+                            "storage_locator"
+                            FROM length('user_imports/') + 1
+                        ),
+                        '/'
+                    )
+                WHERE "storage_locator" LIKE 'user_imports/%';
                 """);
 
             // Old DocumentType:
