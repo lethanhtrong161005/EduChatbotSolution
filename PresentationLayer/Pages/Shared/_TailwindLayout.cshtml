@@ -56,12 +56,12 @@
 
         <header class="navbar-educhat">
 
-            <div class="mx-auto flex w-full max-w-[1900px] items-center justify-between px-4 lg:px-6 relative z-10">
+            <div class="flex w-full items-center justify-between px-4 lg:px-6 relative z-10">
 
 
                 <!-- Brand -->
 
-                <a class="navbar-brand no-underline" asp-area="" asp-page="/Home/Index">
+                <a class="navbar-brand no-underline py-[5px] mr-4" asp-area="" asp-page="/Home/Index">
                     <div class="brand-logo">
                         <i class="fas fa-robot"></i>
                     </div>
@@ -70,33 +70,33 @@
 
                 <!-- Main Navigation -->
 
-                <nav class="hidden flex-1 items-center justify-between lg:flex">
+                <nav class="hidden flex-1 items-center lg:flex">
 
-                    <div class="ml-10 flex items-center gap-2">
+                    <div class="flex-1 flex items-center">
 
                         <a asp-page="/Home/Index"
-                           class="rounded-lg px-4 py-2 text-sm font-medium transition
+                           class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                             @(NavBar.HomeNavClass(Context) == "active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                             Home
                         </a>
 
                         <a asp-page="/Chat/Index"
-                           class="rounded-lg px-4 py-2 text-sm font-medium transition
+                           class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                             @(NavBar.ChatNavClass(Context) == "active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                             Chat
                         </a>
 
                         @if (isLecturer || isAdmin)
                         {
                             <a asp-page="/Documents/Library"
-                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                               class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                                 @(NavBar.DocumentsNavClass(Context) == "active"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                    ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                    : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                                 Documents
                             </a>
                         }
@@ -104,18 +104,18 @@
                         @if (isAdmin)
                         {
                             <a asp-page="/Admin/SubjectManage"
-                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                               class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                                 @(NavBar.AdminNavClass(Context) == "active"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                    ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                    : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                                 Manage
                             </a>
 
                             <a href="/rbl"
-                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                               class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                                 @(NavBar.RblNavClass(Context) == "active"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                    ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                    : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                                 Analyze
                             </a>
                         }
@@ -129,19 +129,19 @@
                             @if (isStudent || isLecturer)
                             {
                                 <a asp-page="/Subscriptions/SelectPlan"
-                                   class="rounded-lg px-4 py-2 text-sm font-medium transition
+                                   class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                                     @(NavBar.PlansNavClass(Context) == "active"
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                        ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                        : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                                     Plans
                                 </a>
                             }
 
                             <a asp-page="/Account/Profile"
-                               class="rounded-lg px-4 py-2 text-sm font-medium transition
+                               class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]
                                 @(NavBar.ProfileNavClass(Context) == "active"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")">
+                                    ? "bg-[#2ecc711a] text-(--color-primary-dark)"
+                                    : "text-slate-600 hover:bg-[#2ecc711a] hover:text-(--color-primary-dark)")">
                                 Profile
                             </a>
 
@@ -150,7 +150,7 @@
                                   asp-route-return-url="@Context.Request.Path">
 
                                 <button type="submit"
-                                        class="rounded-lg px-4 py-2 text-sm font-medium transition"
+                                        class="rounded-md px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium transition hover:-translate-y-[1px]"
                                         style="color: #ef4444; background: rgba(239,68,68,0.08);"
                                         onmouseover="this.style.background='rgba(239,68,68,0.15)'; this.style.color='#dc2626';"
                                         onmouseout="this.style.background='rgba(239,68,68,0.08)'; this.style.color='#ef4444';">
@@ -163,13 +163,13 @@
                         {
                             <a asp-page="/Account/Register"
                                asp-route-return-url="@Context.Request.Path"
-                               class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                               class="rounded-lg px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
                                 Register
                             </a>
 
                             <a asp-page="/Account/Login"
                                asp-route-return-url="@Context.Request.Path"
-                               class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                               class="rounded-lg bg-emerald-600 px-3.5 py-2 mx-0.5 text-sm leading-[1.6] tracking-[0.2px] font-semibold text-white transition hover:bg-emerald-700">
                                 Log in
                             </a>
                         }
@@ -188,7 +188,7 @@
 
         <main class="flex-1 py-8">
 
-            <div class="mx-auto w-full max-w-[1900px] px-4">
+            <div class="w-full max-w-[1900px] px-4">
 
                 @if (ViewData["PageTitle"] != null)
                 {
@@ -248,7 +248,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="footer-bottom">
                 <div class="copyright">
                     &copy; @DateTime.UtcNow.Year EduChatAI. All rights reserved.

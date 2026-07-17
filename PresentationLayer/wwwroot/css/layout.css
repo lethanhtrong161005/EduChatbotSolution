@@ -252,12 +252,11 @@ body {
 
 .footer-content {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+    margin: 0 2rem;
     padding: 0 1.5rem;
 }
 

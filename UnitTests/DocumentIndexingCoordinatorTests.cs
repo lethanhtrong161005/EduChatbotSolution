@@ -53,11 +53,17 @@ public sealed class DocumentIndexingCoordinatorTests
         f.Document.IndexedChunkSize = f.Config.ChunkSize;
         f.Document.IndexedChunkOverlap = f.Config.ChunkOverlap;
         f.Document.IndexedEmbeddingModel = f.Config.EmbeddingModel;
+        f.SectionRows.Add(new ParsedSection
+        {
+            DocumentId = f.Document.Id,
+            SectionIndex = 0,
+            Text = "source",
+        });
         f.ChunkRows.Add(new Chunk
         {
             DocumentId = f.Document.Id,
             ChunkIndex = 0,
-            ChunkText = "chunk",
+            ChunkText = "source",
             ChunkingStrategy = f.Config.ChunkingStrategy,
             ChunkOverlap = f.Config.ChunkOverlap,
             ChunkSize = f.Config.ChunkSize,
