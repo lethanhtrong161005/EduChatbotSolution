@@ -1,4 +1,4 @@
-﻿namespace Business.Services;
+﻿namespace Business.Services.Storage;
 
 public sealed class GeneralDriveStorageOptions
 {

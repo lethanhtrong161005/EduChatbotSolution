@@ -9,12 +9,12 @@ namespace Business.Services.AI.Indexing;
 
 public sealed class SubjectReindexCoordinator(
     IUnitOfWork unitOfWork,
-    IDocumentIndexingCoordinator documentIndexer,
+    IDocumentIndexingCoordinator indexingCoordinator,
     ILogger<SubjectReindexCoordinator> logger)
     : ISubjectReindexCoordinator
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IDocumentIndexingCoordinator _documentIndexer = documentIndexer;
+    private readonly IDocumentIndexingCoordinator _indexingCoordinator = indexingCoordinator;
     private readonly ILogger<SubjectReindexCoordinator> _logger = logger;
 
     public async Task RunAsync(int subjectId, EffectiveAiConfiguration configuration, CancellationToken cxlTkn = default)
@@ -33,7 +33,7 @@ public sealed class SubjectReindexCoordinator(
             foreach (var document in documents)
             {
                 cxlTkn.ThrowIfCancellationRequested();
-                await _documentIndexer.IndexAsync(document.Id, configuration, cxlTkn);
+                await _indexingCoordinator.IndexAsync(document.Id, configuration, cxlTkn);
             }
 
             await _unitOfWork.SubjectIndexes.SetAvailabilityAsync(subjectId, SubjectIndexAvailability.Ready, cxlTkn);

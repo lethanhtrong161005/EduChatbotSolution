@@ -85,7 +85,7 @@ public sealed class ExperimentService(
         ValidateCreateRequest(request);
 
         var subject = await _unitOfWork.Subjects.FindByIdAsync(request.SubjectId, cxlTkn) ?? throw new EntityNotFoundException(request.SubjectId);
-        if (subject.Code != "DB201") throw new EntityValidationException("Sprint experiments are restricted to the DB201 subject.", nameof(request.SubjectId));
+        if (subject.Code != "DB201") throw new EntityValidationException("Demo experiments are restricted to the DB201 subject.", nameof(request.SubjectId));
         if (subject.IndexAvailability == SubjectIndexAvailability.Reindexing) throw new EntityConflictException("The subject is currently being reindexed.", nameof(Subject.IndexAvailability));
 
         await _datasetProvider.ImportAsync(cxlTkn);

@@ -104,6 +104,26 @@ namespace DataAccessLayer.Migrations
                 AND "storage_locator" LIKE 'documents/%';
                 """);
 
+            // Best-effort locator rollback.
+            //
+            // Before applying this migration down, move the corresponding physical
+            // objects from the 'user_imports' Supabase bucket back to the 'documents'
+            // bucket while preserving each object's key.
+            migrationBuilder.Sql(
+                """
+                UPDATE "user_import_batches"
+                SET "storage_locator" =
+                    'documents/' ||
+                    ltrim(
+                        substring(
+                            "storage_locator"
+                            FROM length('user_imports/') + 1
+                        ),
+                        '/'
+                    )
+                WHERE "storage_locator" LIKE 'user_imports/%';
+                """);
+
             // Old DocumentType:
             // TXT=0, DOCX=1, PDF=2, HTML=3, PPTX=4, Other=5
             migrationBuilder.Sql(
