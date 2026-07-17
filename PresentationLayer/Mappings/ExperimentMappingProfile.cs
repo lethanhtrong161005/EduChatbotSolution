@@ -17,23 +17,47 @@ public class ExperimentMappingProfile : Profile
             .ForMember(d => d.ChunkOverlap, o => o.MapFrom(s => s.ConfigurationSnapshot.ChunkOverlap))
             .ForMember(d => d.EmbeddingModel, o => o.MapFrom(s => s.ConfigurationSnapshot.EmbeddingModel))
             .ForMember(d => d.LlmModel, o => o.MapFrom(s => s.ConfigurationSnapshot.LlmModel))
-            .ForMember(d => d.AggregateScores, o => o.MapFrom(s => Scores(s.Faithfulness, s.AnswerRelevancy, s.ContextPrecision, s.ContextRecall)));
+            .ForMember(d => d.EvaluatorProfileKey, o => o.MapFrom(s => EvaluatorProfile(s.TestResponses)))
+            .ForMember(d => d.AggregateScores, o => o.MapFrom(s => Scores(s.TestResponses)));
 
         CreateMap<ExperimentConfigurationSnapshot, ExperimentConfigurationSnapshotDto>();
 
         CreateMap<TestResponse, ExperimentQuestionResultDto>()
             .ForMember(d => d.TestResponseId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.TestQuestionId, o => o.MapFrom(s => s.TestQuestionId))
-            .ForMember(d => d.ExternalId, o => o.MapFrom(s => s.TestQuestion.ExternalId))
-            .ForMember(d => d.Question, o => o.MapFrom(s => s.TestQuestion.Question))
-            .ForMember(d => d.GroundTruth, o => o.MapFrom(s => s.TestQuestion.GroundTruth))
-            .ForMember(d => d.RetrievedContexts, o => o.MapFrom(s => s.RetrievedContexts.OrderBy(e => e.ContextIndex).Select(e => e.ContextText)))
-            .ForMember(d => d.Scores, o => o.MapFrom(s => Scores(s.Faithfulness, s.AnswerRelevancy, s.ContextPrecision, s.ContextRecall)));
+            .ForMember(d => d.ExternalId, o => o.MapFrom(s => s.QuestionExternalId))
+            .ForMember(d => d.Question, o => o.MapFrom(s => s.Question))
+            .ForMember(d => d.GroundTruth, o => o.MapFrom(s => s.GroundTruth))
+            .ForMember(d => d.RetrievedContexts, o => o.MapFrom(s => s.RetrievedContexts.Where(e => e.WasIncludedInPrompt).OrderBy(e => e.PromptOrder).Select(e => e.ChunkText)))
+            .ForMember(d => d.Explanation, o => o.MapFrom(s => s.CurrentEvaluationAttempt == null ? null : s.CurrentEvaluationAttempt.Summary))
+            .ForMember(d => d.Scores, o => o.MapFrom(s => Scores(new[] { s })));
 
         CreateMap<ChatGenerationMetrics, TestResponse>(MemberList.None);
-        CreateMap<RagasStyleEvaluationResult, TestResponse>(MemberList.None);
     }
 
-    private static RagasStyleScoresDto Scores(double? faithfulness, double? answerRelevancy, double? contextPrecision, double? contextRecall) =>
-        new() { Faithfulness = faithfulness, AnswerRelevancy = answerRelevancy, ContextPrecision = contextPrecision, ContextRecall = contextRecall };
+    private static RagasStyleScoresDto Scores(IEnumerable<TestResponse> responses)
+    {
+        var eligible = responses.Where(e => e.CurrentEvaluationAttempt != null).ToArray();
+        var faithfulness = Metric(eligible, RagasMetricName.Faithfulness);
+        var answerRelevancy = Metric(eligible, RagasMetricName.AnswerRelevancy);
+        var contextPrecision = Metric(eligible, RagasMetricName.ContextPrecision);
+        var contextRecall = Metric(eligible, RagasMetricName.ContextRecall);
+        return new RagasStyleScoresDto
+        {
+            Faithfulness = faithfulness.Score, AnswerRelevancy = answerRelevancy.Score, ContextPrecision = contextPrecision.Score, ContextRecall = contextRecall.Score,
+            Coverage = new RagasStyleCoverageDto { Faithfulness = faithfulness.Coverage, AnswerRelevancy = answerRelevancy.Coverage, ContextPrecision = contextPrecision.Coverage, ContextRecall = contextRecall.Coverage },
+        };
+    }
+
+    private static (double? Score, MetricCoverageDto Coverage) Metric(IReadOnlyCollection<TestResponse> responses, string metricName)
+    {
+        var values = responses.SelectMany(e => e.CurrentEvaluationAttempt!.Metrics).Where(e => e.MetricName == metricName && e.Status == EvaluationMetricStatus.Completed && e.Score.HasValue).Select(e => e.Score!.Value).ToArray();
+        return (values.Length == 0 ? null : values.Average(), new MetricCoverageDto { SuccessfulCount = values.Length, EligibleCount = responses.Count });
+    }
+
+    private static string? EvaluatorProfile(IEnumerable<TestResponse> responses)
+    {
+        var profiles = responses.Select(e => e.CurrentEvaluationAttempt?.EvaluatorProfileKey).Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        return profiles.Length == 1 ? profiles[0] : null;
+    }
 }

@@ -16,17 +16,18 @@ public sealed class ExperimentService(
     IAiConfigurationAdminService configurationAdminService,
     IExperimentDatasetProvider datasetProvider,
     IExperimentDispatcher dispatcher,
+    IPythonRagasClient ragasClient,
     IMapper mapper)
     : IExperimentService
 {
-    private const string DatasetKey = "db201-vi-50-v1";
-    private const string EvaluatorPromptVersion = "ragas-style-v1";
+    private const string EvaluatorMetricSetKey = "ragas-rag-core-v1";
 
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IAiConfigurationResolver _configurationResolver = configurationResolver;
     private readonly IAiConfigurationAdminService _configurationAdminService = configurationAdminService;
     private readonly IExperimentDatasetProvider _datasetProvider = datasetProvider;
     private readonly IExperimentDispatcher _dispatcher = dispatcher;
+    private readonly IPythonRagasClient _ragasClient = ragasClient;
     private readonly IMapper _mapper = mapper;
 
     public async Task<ExperimentCreateOptionsDto?> GetCreateOptionsAsync(int subjectId, CancellationToken cxlTkn = default)
@@ -41,6 +42,7 @@ public sealed class ExperimentService(
         if (configuration == null) return null;
 
         var options = await _configurationAdminService.GetOptionsAsync(cxlTkn);
+        var evaluatorCapabilities = await _ragasClient.GetCapabilitiesAsync(cxlTkn);
 
         var questions = await _unitOfWork.TestQuestions.GetAsync(
             preFilter: e => e.SubjectId == subjectId,
@@ -57,6 +59,7 @@ public sealed class ExperimentService(
             CurrentConfiguration = configuration,
             AiOptions = options,
             TestQuestions = [.. questions],
+            EvaluatorCapabilities = evaluatorCapabilities,
         };
     }
 
@@ -89,6 +92,7 @@ public sealed class ExperimentService(
         if (subject.IndexAvailability == SubjectIndexAvailability.Reindexing) throw new EntityConflictException("The subject is currently being reindexed.", nameof(Subject.IndexAvailability));
 
         await _datasetProvider.ImportAsync(cxlTkn);
+        var dataset = await _datasetProvider.GetDatasetAsync(cxlTkn);
 
         var requestedIds = request.TestQuestionIds.Distinct().Order().ToArray();
         var questions = (await _unitOfWork.TestQuestions.GetAsync(
@@ -100,17 +104,20 @@ public sealed class ExperimentService(
         if (questions.Count != requestedIds.Length) throw new EntityValidationException("One or more selected questions do not belong to the requested subject.", nameof(request.TestQuestionIds));
 
         var current = await _configurationResolver.GetAiConfigurationAsync(request.SubjectId, cxlTkn);
+        var evaluatorCapabilities = await _ragasClient.GetCapabilitiesAsync(cxlTkn);
+        ValidateEvaluator(request, evaluatorCapabilities);
         var affected = await _unitOfWork.ExperimentRuns.CountAffectedDocumentsAsync(request.SubjectId, request.ChunkingStrategy, request.ChunkSize, request.ChunkOverlap, request.EmbeddingModel, cxlTkn);
         var experiment = new Experiment
         {
             ExperimentName = request.ExperimentName.Trim(),
             SubjectId = request.SubjectId,
             Status = ExperimentStatus.Queued,
-            QuestionSetKey = CreateQuestionSetKey(questions),
+            QuestionSetKey = CreateQuestionSetKey(dataset, questions),
             AffectedDocumentCount = affected,
             IndexedDocumentCount = 0,
             CompletedQuestionCount = 0,
             TotalQuestionCount = questions.Count,
+            ReconstructionCompleteness = ReconstructionCompleteness.Complete,
             Notes = request.Notes?.Trim(),
             ConfigurationSnapshot = new ExperimentConfigurationSnapshot
             {
@@ -120,10 +127,12 @@ public sealed class ExperimentService(
                 ChunkingStrategy = request.ChunkingStrategy,
                 ChunkSize = request.ChunkSize,
                 ChunkOverlap = request.ChunkOverlap,
+                EmbeddingProvider = AiProviderName.ForEmbeddingModel(request.EmbeddingModel),
                 EmbeddingModel = request.EmbeddingModel,
                 TopK = request.TopK,
                 SimilarityThreshold = request.SimilarityThreshold,
                 MaxContextChunks = request.MaxContextChunks,
+                LlmProvider = AiProviderName.ForChatModel(request.LlmModel),
                 LlmModel = request.LlmModel,
                 ChatTemperature = request.ChatTemperature,
                 MaxHistoryMessages = current.MaxHistoryMessages,
@@ -132,15 +141,29 @@ public sealed class ExperimentService(
                 NoContextRetrievedPrompt = current.NoContextRetrievedPrompt,
                 CitationExtractionTemperature = current.CitationExtractionTemperature,
                 CitationExtractionPrompt = current.CitationExtractionPrompt,
-                JudgeModel = request.JudgeModel,
-                EvaluatorPromptVersion = EvaluatorPromptVersion,
+                EvaluatorLlmProvider = request.EvaluatorLlmProvider,
+                EvaluatorLlmModel = request.EvaluatorLlmModel,
+                EvaluatorEmbeddingProvider = request.EvaluatorEmbeddingProvider,
+                EvaluatorEmbeddingModel = request.EvaluatorEmbeddingModel,
+                EvaluatorMetricSetKey = EvaluatorMetricSetKey,
+                EvaluatorPromptVersion = evaluatorCapabilities.PromptVersion,
             },
         };
 
         foreach (var question in questions) experiment.TestResponses.Add(new TestResponse
         {
             TestQuestionId = question.Id,
-            Status = ExperimentQuestionStatus.Pending
+            SourceQuestionId = question.Id,
+            DatasetName = dataset.DatasetName,
+            DatasetKey = dataset.DatasetKey,
+            DatasetVersion = dataset.DatasetVersion,
+            QuestionExternalId = question.ExternalId,
+            QuestionLanguage = question.Language,
+            QuestionDifficulty = question.Difficulty,
+            Question = question.Question,
+            GroundTruth = question.GroundTruth,
+            ReconstructionCompleteness = ReconstructionCompleteness.Complete,
+            Status = ExperimentQuestionStatus.Pending,
         });
 
         await _unitOfWork.ExperimentRuns.CreateQueuedAsync(experiment, cxlTkn);
@@ -173,7 +196,7 @@ public sealed class ExperimentService(
     public async Task<IReadOnlyList<ExperimentSummaryDto>> GetSummariesAsync(CancellationToken cxlTkn = default)
     {
         var experiments = await _unitOfWork.Experiments.GetAsync(
-            includeProperties: [nameof(Experiment.Subject), nameof(Experiment.ConfigurationSnapshot)],
+            includeProperties: [nameof(Experiment.Subject), nameof(Experiment.ConfigurationSnapshot), nameof(Experiment.TestResponses), nameof(Experiment.TestResponses) + "." + nameof(TestResponse.CurrentEvaluationAttempt), nameof(Experiment.TestResponses) + "." + nameof(TestResponse.CurrentEvaluationAttempt) + "." + nameof(TestResponseEvaluationAttempt.Metrics)],
             orderBy: q => q.OrderByDescending(e => e.CreatedAt),
             asNoTracking: true,
             cancellationToken: cxlTkn);
@@ -193,6 +216,8 @@ public sealed class ExperimentService(
                 nameof(Experiment.TestResponses),
                 nameof(Experiment.TestResponses) + "." + nameof(TestResponse.TestQuestion),
                 nameof(Experiment.TestResponses) + "." + nameof(TestResponse.RetrievedContexts),
+                nameof(Experiment.TestResponses) + "." + nameof(TestResponse.CurrentEvaluationAttempt),
+                nameof(Experiment.TestResponses) + "." + nameof(TestResponse.CurrentEvaluationAttempt) + "." + nameof(TestResponseEvaluationAttempt.Metrics),
             ],
             filter: e => e.Id == experimentId,
             asNoTracking: true,
@@ -205,7 +230,7 @@ public sealed class ExperimentService(
         {
             Summary = _mapper.Map<ExperimentSummaryDto>(experiment),
             Configuration = _mapper.Map<ExperimentConfigurationSnapshotDto>(experiment.ConfigurationSnapshot),
-            Questions = [.. experiment.TestResponses.OrderBy(e => e.TestQuestion.ExternalId).Select(_mapper.Map<ExperimentQuestionResultDto>)],
+            Questions = [.. experiment.TestResponses.OrderBy(e => e.QuestionExternalId).Select(_mapper.Map<ExperimentQuestionResultDto>)],
         };
     }
 
@@ -224,24 +249,28 @@ public sealed class ExperimentService(
             throw new EntityConflictException("Compared experiments must belong to the same subject.");
         if (left.Summary.QuestionSetKey != right.Summary.QuestionSetKey)
             throw new EntityConflictException("Compared experiments must use the same question set.");
+        if (left.Summary.ReconstructionCompleteness != ReconstructionCompleteness.Complete || right.Summary.ReconstructionCompleteness != ReconstructionCompleteness.Complete)
+            throw new EntityConflictException("Legacy-incomplete experiments cannot be compared strictly.");
+        if (string.IsNullOrWhiteSpace(left.Summary.EvaluatorProfileKey) || string.IsNullOrWhiteSpace(right.Summary.EvaluatorProfileKey) || left.Summary.EvaluatorProfileKey != right.Summary.EvaluatorProfileKey)
+            throw new EntityConflictException("Compared experiments must use the same evaluator profile.");
 
-        var rightQuestions = right.Questions.ToDictionary(e => e.TestQuestionId);
+        var rightQuestions = right.Questions.ToDictionary(e => e.ExternalId, StringComparer.Ordinal);
         return new ExperimentComparisonDto
         {
             Left = left.Summary,
             Right = right.Summary,
             Metrics =
             [
-                Metric("Faithfulness", left.Summary.AggregateScores.Faithfulness, right.Summary.AggregateScores.Faithfulness),
-                Metric("Answer relevancy", left.Summary.AggregateScores.AnswerRelevancy, right.Summary.AggregateScores.AnswerRelevancy),
-                Metric("Context precision", left.Summary.AggregateScores.ContextPrecision, right.Summary.AggregateScores.ContextPrecision),
-                Metric("Context recall", left.Summary.AggregateScores.ContextRecall, right.Summary.AggregateScores.ContextRecall),
+                Metric("Faithfulness", left.Summary.AggregateScores.Faithfulness, right.Summary.AggregateScores.Faithfulness, left.Summary.AggregateScores.Coverage.Faithfulness, right.Summary.AggregateScores.Coverage.Faithfulness),
+                Metric("Answer relevancy", left.Summary.AggregateScores.AnswerRelevancy, right.Summary.AggregateScores.AnswerRelevancy, left.Summary.AggregateScores.Coverage.AnswerRelevancy, right.Summary.AggregateScores.Coverage.AnswerRelevancy),
+                Metric("Context precision", left.Summary.AggregateScores.ContextPrecision, right.Summary.AggregateScores.ContextPrecision, left.Summary.AggregateScores.Coverage.ContextPrecision, right.Summary.AggregateScores.Coverage.ContextPrecision),
+                Metric("Context recall", left.Summary.AggregateScores.ContextRecall, right.Summary.AggregateScores.ContextRecall, left.Summary.AggregateScores.Coverage.ContextRecall, right.Summary.AggregateScores.Coverage.ContextRecall),
             ],
             Questions =
             [
                 .. left.Questions.OrderBy(e => e.ExternalId).Select(question =>
                 {
-                    var other = rightQuestions[question.TestQuestionId];
+                    var other = rightQuestions[question.ExternalId];
                     return new QuestionScoreComparisonDto { TestQuestionId = question.TestQuestionId, ExternalId = question.ExternalId, Question = question.Question, LeftScores = question.Scores, RightScores = other.Scores };
                 }),
             ],
@@ -261,7 +290,10 @@ public sealed class ExperimentService(
         if (request.MaxContextChunks <= 0) throw new EntityValidationException("Maximum context chunks must be positive.", nameof(request.MaxContextChunks));
         if (string.IsNullOrWhiteSpace(request.LlmModel)) throw new EntityValidationException("LLM model is required.", nameof(request.LlmModel));
         if (!float.IsFinite(request.ChatTemperature) || request.ChatTemperature is < 0 or > 2) throw new EntityValidationException("Chat temperature must be between 0 and 2.", nameof(request.ChatTemperature));
-        if (string.IsNullOrWhiteSpace(request.JudgeModel)) throw new EntityValidationException("Judge model is required.", nameof(request.JudgeModel));
+        if (string.IsNullOrWhiteSpace(request.EvaluatorLlmProvider)) throw new EntityValidationException("Evaluator LLM provider is required.", nameof(request.EvaluatorLlmProvider));
+        if (string.IsNullOrWhiteSpace(request.EvaluatorLlmModel)) throw new EntityValidationException("Evaluator LLM model is required.", nameof(request.EvaluatorLlmModel));
+        if (string.IsNullOrWhiteSpace(request.EvaluatorEmbeddingProvider)) throw new EntityValidationException("Evaluator embedding provider is required.", nameof(request.EvaluatorEmbeddingProvider));
+        if (string.IsNullOrWhiteSpace(request.EvaluatorEmbeddingModel)) throw new EntityValidationException("Evaluator embedding model is required.", nameof(request.EvaluatorEmbeddingModel));
     }
 
     private static void ValidateIndexing(int subjectId, string strategy, int size, int overlap, string embeddingModel)
@@ -273,12 +305,21 @@ public sealed class ExperimentService(
         if (embeddingModel is not (EmbeddingModelName.BgeM3 or EmbeddingModelName.NemotronEmbedVLFree or EmbeddingModelName.GeminiEmbedding2)) throw new EntityValidationException($"Unknown embedding model '{embeddingModel}'.", nameof(embeddingModel));
     }
 
-    private static string CreateQuestionSetKey(IEnumerable<TestQuestion> questions)
+    private static string CreateQuestionSetKey(TestDatasetDto dataset, IEnumerable<TestQuestion> questions)
     {
-        var value = $"{DatasetKey}:{string.Join(',', questions.Select(e => e.ExternalId).Order(StringComparer.Ordinal))}";
-        return $"{DatasetKey}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16]}";
+        static string Field(string value) => $"{Encoding.UTF8.GetByteCount(value)}:{value}";
+        var value = string.Join('|', [Field(dataset.DatasetName), Field(dataset.DatasetKey), Field(dataset.DatasetVersion), .. questions.OrderBy(e => e.ExternalId, StringComparer.Ordinal).SelectMany(e => new[] { Field(e.ExternalId), Field(e.Question), Field(e.GroundTruth) })]);
+        return $"{dataset.DatasetKey}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()}";
     }
 
-    private static MetricComparisonDto Metric(string name, double? left, double? right) =>
-        new() { Metric = name, LeftScore = left, RightScore = right, Delta = left.HasValue && right.HasValue ? right.Value - left.Value : null };
+    private static void ValidateEvaluator(CreateExperimentRequest request, PythonRagasCapabilities capabilities)
+    {
+        if (capabilities.ContractVersion != ExperimentEvaluationService.ContractVersion) throw new EntityValidationException($"Unsupported evaluator contract '{capabilities.ContractVersion}'.", nameof(capabilities.ContractVersion));
+        if (!RagasMetricName.All.All(capabilities.Metrics.Contains)) throw new EntityValidationException("The evaluator does not support the complete required metric set.", nameof(capabilities.Metrics));
+        if (!capabilities.LlmOptions.Any(e => e.Provider == request.EvaluatorLlmProvider && e.Model == request.EvaluatorLlmModel)) throw new EntityValidationException("The selected evaluator LLM is unavailable.", nameof(request.EvaluatorLlmModel));
+        if (!capabilities.EmbeddingOptions.Any(e => e.Provider == request.EvaluatorEmbeddingProvider && e.Model == request.EvaluatorEmbeddingModel)) throw new EntityValidationException("The selected evaluator embedding model is unavailable.", nameof(request.EvaluatorEmbeddingModel));
+    }
+
+    private static MetricComparisonDto Metric(string name, double? left, double? right, MetricCoverageDto leftCoverage, MetricCoverageDto rightCoverage) =>
+        new() { Metric = name, LeftScore = left, RightScore = right, Delta = left.HasValue && right.HasValue ? right.Value - left.Value : null, LeftCoverage = leftCoverage, RightCoverage = rightCoverage };
 }

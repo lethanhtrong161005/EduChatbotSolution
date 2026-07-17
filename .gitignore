@@ -23,6 +23,12 @@ Desktop.ini
 x64/
 x86/
 build/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv-*/
+*.egg-info/
 
 *.user
 *.userosscache

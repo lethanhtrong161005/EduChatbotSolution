@@ -1,4 +1,13 @@
 services:
+  ragas:
+    env_file: !reset []
+    environment:
+      GEMINI_API_KEY: !reset null
+      OPENROUTER_API_KEY: !reset null
+      RAGAS_LLM_OPTIONS: '[{"provider":"ollama","model":"qwen3","label":"Qwen 3 · Ollama"}]'
+      RAGAS_EMBEDDING_OPTIONS: '[{"provider":"ollama","model":"bge-m3","label":"BGE-M3 · Ollama"}]'
+      RAGAS_LOG_LEVEL: DEBUG
+
   web:
     env_file: !reset []
     environment:

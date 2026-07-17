@@ -141,7 +141,7 @@ public class AdminExperimentCreatePageTests
             MaxContextChunks = 8,
             LlmModel = "llm1",
             ChatTemperature = 0.3f,
-            JudgeModel = "judge1"
+            EvaluatorLlmProvider = "test", EvaluatorLlmModel = "judge1", EvaluatorEmbeddingProvider = "test", EvaluatorEmbeddingModel = "embedding1"
         };
         var response = new CreateExperimentResponse
         {
@@ -184,7 +184,7 @@ public class AdminExperimentCreatePageTests
             MaxContextChunks = 8,
             LlmModel = "llm1",
             ChatTemperature = 0.3f,
-            JudgeModel = "judge1"
+            EvaluatorLlmProvider = "test", EvaluatorLlmModel = "judge1", EvaluatorEmbeddingProvider = "test", EvaluatorEmbeddingModel = "embedding1"
         };
 
         // Act
@@ -213,7 +213,7 @@ public class AdminExperimentCreatePageTests
             MaxContextChunks = 8,
             LlmModel = "llm1",
             ChatTemperature = 0.3f,
-            JudgeModel = "judge1"
+            EvaluatorLlmProvider = "test", EvaluatorLlmModel = "judge1", EvaluatorEmbeddingProvider = "test", EvaluatorEmbeddingModel = "embedding1"
         };
 
         // Act
@@ -241,7 +241,7 @@ public class AdminExperimentCreatePageTests
             MaxContextChunks = 8,
             LlmModel = "llm1",
             ChatTemperature = 0.3f,
-            JudgeModel = "judge1"
+            EvaluatorLlmProvider = "test", EvaluatorLlmModel = "judge1", EvaluatorEmbeddingProvider = "test", EvaluatorEmbeddingModel = "embedding1"
         };
 
         // Act

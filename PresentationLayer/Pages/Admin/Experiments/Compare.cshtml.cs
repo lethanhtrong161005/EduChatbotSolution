@@ -10,7 +10,7 @@ namespace Presentation.Pages.Admin.Experiments;
 
 /// <summary>
 /// Displays a pairwise comparison between two completed experiment runs.
-/// Shows aggregate RAGAS-style metric comparisons with deltas, and per-question
+/// Shows aggregate Ragas metric comparisons with coverage, deltas, and per-question
 /// side-by-side scores.
 /// </summary>
 [Authorize(Roles = "Admin")]

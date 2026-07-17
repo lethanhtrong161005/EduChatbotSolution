@@ -307,8 +307,10 @@ function renderConfigGrid(config) {
         ['LLM Model', config.llmModel],
         ['Temperature', config.chatTemperature],
         ['Max History Messages', config.maxHistoryMessages],
-        ['Judge Model', config.judgeModel],
-        ['Evaluator Version', config.evaluatorPromptVersion],
+        ['Evaluator LLM', `${config.evaluatorLlmProvider}/${config.evaluatorLlmModel}`],
+        ['Evaluator Embeddings', `${config.evaluatorEmbeddingProvider}/${config.evaluatorEmbeddingModel}`],
+        ['Metric Set', config.evaluatorMetricSetKey],
+        ['Evaluator Prompt', config.evaluatorPromptVersion],
     ];
 
     grid.innerHTML = entries.map(([k, v]) => `
@@ -324,18 +326,20 @@ function renderAggregateScores(scores) {
     if (!scoreRow) return;
 
     const metricMap = [
-        ['scoreF', scores.faithfulness],
-        ['scoreAR', scores.answerRelevancy],
-        ['scoreCP', scores.contextPrecision],
-        ['scoreCR', scores.contextRecall],
+        ['scoreF', 'scoreFaithfulness', scores.faithfulness, scores.coverage?.faithfulness],
+        ['scoreAR', 'scoreAnswerRelevancy', scores.answerRelevancy, scores.coverage?.answerRelevancy],
+        ['scoreCP', 'scoreContextPrecision', scores.contextPrecision, scores.coverage?.contextPrecision],
+        ['scoreCR', 'scoreContextRecall', scores.contextRecall, scores.coverage?.contextRecall],
     ];
 
-    metricMap.forEach(([id, val]) => {
+    metricMap.forEach(([id, cardId, val, coverage]) => {
         const el = document.getElementById(id);
         if (!el) return;
         const { text, cls } = fmtScoreCard(val);
         el.textContent = text;
         el.className = 'er-score-value ' + cls;
+        const note = document.querySelector(`#${cardId} .er-score-note`);
+        if (note) note.textContent = `Python Ragas · ${coverage?.successfulCount ?? 0}/${coverage?.eligibleCount ?? 0}`;
     });
 
     scoreRow.removeAttribute('hidden');

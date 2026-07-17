@@ -138,7 +138,8 @@ async function loadSubjectOptions(subjectId) {
         populateDropdown('chunkingStrategy', globalOptions.aiOptions.chunkingStrategies);
         populateDropdown('embeddingModel', globalOptions.aiOptions.embeddingModels);
         populateDropdown('llmModel', globalOptions.aiOptions.chatModels);
-        populateDropdown('judgeModel', globalOptions.aiOptions.judgeModels);
+        populateDropdown('evaluatorLlm', globalOptions.evaluatorCapabilities.llmOptions.map(m => ({ value: `${m.provider}|${m.model}`, label: m.label })));
+        populateDropdown('evaluatorEmbedding', globalOptions.evaluatorCapabilities.embeddingOptions.map(m => ({ value: `${m.provider}|${m.model}`, label: m.label })));
 
         // Populate with current configuration values
         const current = globalOptions.currentConfiguration;
@@ -153,10 +154,6 @@ async function loadSubjectOptions(subjectId) {
 
         document.getElementById('llmModel').value = current.generation.llmModel.effectiveValue;
         document.getElementById('chatTemperature').value = current.generation.chatTemperature.effectiveValue;
-
-        // Select matching judge model or default to gemini-3.5-flash
-        const hasGeminiFlash = globalOptions.aiOptions.judgeModels.some(m => m.value === 'gemini-3.5-flash');
-        document.getElementById('judgeModel').value = hasGeminiFlash ? 'gemini-3.5-flash' : globalOptions.aiOptions.judgeModels[0]?.value ?? '';
 
         // Default name
         document.getElementById('experimentName').value = `${globalOptions.subjectCode} smoke run`;
@@ -398,6 +395,8 @@ async function submitExperimentCreation(requiresReindex) {
     const btnSubmitModal = document.getElementById('btnConfirmLaunchSubmit');
     const selectedQuestions = Array.from(questionList.querySelectorAll('.question-checkbox:checked')).map(cb => parseInt(cb.value, 10));
 
+    const [evaluatorLlmProvider, evaluatorLlmModel] = document.getElementById('evaluatorLlm').value.split('|', 2);
+    const [evaluatorEmbeddingProvider, evaluatorEmbeddingModel] = document.getElementById('evaluatorEmbedding').value.split('|', 2);
     const request = {
         experimentName: document.getElementById('experimentName').value,
         subjectId: selectedSubjectId,
@@ -411,7 +410,10 @@ async function submitExperimentCreation(requiresReindex) {
         maxContextChunks: parseInt(document.getElementById('maxContextChunks').value, 10),
         llmModel: document.getElementById('llmModel').value,
         chatTemperature: parseFloat(document.getElementById('chatTemperature').value),
-        judgeModel: document.getElementById('judgeModel').value,
+        evaluatorLlmProvider,
+        evaluatorLlmModel,
+        evaluatorEmbeddingProvider,
+        evaluatorEmbeddingModel,
         notes: document.getElementById('notes').value
     };
 

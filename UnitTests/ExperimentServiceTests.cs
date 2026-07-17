@@ -23,6 +23,7 @@ public class ExperimentServiceTests
     private Mock<IAiConfigurationResolver> _resolver = null!;
     private Mock<IAiConfigurationAdminService> _admin = null!;
     private Mock<IExperimentDatasetProvider> _dataset = null!;
+    private Mock<IPythonRagasClient> _ragas = null!;
     private RecordingExperimentDispatcher _dispatcher = null!;
 
     [SetUp]
@@ -33,22 +34,25 @@ public class ExperimentServiceTests
         _resolver = new Mock<IAiConfigurationResolver>();
         _admin = new Mock<IAiConfigurationAdminService>();
         _dataset = new Mock<IExperimentDatasetProvider>();
+        _ragas = new Mock<IPythonRagasClient>();
+        _ragas.Setup(e => e.GetCapabilitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Capabilities());
         _dispatcher = new RecordingExperimentDispatcher();
     }
 
     [Test]
-    public async Task CreateAsync_AcceptsSelectedJudgeAndCapturesCitationExtractionSettings()
+    public async Task CreateAsync_AcceptsSelectedEvaluatorAndCapturesCitationExtractionSettings()
     {
         Experiment? captured = null;
         ConfigureCreateDependencies(experiment => captured = experiment);
         var sut = CreateService();
 
-        await sut.CreateAsync(Request() with { TestQuestionIds = [1], JudgeModel = ChatModelName.Qwen3 });
+        await sut.CreateAsync(Request() with { TestQuestionIds = [1] });
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(captured, Is.Not.Null);
-            Assert.That(captured!.ConfigurationSnapshot.JudgeModel, Is.EqualTo(ChatModelName.Qwen3));
+            Assert.That(captured!.ConfigurationSnapshot.EvaluatorLlmModel, Is.EqualTo(ChatModelName.Gemini35Flash));
+            Assert.That(captured.ConfigurationSnapshot.EvaluatorEmbeddingModel, Is.EqualTo(EmbeddingModelName.GeminiEmbedding2));
             Assert.That(captured.ConfigurationSnapshot.CitationExtractionTemperature, Is.EqualTo(.15F));
             Assert.That(captured.ConfigurationSnapshot.CitationExtractionPrompt, Is.EqualTo("Extract grounded citations."));
         }
@@ -73,7 +77,7 @@ public class ExperimentServiceTests
         Assert.That(async () => await sut.CompareAsync(left.Id, right.Id), Throws.TypeOf<EntityConflictException>());
     }
 
-    private ExperimentService CreateService() => new(_uow.Object, _resolver.Object, _admin.Object, _dataset.Object, _dispatcher, _mapper.Object);
+    private ExperimentService CreateService() => new(_uow.Object, _resolver.Object, _admin.Object, _dataset.Object, _dispatcher, _ragas.Object, _mapper.Object);
 
     private void ConfigureCreateDependencies(Action<Experiment> capture)
     {
@@ -108,6 +112,7 @@ public class ExperimentServiceTests
         _uow.Setup(item => item.ExperimentRuns).Returns(runs.Object);
 
         _dataset.Setup(item => item.ImportAsync(It.IsAny<CancellationToken>())).ReturnsAsync(50);
+        _dataset.Setup(item => item.GetDatasetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new TestDatasetDto { DatasetName = "DB201 Vietnamese 50", DatasetKey = "db201-vi-50-v1", DatasetVersion = "1", Language = "vi", SubjectCode = "DB201", Questions = [] });
         _resolver.Setup(item => item.GetAiConfigurationAsync(3, It.IsAny<CancellationToken>())).ReturnsAsync(Configuration());
     }
 
@@ -201,7 +206,8 @@ public class ExperimentServiceTests
         MaxContextChunks = 5,
         LlmModel = ChatModelName.Qwen3,
         ChatTemperature = .2F,
-        JudgeModel = ChatModelName.Gemini35Flash,
+        EvaluatorLlmProvider = "gemini", EvaluatorLlmModel = ChatModelName.Gemini35Flash,
+        EvaluatorEmbeddingProvider = "gemini", EvaluatorEmbeddingModel = EmbeddingModelName.GeminiEmbedding2,
     };
 
     private static ExperimentResultDto Result(Guid id, string questionSetKey) => new()
@@ -247,10 +253,18 @@ public class ExperimentServiceTests
             NoContextRetrievedPrompt = "No context",
             CitationExtractionTemperature = 0,
             CitationExtractionPrompt = "Extract citations",
-            JudgeModel = ChatModelName.Gemini35Flash,
-            EvaluatorPromptVersion = "ragas-style-v1",
+            EvaluatorLlmProvider = "gemini", EvaluatorLlmModel = ChatModelName.Gemini35Flash,
+            EvaluatorEmbeddingProvider = "gemini", EvaluatorEmbeddingModel = EmbeddingModelName.GeminiEmbedding2,
+            EvaluatorMetricSetKey = "ragas-rag-core-v1", EvaluatorPromptVersion = "vi-ragas-v1",
         },
         Questions = [],
+    };
+
+    private static PythonRagasCapabilities Capabilities() => new()
+    {
+        ContractVersion = ExperimentEvaluationService.ContractVersion, ServiceVersion = "test", RagasVersion = "0.4.3", PromptVersion = "vi-ragas-v1", Metrics = RagasMetricName.All,
+        LlmOptions = [new PythonRagasModelOption { Provider = "gemini", Model = ChatModelName.Gemini35Flash, Label = "Gemini" }],
+        EmbeddingOptions = [new PythonRagasModelOption { Provider = "gemini", Model = EmbeddingModelName.GeminiEmbedding2, Label = "Gemini Embedding" }],
     };
 
 }

@@ -11,10 +11,10 @@ The repository is under active development. Docker Compose is the primary local 
 | Accounts and access | ASP.NET Core Identity, email verification, Google sign-in, Admin/Lecturer/Student roles, subject memberships, and account administration |
 | Knowledge base | Subject and chapter management; PDF, DOCX, and PPTX reception; local staging; local or Supabase durable storage; background parsing, chunking, embedding, and pgvector indexing |
 | AI configuration | Global defaults plus nullable per-subject overrides for chunking, retrieval, chat, title, and citation settings; subject re-indexing with availability state |
-| Chat | Fixed-subject and flexible sessions, streamed answers, selected response variants, retry/regeneration, citations, immutable retrieved-context snapshots, and nullable provider metrics |
-| Experiments | Admin-only DB201 experiment creation, 50-question Vietnamese dataset, compatibility preflight, optional re-indexing, progress/results, and comparison of two compatible completed runs |
+| Chat | Fixed-subject and flexible sessions, streamed answers, variants, citations, and reconstructible snapshots of normalized requests, resolved subjects, all ranked retrievals, prompts, raw/final answers, and nullable provider metrics |
+| Experiments | Admin-only DB201 experiments with immutable question/reference and answer snapshots, optional re-indexing, append-only official Python Ragas evaluations, progress/results, and strict comparison |
 | Admin reports | Admin-only 7-day, 30-day, and all-time adoption/health dashboard with role and trend-subject filters, UTC+7 reporting day trends, subject usage, indexing health, and hot documents |
-Subscription and payment foundations | Plan, plan-option, purchase, subscription, transaction, and partial ZaloPay-facing flows are present. Runtime quota metering and enforcement, complete entitlement lifecycle verification, and production VNPay, domestic-card, and international-card gateway integrations are not complete. |
+| Subscription and payment foundations | Plan, plan-option, purchase, subscription, transaction, and partial ZaloPay-facing flows are present. Runtime quota metering and enforcement, complete entitlement lifecycle verification, and production VNPay, domestic-card, and international-card gateway integrations are not complete. |
 | Automated verification | NUnit unit, mapping, PageModel, service, and opt-in PostgreSQL integration tests; browser automation is not currently part of the suite |
 
 ## Architecture
@@ -42,7 +42,7 @@ The intended persistence boundary is `IUnitOfWork`. The two EF Core contexts are
 | Authentication | ASP.NET Core Identity, cookie authentication, Google OAuth |
 | Background work | Hangfire with PostgreSQL storage |
 | Realtime | SignalR |
-| AI | `Microsoft.Extensions.AI`, Ollama, OpenRouter, Gemini |
+| AI | `Microsoft.Extensions.AI`, Ollama, OpenRouter, Gemini, Python 3.12, FastAPI, and Ragas 0.4.3 |
 | Storage and cache | Local file buffers, Supabase Storage, Redis, RedisInsight |
 | Document parsing | PdfPig, Open XML, and text/HTML parsers |
 | Tests | NUnit, Moq, optional disposable-PostgreSQL integration tests |
@@ -56,6 +56,7 @@ EduChatAI.slnx
 |- BusinessLayer/        Account, document, AI, report, subscription, and payment services
 |- PresentationLayer/    Razor Pages, SignalR hubs, Hangfire jobs, mappings, and static assets
 |- UnitTests/            Unit, PageModel, mapping, and gated PostgreSQL integration tests
+|- RagasService/         Official Python Ragas evaluation sidecar and tests
 |- docker-compose.yml    CPU-portable development stack
 |- docker-compose.gpu.yml
 `- PresentationLayer/Dockerfile
@@ -97,7 +98,10 @@ ASP.NET Core maps double underscores to nested keys. For example, `AI__Gemini__A
 | `ConnectionStrings:Database` | Required. The host must reach PostgreSQL with pgvector support. Compose supplies its own container connection. |
 | `Redis:ConnectionString` | Required for normal operation; defaults to `localhost:6379` when omitted. Compose uses `redis:6379`. |
 | `AI:Ollama:Endpoint` | Required as a configured section; the Ollama service/model is needed only when an Ollama model is selected. |
+| `AI:Ragas:Endpoint` | Python Ragas sidecar base URL. Compose uses `http://ragas:8090/`; host execution defaults to `http://localhost:8090/`. |
 | `AI:OpenRouter:*`, `AI:Gemini:*` | Their clients are registered at startup. Supply nonempty API keys for reliable startup and for any selected remote model. |
+| `RAGAS_LLM_OPTIONS`, `RAGAS_EMBEDDING_OPTIONS` | Optional JSON capability allowlists owned by the sidecar. Defaults expose Gemini plus Ollama `qwen3` and `bge-m3`. |
+| `OLLAMA_API_BASE` | Sidecar-to-Ollama URL. Compose supplies `http://ollama:11434`; host sidecar execution defaults to `http://localhost:11434`. |
 | `BlobStorage:Supabase:*` | The section and a valid endpoint are configured at startup. A real secret and bucket are needed when Supabase storage is selected. |
 | `Authentication:Google:*` | Real values are required only for Google sign-in. |
 | `Email:*` | Real SMTP values are required for verification, reset, and administration emails. |
@@ -144,6 +148,7 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 | `http://localhost:8080/hangfire` | Admin-authorized Hangfire dashboard |
 | `http://localhost:5540` | RedisInsight |
 | `http://localhost:11434` | Ollama API |
+| `http://localhost:8090/health` | Python Ragas sidecar health |
 
 PostgreSQL and Redis are exposed on host ports `5432` and `6379` for development tools.
 
@@ -162,7 +167,7 @@ docker compose down
 Start infrastructure, install frontend packages, and run the web project:
 
 ```bash
-docker compose up -d db redis ollama
+docker compose up -d db redis ollama ragas
 npm ci --prefix PresentationLayer
 dotnet restore EduChatAI.slnx
 dotnet run --project PresentationLayer/Presentation.csproj
@@ -179,7 +184,7 @@ dotnet build EduChatAI.slnx -p:SkipTailwindBuild=true
 ## Visual Studio Docker debugging
 
 - Use the Docker Compose project as the startup project.
-- CLI Compose reads `.env`; the Visual Studio override resets `env_file` and mounts User Secrets so those secrets remain authoritative.
+- CLI Compose reads `.env`; the Visual Studio override resets `env_file` for both web and Ragas, mounts User Secrets for the web application, and exposes only the local Ollama evaluator capability to the sidecar so CLI credentials do not leak into Visual Studio Compose artifacts.
 - Visual Studio Fast mode targets the Dockerfile's first `base` stage. Keep that stage first.
 - The Visual Studio override publishes HTTPS on `https://localhost:8081`.
 - `docker-compose.gpu.yml` is included by the Compose project, so Visual Studio debugging requests GPU-backed Ollama.
@@ -266,7 +271,7 @@ Flexible does not mean unrestricted. A user must have at least one accessible su
 
 Each user turn and pending assistant reply are created atomically in adjacent logical message slots. Regeneration creates another assistant variant for the same reply slot and selects it; normal history includes only the selected completed variant. Retrying a failed assistant message retains its identity but clears generated content, metrics, citations, and retrieved-context snapshots before running again.
 
-Generation embeds the user question, retrieves allowed subject chunks, inserts at most `MaxContextChunks` into the prompt in order, streams the answer through SignalR, and stores exact ordered context snapshots. Citation markers are resolved only against those retrieved chunks; a second structured model call may store supporting-quote occurrences. Provider token and first-token measurements remain `null` when the provider does not supply them.
+Generation embeds the user question, retrieves allowed subject chunks, inserts at most `MaxContextChunks` into the prompt in order, streams the answer through SignalR, and stores all ranked TopK retrievals with prompt membership/order. It also snapshots normalized provider messages, generation settings, the resolved flexible-session subject scope, raw/final answers, citations, and nullable metrics. Reconstruction reads only these snapshots and never invokes a model or the live vector index.
 
 ## Experiments
 
@@ -279,7 +284,9 @@ The current experiment workflow is Admin-only and intentionally restricted to DB
 5. The results page polls `Queued`, `PreparingIndex`, `Running`, `Evaluating`, `Completed`, or `Failed` progress and shows per-question failures without requiring every question to succeed.
 6. Comparison accepts exactly two completed runs from the same subject and question set.
 
-The evaluator is an in-process C# **RAGAS-style** LLM judge that scores faithfulness, answer relevancy, context precision, and context recall from immutable question, answer, and retrieved-context snapshots. It is not the official Python RAGAS package. Experiment execution is serial and has no automatic Hangfire retry; do not promise a fixed completion time.
+Each `TestResponse` snapshots its dataset identity, exact question/reference, normalized request, all ranked retrievals, prompt contexts, raw/final answer, settings, and nullable metrics. Evaluation is a separate append-only step: attempt 1 runs automatically after answering, while the entity/repository model can retain later attempts without overwriting earlier results. No re-evaluate UI is included yet.
+
+The Python 3.12 sidecar uses official Ragas 0.4.3 collection metrics for faithfulness, answer relevancy, reference-aware context precision, and context recall. Evaluator LLM and embedding choices come from the sidecar capability allowlist and are snapshotted per experiment; Gemini and Ollama (`qwen3` plus `bge-m3`) are available by default. The web application and ordinary chat remain usable when the sidecar is unavailable, while experiment evaluation degrades to failed attempts. Experiment execution is serial and has no automatic Hangfire retry.
 
 ## Admin reports
 
@@ -312,6 +319,8 @@ Minimum local verification:
 dotnet restore EduChatAI.slnx
 dotnet build EduChatAI.slnx --no-restore -p:SkipTailwindBuild=true
 dotnet test EduChatAI.slnx --no-build --no-restore
+docker build --target test -t educhatai-ragas-test -f RagasService/Dockerfile .
+docker run --rm educhatai-ragas-test
 ```
 
 The normal solution test result must be interpreted together with its skipped-test count. PostgreSQL integration tests are only meaningful when `EDUCHATAI_PHASE2_TEST_DATABASE` points to an explicitly disposable database, and browser/UI automation is not currently part of the suite.
@@ -323,7 +332,7 @@ $env:EDUCHATAI_PHASE2_TEST_DATABASE = "<disposable PostgreSQL connection string>
 dotnet test UnitTests/UnitTests.csproj --no-build --no-restore
 ```
 
-`ContractFixtureSerializationTests` also requires the local, Git-ignored `.agents` contract fixtures and is intentionally ignored when they are unavailable. Browser/UI automation is currently deferred, so complete feature work still requires focused browser smoke testing.
+`ContractFixtureSerializationTests` also requires the local, Git-ignored `.agent-guidance` contract fixtures and is intentionally ignored when they are unavailable. Browser/UI automation is currently deferred, so complete feature work still requires focused browser smoke testing.
 
 ## Suggested demo smoke flow
 
@@ -342,14 +351,16 @@ dotnet test UnitTests/UnitTests.csproj --no-build --no-restore
 - Development startup automatically migrates and seeds. This is a local-development convenience, not a production deployment strategy, and it should not target a shared database casually.
 - Experiments are currently DB201-only, run serially per subject, use one live subject index, and leave the selected configuration active after completion.
 - Question-level generation or evaluation failures do not necessarily stop later questions. A run currently completes when at least one question evaluates successfully; failed questions are excluded from aggregate scores, while a run fails when every question fails.
-- Experiment configuration and retrieved contexts are snapshotted, but the associated `TestQuestion` question and ground-truth text remain mutable database data. Editing or reimporting the dataset can therefore change how an older run is displayed or reconstructed.
+- New chat answers and experiment responses persist complete reconstruction snapshots. Pre-extension rows are explicitly legacy/incomplete where historical inputs cannot be proven and are excluded from strict comparison.
 - Experiment jobs do not currently provide complete stale-run detection, automatic restart, or idempotent resume after interruption in `PreparingIndex`, `Running`, or `Evaluating`.
-- The evaluator is an in-process C# RAGAS-style structured-output judge, not the official Python RAGAS package. A future Python evaluator remains an undecided extension until its process boundary, schemas, versions, recovery behavior, and deployment requirements are approved.
-- Flexible chat sessions are dynamically scoped to the owner’s current subject memberships for every generation. Membership changes can alter the retrieval scope of an existing session, including regeneration of an older turn. - Exact retrieved-context text is persisted for chat and experiment reproducibility. This duplicates source content and can outlive later source-document edits; a formal retention, deletion, and redaction policy has not yet been established.
+- The Python Ragas sidecar has no application-level authentication in this sprint and is intended for a local/private Compose network. Exposing port `8090` outside a trusted development network requires an authentication and transport-security design.
+- Flexible chat sessions use current memberships for each new generation, but each completed answer snapshots the exact resolved subject scope used by that generation.
+- Exact retrieval text is persisted for chat and experiment reproducibility. This duplicates source content and can outlive later source-document edits; a formal retention, deletion, and redaction policy has not yet been established.
 - Subscription and payment support is foundational rather than complete. Plan quota and capability fields describe intended benefits but are not proof of atomic usage accounting, runtime enforcement, or complete premium entitlement activation.
 - A passing default test run does not by itself prove PostgreSQL repository behavior or browser end-to-end behavior. Database-gated tests require an explicitly disposable PostgreSQL database, and browser automation is currently deferred.
 - Public EF Core contexts and remaining direct context consumers are layering technical debt; new code should prefer `IUnitOfWork` and focused repositories.
 - External email, Google, Supabase, AI-provider, and ZaloPay paths depend on valid third-party credentials and reachable endpoints.
+- Local Ollama evaluation is substantially slower than hosted models and requires both `qwen3` and `bge-m3`; each Ragas metric has a 180-second application timeout and one retry.
 
 ## Security and operating notes
 

@@ -19,7 +19,8 @@ public class ContractBoundaryTests
             typeof(IAiConfigurationAdminService),
             typeof(IAdminReportService),
             typeof(IExperimentService),
-            typeof(IRagasStyleEvaluator),
+            typeof(IPythonRagasClient),
+            typeof(IExperimentEvaluationService),
         ];
 
         Assert.That(domainContractTypes, Has.All.Not.Null);

@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using DataAccess.UnitOfWork;
+using Domain.Constants;
 using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Business.Services.AI.Experiments;
@@ -13,7 +15,7 @@ public sealed class ExperimentRunner(
     IAiConfigurationResolver configurationResolver,
     ISubjectReindexCoordinator reindexCoordinator,
     IChatGenerationService chatGenerationService,
-    IRagasStyleEvaluator evaluator,
+    IExperimentEvaluationService evaluationService,
     IMapper mapper,
     ILogger<ExperimentRunner> logger) : IExperimentRunner
 {
@@ -21,7 +23,7 @@ public sealed class ExperimentRunner(
     private readonly IAiConfigurationResolver _configurationResolver = configurationResolver;
     private readonly ISubjectReindexCoordinator _reindexCoordinator = reindexCoordinator;
     private readonly IChatGenerationService _chatGenerationService = chatGenerationService;
-    private readonly IRagasStyleEvaluator _evaluator = evaluator;
+    private readonly IExperimentEvaluationService _evaluationService = evaluationService;
     private readonly IMapper _mapper = mapper;
     private readonly ILogger<ExperimentRunner> _logger = logger;
 
@@ -68,7 +70,7 @@ public sealed class ExperimentRunner(
 
     private async Task GenerateResponsesAsync(Experiment experiment, EffectiveAiConfiguration configuration, CancellationToken cxlTkn)
     {
-        foreach (var response in experiment.TestResponses.OrderBy(e => e.TestQuestion.ExternalId))
+        foreach (var response in experiment.TestResponses.OrderBy(e => e.QuestionExternalId))
         {
             cxlTkn.ThrowIfCancellationRequested();
             if (response.Status != ExperimentQuestionStatus.Pending) continue;
@@ -80,14 +82,45 @@ public sealed class ExperimentRunner(
             try
             {
                 var result = await _chatGenerationService.GenerateAnswerAsync(
-                    BuildGenerationRequest(experiment.SubjectId, response.TestQuestion.Question, configuration), static _ => Task.CompletedTask, cxlTkn);
+                    BuildGenerationRequest(experiment.SubjectId, response.Question ?? throw new InvalidOperationException("The response has no immutable question snapshot."), configuration), static _ => Task.CompletedTask, cxlTkn);
+                SequentialIndexValidator.EnsureExact(result.RetrievedContexts, e => e.RetrievalRank, "Retrieved experiment contexts");
+                SequentialIndexValidator.EnsureExact(result.RetrievedContexts.Where(e => e.WasIncludedInPrompt), e => e.PromptOrder ?? 0, "Prompt experiment contexts");
+                SequentialIndexValidator.EnsureExact(result.RequestMessages, e => e.MessageOrder, "Normalized experiment request messages");
+                if (result.RetrievedContexts.Any(e => e.WasIncludedInPrompt != e.PromptOrder.HasValue)) throw new InvalidOperationException("Retrieved experiment prompt membership and prompt order disagree.");
                 response.GeneratedAnswer = result.Answer;
+                response.RawGeneratedAnswer = result.RawAnswer;
                 _mapper.Map(result.Metrics, response);
 
                 foreach (var context in result.RetrievedContexts)
                 {
-                    response.RetrievedContexts.Add(new TestResponseContext { TestResponseId = response.Id, ContextIndex = context.ContextIndex, ContextText = context.ContextText });
+                    response.RetrievedContexts.Add(new TestResponseContext
+                    {
+                        TestResponseId = response.Id,
+                        RetrievalRank = context.RetrievalRank,
+                        PromptOrder = context.PromptOrder,
+                        WasIncludedInPrompt = context.WasIncludedInPrompt,
+                        ChunkId = context.ChunkId,
+                        SourceChunkId = context.ChunkId,
+                        SourceDocumentId = context.SourceDocumentId,
+                        SourceSubjectId = context.SourceSubjectId,
+                        ChunkIndex = context.ChunkIndex,
+                        ChunkText = context.ChunkText,
+                        SimilarityScore = context.SimilarityScore,
+                        DocumentTitle = context.DocumentTitle,
+                        DocumentFileName = context.DocumentFileName,
+                        SubjectCode = context.SubjectCode,
+                        SubjectName = context.SubjectName,
+                        StartPageNumber = context.StartPageNumber,
+                        EndPageNumber = context.EndPageNumber,
+                        StartSectionTitle = context.StartSectionTitle,
+                        EndSectionTitle = context.EndSectionTitle,
+                    });
                 }
+
+                foreach (var requestMessage in result.RequestMessages.OrderBy(e => e.MessageOrder)) response.RequestMessages.Add(new TestResponseRequestMessage { MessageOrder = requestMessage.MessageOrder, Role = requestMessage.Role, Content = requestMessage.Content });
+                response.ReconstructionCompleteness = ReconstructionCompleteness.Complete;
+                response.Status = ExperimentQuestionStatus.Completed;
+                UpdateProgress(experiment);
 
                 await _unitOfWork.SaveAsync(cxlTkn);
             }
@@ -108,24 +141,13 @@ public sealed class ExperimentRunner(
 
     private async Task EvaluateResponsesAsync(Experiment experiment, CancellationToken cxlTkn)
     {
-        foreach (var response in experiment.TestResponses.Where(e => e.Status == ExperimentQuestionStatus.Running).OrderBy(e => e.TestQuestion.ExternalId))
+        foreach (var response in experiment.TestResponses.Where(e => e.Status == ExperimentQuestionStatus.Completed && e.CurrentEvaluationAttemptId == null).OrderBy(e => e.QuestionExternalId))
         {
             cxlTkn.ThrowIfCancellationRequested();
 
             try
             {
-                var evaluation = await _evaluator.EvaluateAsync(new RagasStyleEvaluationRequest
-                {
-                    Question = response.TestQuestion.Question,
-                    GroundTruth = response.TestQuestion.GroundTruth,
-                    GeneratedAnswer = response.GeneratedAnswer ?? string.Empty,
-                    RetrievedContexts = [.. response.RetrievedContexts.OrderBy(e => e.ContextIndex).Select(e => e.ContextText)],
-                    JudgeModel = experiment.ConfigurationSnapshot.JudgeModel,
-                }, cxlTkn);
-
-                _mapper.Map(evaluation, response);
-                response.Status = ExperimentQuestionStatus.Completed;
-                response.FailureReason = null;
+                await _evaluationService.AppendInitialEvaluationAsync(response.Id, cxlTkn);
             }
             catch (OperationCanceledException) when (cxlTkn.IsCancellationRequested)
             {
@@ -133,8 +155,6 @@ public sealed class ExperimentRunner(
             }
             catch (Exception ex)
             {
-                response.Status = ExperimentQuestionStatus.Failed;
-                response.FailureReason = Error(ex);
                 _logger.LogWarning(ex, "Experiment {ExperimentId} question {QuestionId} evaluation failed.", experiment.Id, response.TestQuestionId);
             }
 
@@ -164,15 +184,11 @@ public sealed class ExperimentRunner(
 
     private static void CompleteExperiment(Experiment experiment)
     {
-        var completed = experiment.TestResponses.Where(e => e.Status == ExperimentQuestionStatus.Completed).ToArray();
+        var usable = experiment.TestResponses.Count(e => e.CurrentEvaluationAttempt?.Metrics.Any(metric => metric.Status == EvaluationMetricStatus.Completed) == true);
 
         UpdateProgress(experiment);
-        experiment.Faithfulness = Average(completed.Select(e => e.Faithfulness));
-        experiment.AnswerRelevancy = Average(completed.Select(e => e.AnswerRelevancy));
-        experiment.ContextPrecision = Average(completed.Select(e => e.ContextPrecision));
-        experiment.ContextRecall = Average(completed.Select(e => e.ContextRecall));
-        experiment.Status = completed.Length == 0 ? ExperimentStatus.Failed : ExperimentStatus.Completed;
-        experiment.FailureReason = completed.Length == 0 ? "All experiment questions failed." : null;
+        experiment.Status = usable == 0 ? ExperimentStatus.Failed : ExperimentStatus.Completed;
+        experiment.FailureReason = usable == 0 ? "No experiment question obtained a usable evaluation result." : null;
         experiment.CompletedAt = DateTime.UtcNow;
     }
 
@@ -227,9 +243,11 @@ public sealed class ExperimentRunner(
         ChatHistory = [],
         Settings = new ChatGenerationSettings
         {
+            EmbeddingProvider = AiProviderName.ForEmbeddingModel(configuration.EmbeddingModel),
             EmbeddingModel = configuration.EmbeddingModel,
             TopK = configuration.TopK,
             SimilarityThreshold = configuration.SimilarityThreshold,
+            LlmProvider = AiProviderName.ForChatModel(configuration.LlmModel),
             LlmModel = configuration.LlmModel,
             Temperature = configuration.ChatTemperature,
             SystemPrompt = configuration.ChatPrompt,
@@ -239,14 +257,10 @@ public sealed class ExperimentRunner(
             CitationExtractionPrompt = configuration.CitationExtractionPrompt,
             MaxContextChunks = configuration.MaxContextChunks,
             MaxHistoryMessages = configuration.MaxHistoryMessages,
+            ReasoningEffort = "low",
+            ReasoningOutput = "none",
         },
     };
-
-    private static double? Average(IEnumerable<double?> values)
-    {
-        var present = values.Where(e => e.HasValue).Select(e => e!.Value).ToArray();
-        return present.Length == 0 ? null : present.Average();
-    }
 
     private static string Error(Exception exception)
     {

@@ -188,8 +188,10 @@ public class CreateModel(IExperimentService experimentService) : PageModel
             ModelState.AddModelError(nameof(request.EmbeddingModel), "EmbeddingModel is required.");
         if (string.IsNullOrWhiteSpace(request.LlmModel))
             ModelState.AddModelError(nameof(request.LlmModel), "LlmModel is required.");
-        if (string.IsNullOrWhiteSpace(request.JudgeModel))
-            ModelState.AddModelError(nameof(request.JudgeModel), "JudgeModel is required.");
+        if (string.IsNullOrWhiteSpace(request.EvaluatorLlmProvider)) ModelState.AddModelError(nameof(request.EvaluatorLlmProvider), "EvaluatorLlmProvider is required.");
+        if (string.IsNullOrWhiteSpace(request.EvaluatorLlmModel)) ModelState.AddModelError(nameof(request.EvaluatorLlmModel), "EvaluatorLlmModel is required.");
+        if (string.IsNullOrWhiteSpace(request.EvaluatorEmbeddingProvider)) ModelState.AddModelError(nameof(request.EvaluatorEmbeddingProvider), "EvaluatorEmbeddingProvider is required.");
+        if (string.IsNullOrWhiteSpace(request.EvaluatorEmbeddingModel)) ModelState.AddModelError(nameof(request.EvaluatorEmbeddingModel), "EvaluatorEmbeddingModel is required.");
 
         if (!ModelState.IsValid)
         {

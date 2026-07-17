@@ -49,6 +49,11 @@ function fmtDatetime(iso) {
     return d.toLocaleString('vi-VN', { hour12: false });
 }
 
+function fmtCoverage(coverage) {
+    if (!coverage) return '0/0';
+    return `${coverage.successfulCount}/${coverage.eligibleCount}`;
+}
+
 // ── Data layer ────────────────────────────────────────────────
 
 function fetchComparison(leftId, rightId) {
@@ -107,14 +112,14 @@ function renderMetricComparison(metrics) {
                     <div class="ec-bar-track">
                         <div class="ec-bar-fill ec-bar-fill--left" style="width:${leftPct}%"></div>
                     </div>
-                    <span class="ec-metric-score ${leftCls}">${fmtScore(m.leftScore)}</span>
+                    <span class="ec-metric-score ${leftCls}">${fmtScore(m.leftScore)}<small>${fmtCoverage(m.leftCoverage)}</small></span>
                 </div>
                 <div class="ec-metric-side">
                     <span class="ec-metric-side-label">B</span>
                     <div class="ec-bar-track">
                         <div class="ec-bar-fill ec-bar-fill--right" style="width:${rightPct}%"></div>
                     </div>
-                    <span class="ec-metric-score ${rightCls}">${fmtScore(m.rightScore)}</span>
+                    <span class="ec-metric-score ${rightCls}">${fmtScore(m.rightScore)}<small>${fmtCoverage(m.rightCoverage)}</small></span>
                 </div>
             </div>
         </div>`;

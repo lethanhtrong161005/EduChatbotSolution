@@ -1,3 +1,5 @@
+using Domain.Entities;
+
 namespace Domain.Contracts.DTOs;
 
 public enum ExperimentStatus { Queued = 0, PreparingIndex = 1, Running = 2, Evaluating = 3, Completed = 4, Failed = 5 }
@@ -17,7 +19,10 @@ public record CreateExperimentRequest
     public required int MaxContextChunks { get; init; }
     public required string LlmModel { get; init; }
     public required float ChatTemperature { get; init; }
-    public required string JudgeModel { get; init; }
+    public string EvaluatorLlmProvider { get; init; } = string.Empty;
+    public string EvaluatorLlmModel { get; init; } = string.Empty;
+    public string EvaluatorEmbeddingProvider { get; init; } = string.Empty;
+    public string EvaluatorEmbeddingModel { get; init; } = string.Empty;
     public string? Notes { get; init; }
 }
 
@@ -58,6 +63,7 @@ public record ExperimentCreateOptionsDto
     public required SubjectAiConfigurationDto CurrentConfiguration { get; init; }
     public required AiConfigurationOptionsDto AiOptions { get; init; }
     public required IReadOnlyList<TestQuestionOptionDto> TestQuestions { get; init; }
+    public PythonRagasCapabilities? EvaluatorCapabilities { get; init; }
 }
 
 public record ExperimentConfigurationSnapshotDto
@@ -80,7 +86,11 @@ public record ExperimentConfigurationSnapshotDto
     public required string NoContextRetrievedPrompt { get; init; }
     public required float CitationExtractionTemperature { get; init; }
     public required string CitationExtractionPrompt { get; init; }
-    public required string JudgeModel { get; init; }
+    public string EvaluatorLlmProvider { get; init; } = string.Empty;
+    public string EvaluatorLlmModel { get; init; } = string.Empty;
+    public string EvaluatorEmbeddingProvider { get; init; } = string.Empty;
+    public string EvaluatorEmbeddingModel { get; init; } = string.Empty;
+    public string EvaluatorMetricSetKey { get; init; } = string.Empty;
     public required string EvaluatorPromptVersion { get; init; }
 }
 
@@ -90,6 +100,16 @@ public record RagasStyleScoresDto
     public required double? AnswerRelevancy { get; init; }
     public required double? ContextPrecision { get; init; }
     public required double? ContextRecall { get; init; }
+    public RagasStyleCoverageDto Coverage { get; init; } = new();
+}
+
+public record MetricCoverageDto { public int SuccessfulCount { get; init; } public int EligibleCount { get; init; } }
+public record RagasStyleCoverageDto
+{
+    public MetricCoverageDto Faithfulness { get; init; } = new();
+    public MetricCoverageDto AnswerRelevancy { get; init; } = new();
+    public MetricCoverageDto ContextPrecision { get; init; } = new();
+    public MetricCoverageDto ContextRecall { get; init; } = new();
 }
 
 public record ExperimentSummaryDto
@@ -110,6 +130,8 @@ public record ExperimentSummaryDto
     public required int CompletedQuestionCount { get; init; }
     public required int TotalQuestionCount { get; init; }
     public required RagasStyleScoresDto AggregateScores { get; init; }
+    public ReconstructionCompleteness ReconstructionCompleteness { get; init; }
+    public string? EvaluatorProfileKey { get; init; }
     public required DateTime CreatedAt { get; init; }
     public required DateTime? CompletedAt { get; init; }
     public string? FailureReason { get; init; }
@@ -118,7 +140,7 @@ public record ExperimentSummaryDto
 public record ExperimentQuestionResultDto
 {
     public required Guid TestResponseId { get; init; }
-    public required int TestQuestionId { get; init; }
+    public required int? TestQuestionId { get; init; }
     public required string ExternalId { get; init; }
     public required string Question { get; init; }
     public required string GroundTruth { get; init; }
@@ -128,8 +150,8 @@ public record ExperimentQuestionResultDto
     public required RagasStyleScoresDto Scores { get; init; }
     public string? Explanation { get; init; }
     public string? FailureReason { get; init; }
-    public required int? PromptTokens { get; init; }
-    public required int? CompletionTokens { get; init; }
+    public required long? PromptTokens { get; init; }
+    public required long? CompletionTokens { get; init; }
     public required long? RetrievalTimeMs { get; init; }
     public required long? TimeToFirstTokenMs { get; init; }
     public required long? TotalResponseTimeMs { get; init; }
@@ -142,6 +164,6 @@ public record ExperimentResultDto
     public required IReadOnlyList<ExperimentQuestionResultDto> Questions { get; init; }
 }
 
-public record MetricComparisonDto { public required string Metric { get; init; } public required double? LeftScore { get; init; } public required double? RightScore { get; init; } public required double? Delta { get; init; } }
-public record QuestionScoreComparisonDto { public required int TestQuestionId { get; init; } public required string ExternalId { get; init; } public required string Question { get; init; } public required RagasStyleScoresDto LeftScores { get; init; } public required RagasStyleScoresDto RightScores { get; init; } }
+public record MetricComparisonDto { public required string Metric { get; init; } public required double? LeftScore { get; init; } public required double? RightScore { get; init; } public required double? Delta { get; init; } public MetricCoverageDto LeftCoverage { get; init; } = new(); public MetricCoverageDto RightCoverage { get; init; } = new(); }
+public record QuestionScoreComparisonDto { public required int? TestQuestionId { get; init; } public required string ExternalId { get; init; } public required string Question { get; init; } public required RagasStyleScoresDto LeftScores { get; init; } public required RagasStyleScoresDto RightScores { get; init; } }
 public record ExperimentComparisonDto { public required ExperimentSummaryDto Left { get; init; } public required ExperimentSummaryDto Right { get; init; } public required IReadOnlyList<MetricComparisonDto> Metrics { get; init; } public required IReadOnlyList<QuestionScoreComparisonDto> Questions { get; init; } }

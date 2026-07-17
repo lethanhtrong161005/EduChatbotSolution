@@ -389,8 +389,9 @@ public class AdminExperimentResultsPageTests
                 NoContextRetrievedPrompt = "No material found.",
                 CitationExtractionTemperature = 0,
                 CitationExtractionPrompt = "Extract grounded citations.",
-                JudgeModel = "test-judge",
-                EvaluatorPromptVersion = "ragas-style-v1",
+                EvaluatorLlmProvider = "test", EvaluatorLlmModel = "test-judge",
+                EvaluatorEmbeddingProvider = "test", EvaluatorEmbeddingModel = "test-embedding",
+                EvaluatorMetricSetKey = "ragas-rag-core-v1", EvaluatorPromptVersion = "vi-ragas-v1",
             },
             Questions = new List<ExperimentQuestionResultDto>
             {

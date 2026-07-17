@@ -112,6 +112,7 @@ builder.Services.AddSingleton<IChatClientFactory, ChatClientFactory>();
 builder.Services.AddScoped<IChatPersistenceService, ChatPersistenceService>();
 builder.Services.AddScoped<IChatGenerationService, ChatGenerationService>();
 builder.Services.AddScoped<IChatGenerationCoordinator, ChatGenerationCoordinator>();
+builder.Services.AddScoped<IAnswerReconstructionService, AnswerReconstructionService>();
 builder.Services.AddScoped<ChatGenerationJob>();
 
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
@@ -120,9 +121,14 @@ builder.Services.AddScoped<IAdminReportService, AdminReportService>();
 builder.Services.AddScoped<AdminReportDemoDataSeeder>();
 
 builder.Services.AddScoped<IExperimentDatasetProvider, EmbeddedExperimentDatasetProvider>();
+builder.Services.AddHttpClient<IPythonRagasClient, PythonRagasClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["AI:Ragas:Endpoint"] ?? "http://localhost:8090/");
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 builder.Services.AddScoped<IExperimentService, ExperimentService>();
 builder.Services.AddScoped<IExperimentRunner, ExperimentRunner>();
-builder.Services.AddScoped<IRagasStyleEvaluator, RagasStyleEvaluator>();
+builder.Services.AddScoped<IExperimentEvaluationService, ExperimentEvaluationService>();
 builder.Services.AddSingleton<IExperimentDispatcher, HangfireExperimentDispatcher>();
 builder.Services.AddScoped<ExperimentJob>();
 
