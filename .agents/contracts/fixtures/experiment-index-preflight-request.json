@@ -1,7 +1,0 @@
-{
-  "subjectId": 3,
-  "chunkingStrategy": "RecursiveSeparator",
-  "chunkSize": 1200,
-  "chunkOverlap": 180,
-  "embeddingModel": "nvidia/llama-nemotron-embed-vl-1b-v2:free"
-}
