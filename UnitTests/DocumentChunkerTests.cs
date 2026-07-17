@@ -16,8 +16,8 @@ public sealed class DocumentChunkerTests
     {
         var sections = new[]
         {
-            Section(0, string.Empty, page: 1, title: "Empty"),
-            Section(1, "   \r\n\t", page: 2, title: "Whitespace"),
+            Section(1, string.Empty, page: 1, title: "Empty"),
+            Section(2, "   \r\n\t", page: 2, title: "Whitespace"),
         };
 
         foreach (var chunker in CreateAllChunkers())
@@ -33,7 +33,7 @@ public sealed class DocumentChunkerTests
     {
         var sections = new[]
         {
-            Section(0, "Some content.", page: 1, title: "Content"),
+            Section(1, "Some content.", page: 1, title: "Content"),
         };
 
         var invalidOptions = new[]
@@ -58,12 +58,39 @@ public sealed class DocumentChunkerTests
     }
 
     [Test]
+    public void AllChunkers_DefaultIndex_StartsAtOne()
+    {
+        foreach (var chunker in CreateAllChunkers())
+        {
+            var result = chunker.Chunk([Section(1, "Some content.")], new ChunkingOptions(100, 20));
+
+            Assert.That(result.Single().ChunkIndex, Is.EqualTo(1), chunker.StrategyName);
+        }
+    }
+
+    [Test]
+    public void AllChunkers_StartIndexBelowOne_ThrowsArgumentOutOfRangeException()
+    {
+        foreach (var chunker in CreateAllChunkers())
+            Assert.That(() => chunker.Chunk([Section(1, "Some content.")], new ChunkingOptions(100, 20), 0), Throws.TypeOf<ArgumentOutOfRangeException>(), chunker.StrategyName);
+    }
+
+    [Test]
+    public void AllChunkers_NonContiguousSections_ThrowInvalidOperationException()
+    {
+        var sections = new[] { Section(1, "First"), Section(3, "Third") };
+
+        foreach (var chunker in CreateAllChunkers())
+            Assert.That(() => chunker.Chunk(sections, new ChunkingOptions(100, 20)), Throws.TypeOf<InvalidOperationException>(), chunker.StrategyName);
+    }
+
+    [Test]
     public void AllChunkers_ProducedChunks_RespectCommonInvariants()
     {
         var sections = new[]
         {
-            Section(0, "Alpha sentence. Beta sentence.\n\nGamma paragraph.", page: 10, title: "Alpha"),
-            Section(1, "Delta sentence. Epsilon sentence.", page: 11, title: "Delta"),
+            Section(1, "Alpha sentence. Beta sentence.\n\nGamma paragraph.", page: 10, title: "Alpha"),
+            Section(2, "Delta sentence. Epsilon sentence.", page: 11, title: "Delta"),
         };
 
         const int chunkSize = 32;
@@ -89,7 +116,7 @@ public sealed class DocumentChunkerTests
     public void FixedLength_UsesExactLengthAndOverlap()
     {
         var chunker = new FixedLengthChunker();
-        var section = Section(0, "abcdefghij", page: 7, title: "Alphabet");
+        var section = Section(1, "abcdefghij", page: 7, title: "Alphabet");
 
         var result = chunker.Chunk([section], new ChunkingOptions(4, 1), startIndex: 5);
 
@@ -109,8 +136,8 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(1, "BBBB", page: 2, title: "Second"),
-                Section(0, "AAAA", page: 1, title: "First"),
+                Section(2, "BBBB", page: 2, title: "Second"),
+                Section(1, "AAAA", page: 1, title: "First"),
             ],
             new ChunkingOptions(100, 0));
 
@@ -132,8 +159,8 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "AAAA", page: 1, title: "Page One"),
-                Section(1, "BBBB", page: 2, title: "Page Two"),
+                Section(1, "AAAA", page: 1, title: "Page One"),
+                Section(2, "BBBB", page: 2, title: "Page Two"),
             ],
             new ChunkingOptions(6, 0));
 
@@ -160,8 +187,8 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "AAAA", page: 1, title: "Page One"),
-                Section(1, "BBBB", page: 2, title: "Page Two"),
+                Section(1, "AAAA", page: 1, title: "Page One"),
+                Section(2, "BBBB", page: 2, title: "Page Two"),
             ],
             new ChunkingOptions(6, 2));
 
@@ -187,9 +214,9 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "Alpha", page: 1, title: "Alpha"),
-                Section(1, " \r\n\t ", page: 2, title: "Empty"),
-                Section(2, "Beta", page: 3, title: "Beta"),
+                Section(1, "Alpha", page: 1, title: "Alpha"),
+                Section(2, " \r\n\t ", page: 2, title: "Empty"),
+                Section(3, "Beta", page: 3, title: "Beta"),
             ],
             new ChunkingOptions(100, 0));
 
@@ -211,7 +238,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "Alpha paragraph.\n\nBeta sentence. Gamma sentence.", page: 1, title: "Paragraphs"),
+                Section(1, "Alpha paragraph.\n\nBeta sentence. Gamma sentence.", page: 1, title: "Paragraphs"),
             ],
             new ChunkingOptions(33, 0));
 
@@ -231,7 +258,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "alpha beta gamma\ndelta epsilon zeta", page: 1, title: "Lines"),
+                Section(1, "alpha beta gamma\ndelta epsilon zeta", page: 1, title: "Lines"),
             ],
             new ChunkingOptions(18, 0));
 
@@ -251,7 +278,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", page: 1, title: "Token"),
+                Section(1, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", page: 1, title: "Token"),
             ],
             new ChunkingOptions(10, 2));
 
@@ -272,8 +299,8 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "Alpha.", page: 4, title: "Alpha"),
-                Section(1, "Beta.", page: 5, title: "Beta"),
+                Section(1, "Alpha.", page: 4, title: "Alpha"),
+                Section(2, "Beta.", page: 5, title: "Beta"),
             ],
             new ChunkingOptions(20, 0));
 
@@ -292,7 +319,7 @@ public sealed class DocumentChunkerTests
     public void SentenceParagraph_TextWithinChunkSize_ReturnsExactSource()
     {
         const string source = "  Một câu ngắn.  ";
-        var result = new SentenceParagraphChunker().Chunk([Section(0, source, page: 1)], new ChunkingOptions(100, 20));
+        var result = new SentenceParagraphChunker().Chunk([Section(1, source, page: 1)], new ChunkingOptions(100, 20));
 
         Assert.That(result.Select(e => e.ChunkText), Is.EqualTo(new[] { source }));
     }
@@ -304,7 +331,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "First sentence. Second sentence. Third sentence.", page: 1, title: "Sentences"),
+                Section(1, "First sentence. Second sentence. Third sentence.", page: 1, title: "Sentences"),
             ],
             new ChunkingOptions(32, 0));
 
@@ -332,7 +359,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, string.Join(' ', sentences), page: 1, title: "ACID"),
+                Section(1, string.Join(' ', sentences), page: 1, title: "ACID"),
             ],
             new ChunkingOptions(50, 0));
 
@@ -357,8 +384,8 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, "Một giao dịch phải đảm bảo tính", page: 8, title: "Transactions"),
-                Section(1, "nguyên tử và nhất quán.", page: 9, title: "Transactions Continued"),
+                Section(1, "Một giao dịch phải đảm bảo tính", page: 8, title: "Transactions"),
+                Section(2, "nguyên tử và nhất quán.", page: 9, title: "Transactions Continued"),
             ],
             new ChunkingOptions(100, 0));
 
@@ -381,7 +408,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, source, page: 1, title: "Oversized"),
+                Section(1, source, page: 1, title: "Oversized"),
             ],
             new ChunkingOptions(10, 0));
 
@@ -408,7 +435,7 @@ public sealed class DocumentChunkerTests
 
         var result = chunker.Chunk(
             [
-                Section(0, string.Join(' ', sentences), page: 1, title: "Numbers"),
+                Section(1, string.Join(' ', sentences), page: 1, title: "Numbers"),
             ],
             new ChunkingOptions(12, overlap));
 

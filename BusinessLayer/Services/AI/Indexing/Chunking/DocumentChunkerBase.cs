@@ -1,6 +1,7 @@
 ﻿using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
+using Domain.Utils;
 
 namespace Business.Services.AI.Indexing.Chunking;
 
@@ -8,11 +9,13 @@ public abstract class DocumentChunkerBase : IDocumentChunker
 {
     public abstract string StrategyName { get; }
 
-    public IReadOnlyList<ChunkResult> Chunk(IReadOnlyList<ParsedSection> sections, ChunkingOptions options, int startIndex = 0)
+    public IReadOnlyList<ChunkResult> Chunk(IReadOnlyList<ParsedSection> sections, ChunkingOptions options, int startIndex = 1)
     {
         ArgumentNullException.ThrowIfNull(sections);
         ArgumentNullException.ThrowIfNull(options);
+        if (startIndex < 1) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "The first chunk index must be positive.");
         options.Validate();
+        SequentialIndexValidator.EnsureExact(sections, e => e.SectionIndex, "Parsed sections");
 
         var source = DocumentChunkSource.Create(sections);
         if (source.Text.Length == 0) return [];
@@ -39,6 +42,7 @@ public abstract class DocumentChunkerBase : IDocumentChunker
             });
         }
 
+        SequentialIndexValidator.EnsureExact(results, e => e.ChunkIndex, $"Chunks produced by '{StrategyName}'", startIndex);
         return results;
     }
 

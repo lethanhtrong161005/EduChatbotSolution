@@ -779,7 +779,7 @@ public static class HostExtensions
                 unitOfWork.Chunks.Insert(new Chunk
                 {
                     DocumentId = doc.Id,
-                    ChunkIndex = 0,
+                    ChunkIndex = 1,
                     StartPageNumber = 1,
                     EndPageNumber = 1,
                     StartSectionTitle = "Introduction",
@@ -792,7 +792,7 @@ public static class HostExtensions
                 unitOfWork.Chunks.Insert(new Chunk
                 {
                     DocumentId = doc.Id,
-                    ChunkIndex = 1,
+                    ChunkIndex = 2,
                     StartPageNumber = 2,
                     EndPageNumber = 2,
                     StartSectionTitle = "Key Concepts",
@@ -805,7 +805,7 @@ public static class HostExtensions
                 unitOfWork.Chunks.Insert(new Chunk
                 {
                     DocumentId = doc.Id,
-                    ChunkIndex = 2,
+                    ChunkIndex = 3,
                     StartPageNumber = 3,
                     EndPageNumber = 3,
                     StartSectionTitle = "Summary",

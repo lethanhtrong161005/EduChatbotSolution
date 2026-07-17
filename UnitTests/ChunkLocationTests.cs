@@ -105,7 +105,7 @@ public sealed class ChunkLocationTests
     {
         var section = new ParsedSection
         {
-            SectionIndex = 0,
+            SectionIndex = 1,
             PageNumber = 5,
             SectionTitle = "Relational Algebra",
             Text = "Selection and projection are relational operations.",

@@ -7,5 +7,5 @@ public interface IDocumentChunker
 {
     string StrategyName { get; }
 
-    IReadOnlyList<ChunkResult> Chunk(IReadOnlyList<ParsedSection> sections, ChunkingOptions options, int startIndex = 0);
+    IReadOnlyList<ChunkResult> Chunk(IReadOnlyList<ParsedSection> sections, ChunkingOptions options, int startIndex = 1);
 }

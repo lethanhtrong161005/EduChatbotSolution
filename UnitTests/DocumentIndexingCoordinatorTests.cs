@@ -24,7 +24,7 @@ public sealed class DocumentIndexingCoordinatorTests
         ChunkingOptions? usedOptions = null;
         f.Chunker.Setup(e => e.Chunk(It.IsAny<IReadOnlyList<ParsedSection>>(), It.IsAny<ChunkingOptions>(), It.IsAny<int>()))
             .Callback<IReadOnlyList<ParsedSection>, ChunkingOptions, int>((_, options, _) => usedOptions = options)
-            .Returns([new ChunkResult { ChunkIndex = 0, ChunkText = "chunk", StartPageNumber = 1, EndPageNumber = 1 }]);
+            .Returns([new ChunkResult { ChunkIndex = 1, ChunkText = "chunk", StartPageNumber = 1, EndPageNumber = 1 }]);
 
         await f.Create().IndexAsync(f.Document.Id);
 
@@ -56,13 +56,13 @@ public sealed class DocumentIndexingCoordinatorTests
         f.SectionRows.Add(new ParsedSection
         {
             DocumentId = f.Document.Id,
-            SectionIndex = 0,
+            SectionIndex = 1,
             Text = "source",
         });
         f.ChunkRows.Add(new Chunk
         {
             DocumentId = f.Document.Id,
-            ChunkIndex = 0,
+            ChunkIndex = 1,
             ChunkText = "source",
             ChunkingStrategy = f.Config.ChunkingStrategy,
             ChunkOverlap = f.Config.ChunkOverlap,
@@ -87,7 +87,7 @@ public sealed class DocumentIndexingCoordinatorTests
         f.Document.IndexedChunkSize = 300;
         f.Document.IndexedChunkOverlap = 30;
         f.Document.IndexedEmbeddingModel = "old-model";
-        f.SectionRows.Add(new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 0, Text = "source" });
+        f.SectionRows.Add(new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 1, Text = "source" });
         f.Embedder.Setup(e => e.EmbedAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Embedding failed."));
 
@@ -103,6 +103,58 @@ public sealed class DocumentIndexingCoordinatorTests
             Assert.That(f.ChunkRows, Has.Count.EqualTo(1));
             Assert.That(f.ChunkRows[0].Embedding, Is.Null);
         }
+    }
+
+    [Test]
+    public async Task IndexAsync_InvalidStoredSectionSequence_ReparsesBeforeChunking()
+    {
+        var f = new Fixture();
+        f.SectionRows.AddRange([
+            new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 1, Text = "first" },
+            new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 3, Text = "third" },
+        ]);
+
+        await f.Create().IndexAsync(f.Document.Id);
+
+        f.Parser.Verify(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<FileType>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(f.SectionRows.Select(e => e.SectionIndex), Is.EqualTo(new[] { 1 }));
+    }
+
+    [Test]
+    public async Task IndexAsync_InvalidStoredChunkSequence_RechunksBeforeEmbedding()
+    {
+        var f = new Fixture();
+        f.SectionRows.Add(new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 1, Text = "source" });
+        f.Document.IndexedChunkingStrategy = f.Config.ChunkingStrategy;
+        f.Document.IndexedChunkSize = f.Config.ChunkSize;
+        f.Document.IndexedChunkOverlap = f.Config.ChunkOverlap;
+        f.ChunkRows.AddRange([
+            new Chunk { DocumentId = f.Document.Id, ChunkIndex = 1, ChunkText = "first", ChunkingStrategy = f.Config.ChunkingStrategy, ChunkSize = f.Config.ChunkSize, ChunkOverlap = f.Config.ChunkOverlap },
+            new Chunk { DocumentId = f.Document.Id, ChunkIndex = 3, ChunkText = "third", ChunkingStrategy = f.Config.ChunkingStrategy, ChunkSize = f.Config.ChunkSize, ChunkOverlap = f.Config.ChunkOverlap },
+        ]);
+
+        await f.Create().IndexAsync(f.Document.Id);
+
+        f.Chunker.Verify(e => e.Chunk(It.IsAny<IReadOnlyList<ParsedSection>>(), It.IsAny<ChunkingOptions>(), It.IsAny<int>()), Times.Once);
+        Assert.That(f.ChunkRows.Select(e => e.ChunkIndex), Is.EqualTo(new[] { 1 }));
+    }
+
+    [Test]
+    public void IndexAsync_InvalidChunkerOutput_FailsBeforeReplacingStoredChunks()
+    {
+        var f = new Fixture();
+        f.SectionRows.Add(new ParsedSection { DocumentId = f.Document.Id, SectionIndex = 1, Text = "source" });
+        var existing = new Chunk { DocumentId = f.Document.Id, ChunkIndex = 1, ChunkText = "existing" };
+        f.ChunkRows.Add(existing);
+        f.Chunker.Setup(e => e.Chunk(It.IsAny<IReadOnlyList<ParsedSection>>(), It.IsAny<ChunkingOptions>(), It.IsAny<int>())).Returns([
+            new ChunkResult { ChunkIndex = 1, ChunkText = "first" },
+            new ChunkResult { ChunkIndex = 3, ChunkText = "third" },
+        ]);
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => f.Create().IndexAsync(f.Document.Id));
+
+        Assert.That(f.ChunkRows, Is.EqualTo(new[] { existing }));
+        f.Embedder.Verify(e => e.EmbedAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private sealed class Fixture
@@ -159,11 +211,11 @@ public sealed class DocumentIndexingCoordinatorTests
         {
             Parser.SetupGet(e => e.ParserName).Returns("Test parser");
             Parser.Setup(e => e.ParseAsync(It.IsAny<Stream>(), It.IsAny<FileType>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ParsedDocument { Sections = [new ParsedSection { SectionIndex = 0, PageNumber = 1, Text = "source" }] });
+                .ReturnsAsync(new ParsedDocument { Sections = [new ParsedSection { SectionIndex = 1, PageNumber = 1, Text = "source" }] });
 
             Chunker.SetupGet(e => e.StrategyName).Returns(ChunkingStrategy.FixedLength);
             Chunker.Setup(e => e.Chunk(It.IsAny<IReadOnlyList<ParsedSection>>(), It.IsAny<ChunkingOptions>(), It.IsAny<int>()))
-                .Returns([new ChunkResult { ChunkIndex = 0, ChunkText = "chunk", StartPageNumber = 1, EndPageNumber = 1 }]);
+                .Returns([new ChunkResult { ChunkIndex = 1, ChunkText = "chunk", StartPageNumber = 1, EndPageNumber = 1 }]);
             Selector.Setup(e => e.Select(Config.ChunkingStrategy)).Returns(Chunker.Object);
 
             Resolver.Setup(e => e.GetAiConfigurationAsync(Document.SubjectId, It.IsAny<CancellationToken>())).ReturnsAsync(Config);
@@ -185,6 +237,7 @@ public sealed class DocumentIndexingCoordinatorTests
             SetupGet(_sections, () => SectionRows);
             SetupGet(_chunks, () => ChunkRows);
             _sections.Setup(e => e.Insert(It.IsAny<ParsedSection>())).Returns<ParsedSection>(e => { SectionRows.Add(e); return e; });
+            _sections.Setup(e => e.Delete(It.IsAny<ParsedSection>())).Returns<ParsedSection>(e => { SectionRows.Remove(e); return e; });
             _chunks.Setup(e => e.Insert(It.IsAny<Chunk>())).Returns<Chunk>(e => { ChunkRows.Add(e); return e; });
             _chunks.Setup(e => e.Delete(It.IsAny<Chunk>())).Returns<Chunk>(e => { ChunkRows.Remove(e); return e; });
             _chunks.Setup(e => e.Update(It.IsAny<Chunk>())).Returns<Chunk>(e => e);

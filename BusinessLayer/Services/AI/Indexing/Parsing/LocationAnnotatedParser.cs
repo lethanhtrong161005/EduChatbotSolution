@@ -43,6 +43,7 @@ public class LocationAnnotatedParser : IDocumentParser
         using var reader = new StreamReader(source, Encoding.UTF8, true, 1024, leaveOpen: true);
         var section = new ParsedSection
         {
+            SectionIndex = 1,
             PageNumber = null,
             SectionTitle = null,
             Text = await reader.ReadToEndAsync(cxlTkn),
@@ -56,7 +57,7 @@ public class LocationAnnotatedParser : IDocumentParser
 
         var parsedDoc = new ParsedDocument { Sections = [] };
 
-        int sectionIndex = 0;
+        int sectionIndex = 1;
         foreach (var page in pdf.GetPages())
         {
             cxlTkn.ThrowIfCancellationRequested();
@@ -83,7 +84,7 @@ public class LocationAnnotatedParser : IDocumentParser
         if (body == null)
             return parsedDoc;
 
-        int sectionIndex = 0;
+        int sectionIndex = 1;
         var headingPath = new Dictionary<int, string>();
         var sectionText = new StringBuilder();
         bool hasBodyText = false;
@@ -182,7 +183,7 @@ public class LocationAnnotatedParser : IDocumentParser
         if (slideIdList == null) return parsedDoc;
 
         int slideIndex = 1;
-        int sectionIndex = 0;
+        int sectionIndex = 1;
         foreach (var slideIdObj in slideIdList.Elements<DocumentFormat.OpenXml.Presentation.SlideId>())
         {
             cxlTkn.ThrowIfCancellationRequested();

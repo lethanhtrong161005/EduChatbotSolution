@@ -17,6 +17,7 @@ public class LocationAnnotatedParserTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Sections.Single().Text, Is.EqualTo("hello parser"));
+            Assert.That(result.Sections.Single().SectionIndex, Is.EqualTo(1));
             Assert.That(source.CanRead, Is.True);
         }
     }

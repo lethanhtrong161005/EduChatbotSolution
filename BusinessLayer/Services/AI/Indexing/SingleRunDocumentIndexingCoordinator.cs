@@ -3,6 +3,7 @@ using Domain.Contracts;
 using Domain.Contracts.DTOs;
 using Domain.Entities;
 using Domain.Exceptions;
+using Domain.Utils;
 using Microsoft.Extensions.Logging;
 using Pgvector;
 
@@ -66,10 +67,11 @@ public sealed class SingleRunDocumentIndexingCoordinator(
             doc.IndexingErrors = null;
             await MoveToDir(doc, FileDirectoryCategory.Processing, cxlTkn);
 
-            if (!HasCompletedParsing(doc, sections, config)) sections = await ParseDocumentAsync(doc, cxlTkn);
+            if (!HasCompletedParsing(doc, sections, config)) sections = await ParseDocumentAsync(doc, sections, cxlTkn);
             if (!HasCompletedChunking(doc, chunks, config)) chunks = await ChunkDocumentAsync(doc, sections, chunks, config, cxlTkn);
             if (!HasCompletedEmbedding(doc, chunks, config))
             {
+                SequentialIndexValidator.EnsureExact(chunks, e => e.ChunkIndex, "Stored document chunks");
                 var chunksToEmbed = chunks.SkipWhile(e => e.Embedding != null && e.EmbeddingModel == config.EmbeddingModel).ToList();
                 if (chunksToEmbed.Count > 0) await EmbedChunksAsync(doc, chunksToEmbed, config, cxlTkn);
             }
@@ -95,7 +97,7 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         }
     }
 
-    private async Task<List<ParsedSection>> ParseDocumentAsync(Document doc, CancellationToken cxlTkn)
+    private async Task<List<ParsedSection>> ParseDocumentAsync(Document doc, List<ParsedSection> existingSections, CancellationToken cxlTkn)
     {
         doc.ParserUsed = _parser.ParserName;
         await SaveAndPushUpdate(doc, DocumentStatus.Parsing, parser: _parser.ParserName, cxlTkn: cxlTkn);
@@ -108,6 +110,9 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         var sections = result.Sections.OrderBy(e => e.SectionIndex).ToList();
 
         if (sections.Count == 0) throw new InvalidOperationException("The parser produced no document sections.");
+        SequentialIndexValidator.EnsureExact(sections, e => e.SectionIndex, $"Sections produced by '{_parser.ParserName}'");
+
+        foreach (var section in existingSections) _unitOfWork.ParsedSections.Delete(section);
 
         foreach (var section in sections)
         {
@@ -128,9 +133,11 @@ public sealed class SingleRunDocumentIndexingCoordinator(
     {
         await SaveAndPushUpdate(doc, DocumentStatus.Chunking, chunkingStrategy: config.ChunkingStrategy, chunkCount: 0, cxlTkn: cxlTkn);
 
+        SequentialIndexValidator.EnsureExact(sections, e => e.SectionIndex, "Stored document sections");
         var chunker = _chunkerSelector.Select(config.ChunkingStrategy);
         var results = chunker.Chunk(sections, new ChunkingOptions(config.ChunkSize, config.ChunkOverlap));
         if (results.Count == 0) throw new InvalidOperationException("The chunker produced no document chunks.");
+        SequentialIndexValidator.EnsureExact(results, e => e.ChunkIndex, $"Chunks produced by '{chunker.StrategyName}'");
 
         cxlTkn.ThrowIfCancellationRequested();
 
@@ -186,10 +193,11 @@ public sealed class SingleRunDocumentIndexingCoordinator(
         && HasCompletedChunking(doc, chunks, config)
         && HasCompletedEmbedding(doc, chunks, config);
 
-    private static bool HasCompletedParsing(Document doc, List<ParsedSection> sections, EffectiveAiConfiguration config) => sections.Count > 0;
+    private static bool HasCompletedParsing(Document doc, List<ParsedSection> sections, EffectiveAiConfiguration config) => sections.Count > 0 && SequentialIndexValidator.IsExact(sections, e => e.SectionIndex);
 
     private static bool HasCompletedChunking(Document doc, List<Chunk> chunks, EffectiveAiConfiguration config) =>
         chunks.Count > 0
+        && SequentialIndexValidator.IsExact(chunks, e => e.ChunkIndex)
         && doc.IndexedChunkingStrategy == config.ChunkingStrategy
         && doc.IndexedChunkSize == config.ChunkSize
         && doc.IndexedChunkOverlap == config.ChunkOverlap
