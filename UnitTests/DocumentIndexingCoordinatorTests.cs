@@ -59,6 +59,8 @@ public sealed class DocumentIndexingCoordinatorTests
             ChunkIndex = 0,
             ChunkText = "chunk",
             ChunkingStrategy = f.Config.ChunkingStrategy,
+            ChunkOverlap = f.Config.ChunkOverlap,
+            ChunkSize = f.Config.ChunkSize,
             EmbeddingModel = f.Config.EmbeddingModel,
             Embedding = new Vector(new float[1024]),
         });

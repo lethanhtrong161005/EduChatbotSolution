@@ -228,9 +228,13 @@ public class UserManageModel(
             {
                 var stagingResult = await _importReceptionService.ReceiveAsync(file.OpenReadStream(), file.FileName, cxlTkn);
                 if (!stagingResult.Success)
-                    return StatusCode(StatusCodes.Status400BadRequest, new { Success = false, message = $"Invalid file format: {string.Join(", ", stagingResult.Errors)}" });
+                    return StatusCode(StatusCodes.Status400BadRequest, new { Success = false, message = $"File was not accepted: {string.Join(", ", stagingResult.Errors)}" });
 
                 stagingLocator = stagingResult.Locator;
+            }
+            catch (OperationCanceledException) when (cxlTkn.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
