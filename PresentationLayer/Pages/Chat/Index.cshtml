@@ -17,12 +17,52 @@
 
     <script type="importmap"></script>
 
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
     <!-- Icons -->
     <link rel="stylesheet" href="~/font-awesome/css/all.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" asp-append-version="true" />
 
     <!-- Design System -->
     <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Chat UI Specific Overrides */
+        .chat-sidebar-brand {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .chat-brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px -2px rgba(46, 204, 113, 0.4);
+            font-size: 1.25rem;
+        }
+
+        .sidebar-item-active {
+            border-left: 3px solid var(--color-primary);
+            background-color: var(--color-surface-hover);
+        }
+        
+        .chat-header-gradient {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+    </style>
 </head>
 
 <body>
@@ -39,25 +79,22 @@
 
                 <!-- Logo -->
 
-                <div class="h-16 px-4 border-b border-border flex items-center">
-
+                <div class="h-16 px-4 border-b border-border flex items-center relative">
+                    <div class="absolute top-0 left-0 right-0 h-[3px] chat-header-gradient"></div>
                     <a href="/"
                        class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition">
 
-                        <div class="text-2xl">
-                            🎓
+                        <div class="chat-brand-logo">
+                            <i class="fas fa-robot"></i>
                         </div>
 
                         <div>
-
-                            <div class="font-semibold">
+                            <div class="font-bold text-lg chat-sidebar-brand tracking-tight">
                                 EduChatAI
                             </div>
-
-                            <div class="text-xs text-muted">
+                            <div class="text-xs text-muted font-medium">
                                 Learning Assistant
                             </div>
-
                         </div>
 
                     </a>
@@ -69,24 +106,21 @@
                 <div class="p-4 border-b border-border space-y-2">
 
                     <button id="btn-new-chat"
-                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
-
+                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer transition flex items-center gap-3 border border-transparent bg-brand/10 hover:bg-brand/20 text-brand font-semibold shadow-sm">
+                        <i class="fa-solid fa-plus text-sm"></i>
                         New Chat
-
                     </button>
 
                     <button id="btn-search-chat"
-                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
-
+                            class="w-full text-left rounded-xl px-4 py-2.5 cursor-pointer hover:bg-surface-hover transition flex items-center gap-3 text-muted hover:text-foreground font-medium border border-transparent hover:border-border">
+                        <i class="fa-solid fa-magnifying-glass text-sm w-4 text-center"></i>
                         Search Chats
-
                     </button>
 
                     <button id="btn-file-library"
-                            class="w-full text-left rounded-xl px-4 py-3 cursor-pointer hover:bg-sidebar-hover transition">
-
+                            class="w-full text-left rounded-xl px-4 py-2.5 cursor-pointer hover:bg-surface-hover transition flex items-center gap-3 text-muted hover:text-foreground font-medium border border-transparent hover:border-border">
+                        <i class="fa-solid fa-folder-open text-sm w-4 text-center"></i>
                         File Library
-
                     </button>
 
                 </div>
@@ -95,10 +129,8 @@
 
                 <div class="border-b border-border">
 
-                    <div class="px-4 py-3 text-sm font-semibold text-muted">
-
-                        Subject Scope
-
+                    <div class="px-4 py-3 text-sm font-bold text-muted uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-book-open"></i> Subject Scope
                     </div>
 
                     <div id="subject-list"
@@ -114,10 +146,8 @@
 
                 <div class="flex-1 overflow-y-auto chat-scrollbar">
 
-                    <div class="px-4 py-3 text-sm font-semibold text-muted">
-
-                        Your Sessions
-
+                    <div class="px-4 py-3 text-sm font-bold text-muted uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Your Sessions
                     </div>
 
                     <div id="session-list">
@@ -143,34 +173,26 @@
                     <div class="relative">
 
                         <button id="btn-profile-menu"
-                                class="h-10 w-10 rounded-full border border-border bg-card flex items-center justify-center cursor-pointer hover:bg-surface-hover transition">
-
+                                class="h-10 w-10 rounded-full border-2 border-brand bg-card flex items-center justify-center cursor-pointer hover:shadow-md transition overflow-hidden text-brand">
                             <i class="fa-solid fa-user"></i>
-
                         </button>
 
                         <div id="profile-dropdown"
-                             class="hidden absolute right-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                             class="hidden absolute right-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-xl overflow-hidden font-medium">
 
                             <a href="/account/profile"
-                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
-
-                                Profile
-
+                               class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
+                                <i class="fa-regular fa-id-badge text-muted"></i> Profile
                             </a>
 
                             <a href="/documents/library"
-                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
-
-                                My Subjects
-
+                               class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
+                                <i class="fa-solid fa-book text-muted"></i> My Subjects
                             </a>
 
                             <a href="/subscription"
-                               class="block px-4 py-3 cursor-pointer hover:bg-surface-hover">
-
-                                My Subscription
-
+                               class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
+                                <i class="fa-regular fa-credit-card text-muted"></i> My Subscription
                             </a>
 
                         </div>
@@ -199,19 +221,15 @@
 
                 <!-- Header -->
 
-                <div class="h-16 border-b border-border px-4 flex items-center justify-between">
+                <div class="h-16 border-b border-border px-4 flex items-center justify-between bg-surface-alt">
 
-                    <div class="font-semibold">
-
-                        Sources
-
+                    <div class="font-bold flex items-center gap-2 text-brand">
+                        <i class="fa-solid fa-quote-left"></i> Sources
                     </div>
 
                     <button id="btn-close-sources"
-                            class="h-8 w-8 rounded-lg cursor-pointer hover:bg-surface-hover transition">
-
+                            class="h-8 w-8 rounded-lg cursor-pointer hover:bg-surface-hover transition text-muted hover:text-foreground">
                         <i class="fa-solid fa-angles-right"></i>
-
                     </button>
 
                 </div>
@@ -236,20 +254,16 @@
     <!-- ========================================================= -->
 
     <div id="attachment-menu"
-         class="hidden fixed z-50 rounded-xl border border-border bg-card shadow-lg overflow-hidden min-w-[220px]">
+         class="hidden fixed z-50 rounded-xl border border-border bg-card shadow-xl overflow-hidden min-w-[220px] font-medium">
 
         <button id="btn-upload-file"
-                class="block w-full text-left px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
-
-            Upload File
-
+                class="flex w-full items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition text-left">
+            <i class="fa-solid fa-arrow-up-from-bracket text-muted w-5 text-center"></i> Upload File
         </button>
 
         <button id="btn-file-library"
-                class="block w-full text-left px-4 py-3 cursor-pointer hover:bg-surface-hover transition">
-
-            Add From Library
-
+                class="flex w-full items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover transition text-left">
+            <i class="fa-solid fa-folder-open text-muted w-5 text-center"></i> Add From Library
         </button>
 
     </div>
@@ -263,42 +277,38 @@
 
         <!-- Backdrop -->
 
-        <div class="absolute inset-0 bg-black/50"
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition"
              id="file-library-backdrop">
         </div>
 
         <!-- Dialog -->
 
-        <div class="relative w-full max-w-4xl h-[700px] bg-card rounded-2xl border border-border shadow-xl flex flex-col">
+        <div class="relative w-full max-w-4xl h-[700px] bg-card rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-[3px] chat-header-gradient"></div>
 
             <!-- Header -->
 
-            <div class="h-16 border-b border-border px-6 flex items-center justify-between">
+            <div class="h-16 border-b border-border px-6 flex items-center justify-between mt-1">
 
-                <div class="font-semibold text-lg">
-
-                    File Library
-
+                <div class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-brand"></i> File Library
                 </div>
 
                 <button id="btn-file-library-close"
-                        class="h-9 w-9 rounded-lg cursor-pointer cursor-pointer hover:bg-surface-hover transition">
-
-                    ✕
-
+                        class="h-9 w-9 rounded-lg cursor-pointer hover:bg-surface-hover transition text-muted hover:text-foreground flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
 
             </div>
 
             <!-- Search -->
 
-            <div class="p-4 border-b border-border">
-
+            <div class="p-4 border-b border-border relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-8 top-1/2 -translate-y-1/2 text-muted"></i>
                 <input id="file-library-search"
                        type="text"
                        placeholder="Search files..."
-                       class="w-full rounded-xl border border-border bg-input px-4 py-3 outline-none" />
-
+                       class="w-full rounded-xl border border-border bg-input pl-10 pr-4 py-3 outline-none focus:border-brand focus:ring-1 focus:ring-brand transition" />
             </div>
 
             <!-- List -->
@@ -308,30 +318,24 @@
 
                 <!-- Loaded later -->
 
-                <div class="p-6 text-muted">
-
+                <div class="p-6 text-muted text-center font-medium">
                     No files loaded.
-
                 </div>
 
             </div>
 
             <!-- Footer -->
 
-            <div class="border-t border-border p-4 flex justify-end gap-3">
+            <div class="border-t border-border p-4 flex justify-end gap-3 bg-surface-alt">
 
                 <button id="btn-file-library-cancel"
-                        class="rounded-xl border border-border px-4 py-2 cursor-pointer cursor-pointer hover:bg-surface-hover transition">
-
+                        class="rounded-xl border border-border px-4 py-2 cursor-pointer hover:bg-surface-hover transition font-medium">
                     Cancel
-
                 </button>
 
                 <button id="btn-file-library-add-selected"
-                        class="rounded-xl bg-brand text-white px-4 py-2 cursor-pointer hover:bg-brand-dark transition">
-
+                        class="rounded-xl bg-brand text-white px-4 py-2 cursor-pointer hover:bg-brand-dark transition font-medium shadow-sm">
                     Add Selected
-
                 </button>
 
             </div>
